@@ -1,36 +1,21 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TCountySpotlight
 
-## Getting Started
+Community platform for Tuscarawas County, Ohio. It covers local businesses, business spotlights, events, specials, jobs, and dashboards for admins and business owners. It replaces the WordPress site at tcountyspotlight.com.
 
-First, run the development server:
-
+## Quick start (local)
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env          # set DATABASE_URL, ADMIN_EMAIL, ADMIN_PASSWORD
+npm install
+npx prisma migrate dev        # creates tables
+npm run db:seed               # categories, homepage sections, menus, plans, first admin
+npm run dev                   # http://localhost:3000  (admin at /admin/)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Import WordPress content: `npm run migrate:wp`, or use Admin → WordPress Import. See [docs/MIGRATION.md](docs/MIGRATION.md).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Docs
+- [docs/PLAN.md](docs/PLAN.md): audit, design direction, architecture, data model
+- [docs/MIGRATION.md](docs/MIGRATION.md): WordPress migration
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): Railway, environment variables, backups, DNS, rollback
+- [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md)
+- [docs/CONVENTIONS.md](docs/CONVENTIONS.md): code conventions

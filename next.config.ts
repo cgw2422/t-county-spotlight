@@ -9,7 +9,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
   poweredByHeader: false,
   // WordPress URLs end with "/" — keep that so every migrated URL stays identical.
   trailingSlash: true,
