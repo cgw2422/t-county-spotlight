@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { STALE_RUN_MS } from "@/lib/wordpress/run";
+import { failStaleRuns } from "@/lib/wordpress/run";
 import type { ImportReport } from "@/lib/wordpress/report";
 import { RestImportForm, WxrImportForm, AutoRefresh } from "./forms";
 
@@ -17,7 +17,7 @@ export default async function MigrationPage({ searchParams }: { searchParams: Pr
   await requireAdmin();
   const { error } = await searchParams;
   // runs still "running" long after start were interrupted (deploy / restart)
-  await db.migrationRun.updateMany({ where: { status: "running", startedAt: { lt: new Date(Date.now() - STALE_RUN_MS) } }, data: { status: "failed", finishedAt: new Date() } });
+  await failStaleRuns();
   const runs = await db.migrationRun.findMany({ orderBy: { startedAt: "desc" }, take: 30, select: { id: true, source: true, status: true, options: true, report: true, startedAt: true, finishedAt: true } });
   const running = runs.some((r) => r.status === "running");
   const hasCreds = !!(process.env.WP_USERNAME && process.env.WP_APP_PASSWORD);

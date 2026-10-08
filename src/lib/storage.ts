@@ -39,6 +39,7 @@ export const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   "image/svg+xml": "svg",
   "image/x-icon": "ico",
   "image/vnd.microsoft.icon": "ico",
+  "application/pdf": "pdf",
 };
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;

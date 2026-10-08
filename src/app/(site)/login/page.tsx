@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getPending2faSession } from "@/lib/auth";
 import { homeForRole, safeNext } from "@/lib/tokens";
 import { AuthShell } from "@/components/account/auth-shell";
 import { LoginForm } from "./login-form";
@@ -14,6 +14,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const next = safeNext(sp.next) ?? undefined;
   const user = await getCurrentUser();
   if (user) redirect(next ?? homeForRole(user.role));
+  if (await getPending2faSession()) redirect(`/login/2fa/${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   return (
     <AuthShell
       title="Welcome back"

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState } from "react";
+import { createContext, Fragment, startTransition, useActionState, useContext, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { ActionState } from "@/components/ui/form-message";
 import { FormMessage } from "@/components/ui/form-message";
@@ -32,6 +32,7 @@ export function ActionForm({ action, children, className, id, onResult, onDirtyC
   const [state, dispatch, pending] = useActionState(action, null);
   const [submitter, setSubmitter] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [gen, setGen] = useState(0);
   const localRef = useRef<HTMLFormElement>(null);
   const ref = formRef ?? localRef;
   const prevState = useRef<ActionState>(null);
@@ -44,7 +45,7 @@ export function ActionForm({ action, children, className, id, onResult, onDirtyC
     if (!state.error) {
       setDirty(false);
       onDirtyChange?.(false);
-      if (resetOnSuccess) ref.current?.reset();
+      if (resetOnSuccess) { ref.current?.reset(); setGen((g) => g + 1); }
     }
     onResult?.(state);
   }, [state, onResult, onDirtyChange, resetOnSuccess, ref]);
@@ -77,7 +78,7 @@ export function ActionForm({ action, children, className, id, onResult, onDirtyC
           startTransition(() => dispatch(fd));
         }}
       >
-        {children}
+        <Fragment key={gen}>{children}</Fragment>
         {showMessage && state?.error && <div className="mt-4"><FormMessage state={state} /></div>}
       </form>
     </FormCtx.Provider>

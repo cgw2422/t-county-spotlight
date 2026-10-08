@@ -159,7 +159,7 @@ export function splitAddress(full: string): { street?: string; city?: string; st
 
 export function mapBusinessFields(meta: Record<string, unknown>, businessIds: Set<number>): MappedBusiness {
   const out: MappedBusiness = { socials: {}, gallery: [], relatedIds: [], usedKeys: [] };
-  const use = (k: string) => out.usedKeys.push(k);
+  const markUsed = (k: string) => out.usedKeys.push(k);
   for (const [key, v] of flattenMeta(meta)) {
     if (key.startsWith("__")) continue;
     const k = leaf(key);
@@ -171,31 +171,31 @@ export function mapBusinessFields(meta: Record<string, unknown>, businessIds: Se
       if (out.longitude === undefined && mv.lng !== undefined && mv.lng !== "") out.longitude = Number(mv.lng);
       if (!out.city && mv.city) out.city = mv.city;
       if (!out.zip && mv.post_code) out.zip = mv.post_code;
-      use(key);
+      markUsed(key);
       continue;
     }
-    if (/^(street_?)?address(_?1|_?line_?1)?$|^street(_address)?$|^location_address$|^full_address$/.test(k) && s) { if (!out.address) { out.address = s; use(key); } continue; }
-    if (/^(address_?2|address_line_?2|suite|unit)$/.test(k) && s) { use(key); out.address = out.address ? `${out.address}, ${s}` : s; continue; }
-    if (/^(city|town|locality|geolocation_city)$/.test(k) && s) { if (!out.city) { out.city = s; use(key); } continue; }
-    if (/^(state|region|province|geolocation_state_short)$/.test(k) && s) { if (!out.state) { out.state = s; use(key); } continue; }
-    if (/^(zip|zip_?code|postal_?code|postcode|post_code|geolocation_postcode)$/.test(k) && s) { if (!out.zip) { out.zip = s; use(key); } continue; }
-    if (/^(lat|latitude|geolocation_lat)$/.test(k) && s && Number.isFinite(Number(s))) { out.latitude = Number(s); use(key); continue; }
-    if (/^(lng|lon|long|longitude|geolocation_long)$/.test(k) && s && Number.isFinite(Number(s))) { out.longitude = Number(s); use(key); continue; }
-    if (/^(phone|telephone|tel|phone_?number|main_?phone|business_?phone|mobile|cell)$/.test(k) && s) { if (!out.phone) { out.phone = s; use(key); } continue; }
-    if (/^(e_?mail|email_?address|public_?email)$/.test(k) && s && s.includes("@")) { if (!out.email) { out.email = s; use(key); } continue; }
+    if (/^(street_?)?address(_?1|_?line_?1)?$|^street(_address)?$|^location_address$|^full_address$/.test(k) && s) { if (!out.address) { out.address = s; markUsed(key); } continue; }
+    if (/^(address_?2|address_line_?2|suite|unit)$/.test(k) && s) { markUsed(key); out.address = out.address ? `${out.address}, ${s}` : s; continue; }
+    if (/^(city|town|locality|geolocation_city)$/.test(k) && s) { if (!out.city) { out.city = s; markUsed(key); } continue; }
+    if (/^(state|region|province|geolocation_state_short)$/.test(k) && s) { if (!out.state) { out.state = s; markUsed(key); } continue; }
+    if (/^(zip|zip_?code|postal_?code|postcode|post_code|geolocation_postcode)$/.test(k) && s) { if (!out.zip) { out.zip = s; markUsed(key); } continue; }
+    if (/^(lat|latitude|geolocation_lat)$/.test(k) && s && Number.isFinite(Number(s))) { out.latitude = Number(s); markUsed(key); continue; }
+    if (/^(lng|lon|long|longitude|geolocation_long)$/.test(k) && s && Number.isFinite(Number(s))) { out.longitude = Number(s); markUsed(key); continue; }
+    if (/^(phone|telephone|tel|phone_?number|main_?phone|business_?phone|mobile|cell)$/.test(k) && s) { if (!out.phone) { out.phone = s; markUsed(key); } continue; }
+    if (/^(e_?mail|email_?address|public_?email)$/.test(k) && s && s.includes("@")) { if (!out.email) { out.email = s; markUsed(key); } continue; }
     if (/^(website|web_?site|url|website_?url|web|homepage|site_?url|web_?address)$/.test(k) && s && /\.|^https?:/.test(s)) {
-      if (!out.website) { out.website = /^https?:\/\//i.test(s) ? s : `https://${s.replace(/^\/+/, "")}`; use(key); }
+      if (!out.website) { out.website = /^https?:\/\//i.test(s) ? s : `https://${s.replace(/^\/+/, "")}`; markUsed(key); }
       continue;
     }
     let social = false;
     for (const [net, re] of Object.entries(SOCIAL_KEYS)) {
-      if (re.test(k) && s) { out.socials[net] ??= s; use(key); social = true; break; }
+      if (re.test(k) && s) { out.socials[net] ??= s; markUsed(key); social = true; break; }
     }
     if (social) continue;
     if (/^(social|socials|social_?links|social_?media)$/.test(k) && v && typeof v === "object") {
       const vals = Array.isArray(v) ? v.map((x) => (x && typeof x === "object" ? Object.values(x as object) : [x])).flat() : Object.values(v as object);
       for (const x of vals.map(str)) for (const [net, re] of Object.entries(SOCIAL_HOSTS)) if (re.test(x)) out.socials[net] ??= x;
-      use(key);
+      markUsed(key);
       continue;
     }
     if (/^(hours|business_?hours|opening_?hours|hours_?of_?operation|open_?hours|store_?hours)$/.test(k)) {
@@ -203,17 +203,17 @@ export function mapBusinessFields(meta: Record<string, unknown>, businessIds: Se
       if (parsed) out.hours = parsed;
       else if (s) out.hoursText = s;
       else if (v && typeof v === "object") out.hoursText = JSON.stringify(v);
-      use(key);
+      markUsed(key);
       continue;
     }
-    if (/^(logo|business_?logo|company_?logo|logo_?image|brand_?logo)$/.test(k) && v) { out.logo = v; use(key); continue; }
+    if (/^(logo|business_?logo|company_?logo|logo_?image|brand_?logo)$/.test(k) && v) { out.logo = v; markUsed(key); continue; }
     if (/^(gallery|photos|images|business_?gallery|photo_?gallery|image_?gallery)$/.test(k) && v) {
       if (Array.isArray(v)) out.gallery.push(...v);
       else if (typeof v === "string") out.gallery.push(...v.split(",").map((x) => x.trim()).filter(Boolean));
-      use(key);
+      markUsed(key);
       continue;
     }
-    if (/^(tagline|slogan|subtitle|short_?description|summary)$/.test(k) && s && s.length < 300) { if (!out.tagline) { out.tagline = s; use(key); } continue; }
+    if (/^(tagline|slogan|subtitle|short_?description|summary)$/.test(k) && s && s.length < 300) { if (!out.tagline) { out.tagline = s; markUsed(key); } continue; }
   }
   if (out.address && !out.city) {
     const parts = splitAddress(out.address);

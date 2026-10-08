@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { permanentRedirect } from "next/navigation";
 import { CalendarDays, Store } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
@@ -140,7 +141,19 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  // WordPress shortlinks (/?p=123, /?page_id=45) → migrated content
+  const sp = await searchParams;
+  for (const key of ["p", "page_id"]) {
+    const v = sp[key];
+    if (typeof v === "string" && /^\d+$/.test(v)) {
+      const r = await db.redirect.findUnique({ where: { fromPath: `/?${key}=${v}` } });
+      if (r) {
+        await db.redirect.update({ where: { id: r.id }, data: { hits: { increment: 1 } } });
+        permanentRedirect(r.toPath);
+      }
+    }
+  }
   const [settings, sections] = await Promise.all([
     getSettings(),
     db.homepageSection.findMany({ where: { isEnabled: true }, orderBy: { sortOrder: "asc" } }),

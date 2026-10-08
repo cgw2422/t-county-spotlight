@@ -41,6 +41,11 @@ export async function createRun(opts: MigrationOptions) {
 /** A run that is still "running" after this long is assumed dead (server restart). */
 export const STALE_RUN_MS = 6 * 60 * 60 * 1000;
 
+/** Mark runs interrupted by a restart/redeploy as failed. */
+export async function failStaleRuns() {
+  return db.migrationRun.updateMany({ where: { status: "running", startedAt: { lt: new Date(Date.now() - STALE_RUN_MS) } }, data: { status: "failed", finishedAt: new Date() } });
+}
+
 export async function activeRun() {
   return db.migrationRun.findFirst({ where: { status: "running", startedAt: { gt: new Date(Date.now() - STALE_RUN_MS) } }, orderBy: { startedAt: "desc" } });
 }
