@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- TEST FIXTURE ONLY. Every record is fake ("Fixture WXR ..."). Media URLs point at scripts/fixtures/fake-wp-server.ts -->
+<rss version="2.0"
+	xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:wp="http://wordpress.org/export/1.2/"
+>
+<channel>
+	<title>Fixture WXR Test Site</title>
+	<link>http://localhost:8787</link>
+	<description>Fixture WXR tagline</description>
+	<language>en-US</language>
+	<wp:wxr_version>1.2</wp:wxr_version>
+	<wp:base_site_url>http://localhost:8787</wp:base_site_url>
+	<wp:base_blog_url>http://localhost:8787</wp:base_blog_url>
+
+	<wp:author><wp:author_id>3</wp:author_id><wp:author_login><![CDATA[fixture-wxr-author]]></wp:author_login><wp:author_email><![CDATA[author@fixture.test]]></wp:author_email><wp:author_display_name><![CDATA[Fixture WXR Author]]></wp:author_display_name></wp:author>
+
+	<wp:category><wp:term_id>2</wp:term_id><wp:category_nicename><![CDATA[fixture-business-spotlights]]></wp:category_nicename><wp:category_parent><![CDATA[]]></wp:category_parent><wp:cat_name><![CDATA[Fixture Business Spotlights]]></wp:cat_name></wp:category>
+	<wp:category><wp:term_id>7</wp:term_id><wp:category_nicename><![CDATA[fixture-wxr-events]]></wp:category_nicename><wp:category_parent><![CDATA[fixture-business-spotlights]]></wp:category_parent><wp:cat_name><![CDATA[Fixture WXR Events]]></wp:cat_name></wp:category>
+	<wp:tag><wp:term_id>9</wp:term_id><wp:tag_slug><![CDATA[fixture-tag]]></wp:tag_slug><wp:tag_name><![CDATA[Fixture Tag]]></wp:tag_name></wp:tag>
+	<wp:term><wp:term_id>34</wp:term_id><wp:term_taxonomy><![CDATA[business_category]]></wp:term_taxonomy><wp:term_slug><![CDATA[fixture-wxr-salons]]></wp:term_slug><wp:term_parent><![CDATA[]]></wp:term_parent><wp:term_name><![CDATA[Fixture WXR Salons & Spas]]></wp:term_name></wp:term>
+	<wp:term><wp:term_id>601</wp:term_id><wp:term_taxonomy><![CDATA[nav_menu]]></wp:term_taxonomy><wp:term_slug><![CDATA[fixture-wxr-menu]]></wp:term_slug><wp:term_name><![CDATA[Fixture WXR Menu]]></wp:term_name></wp:term>
+
+	<item>
+		<title><![CDATA[fixture-wxr-photo]]></title>
+		<link>http://localhost:8787/fixture-wxr-photo/</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[]]></content:encoded>
+		<excerpt:encoded><![CDATA[Fixture WXR photo caption]]></excerpt:encoded>
+		<wp:post_id>120</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-01 10:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-photo]]></wp:post_name>
+		<wp:status><![CDATA[inherit]]></wp:status>
+		<wp:post_parent>701</wp:post_parent>
+		<wp:post_type><![CDATA[attachment]]></wp:post_type>
+		<wp:attachment_url><![CDATA[http://localhost:8787/wp-content/uploads/2024/05/fixture-wxr-photo.png]]></wp:attachment_url>
+		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2024/05/fixture-wxr-photo.png]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_wp_attachment_image_alt]]></wp:meta_key><wp:meta_value><![CDATA[Fixture WXR photo alt]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_wp_attachment_metadata]]></wp:meta_key><wp:meta_value><![CDATA[a:4:{s:5:"width";i:14;s:6:"height";i:10;s:4:"file";s:29:"2024/05/fixture-wxr-photo.png";s:5:"sizes";a:1:{s:6:"medium";a:3:{s:4:"file";s:29:"fixture-wxr-photo-300x200.png";s:5:"width";i:300;s:6:"height";i:200;}}}]]></wp:meta_value></wp:postmeta>
+	</item>
+
+	<item>
+		<title><![CDATA[Fixture WXR Spotlight: Fixture WXR Salon]]></title>
+		<link>http://localhost:8787/fixture-wxr-spotlight-salon/</link>
+		<pubDate>Wed, 01 May 2024 12:00:00 +0000</pubDate>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<description></description>
+		<content:encoded><![CDATA[Fixture WXR first paragraph — test data only.
+Second line of the same fixture paragraph.
+
+[caption id="attachment_120" align="aligncenter" width="300"]<img class="size-medium wp-image-120" src="http://localhost:8787/wp-content/uploads/2024/05/fixture-wxr-photo-300x200.png" alt="Fixture WXR photo alt" width="300" height="200" /> Fixture WXR caption text[/caption]
+
+Visit <a href="http://localhost:8787/business/fixture-wxr-salon/">Fixture WXR Salon</a>. [fixture_unknown_shortcode id="1"]
+
+<ul>
+<li>Fixture list item</li>
+</ul>]]></content:encoded>
+		<excerpt:encoded><![CDATA[Fixture WXR manual excerpt.]]></excerpt:encoded>
+		<wp:post_id>701</wp:post_id>
+		<wp:post_date><![CDATA[2024-05-01 08:00:00]]></wp:post_date>
+		<wp:post_date_gmt><![CDATA[2024-05-01 12:00:00]]></wp:post_date_gmt>
+		<wp:post_modified_gmt><![CDATA[2024-05-02 12:00:00]]></wp:post_modified_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-spotlight-salon]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_parent>0</wp:post_parent>
+		<wp:menu_order>0</wp:menu_order>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<category domain="category" nicename="fixture-business-spotlights"><![CDATA[Fixture Business Spotlights]]></category>
+		<category domain="post_tag" nicename="fixture-tag"><![CDATA[Fixture Tag]]></category>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[120]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_yoast_wpseo_title]]></wp:meta_key><wp:meta_value><![CDATA[%%title%% %%sep%% %%sitename%%]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_yoast_wpseo_metadesc]]></wp:meta_key><wp:meta_value><![CDATA[Fixture WXR meta description.]]></wp:meta_value></wp:postmeta>
+		<wp:comment><wp:comment_id>1</wp:comment_id><wp:comment_author><![CDATA[Fixture Commenter]]></wp:comment_author><wp:comment_content><![CDATA[Fixture comment]]></wp:comment_content></wp:comment>
+	</item>
+
+	<item>
+		<title><![CDATA[Fixture WXR Draft]]></title>
+		<link>http://localhost:8787/?p=702</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[<!-- wp:paragraph --><p>Fixture WXR draft body.</p><!-- /wp:paragraph -->]]></content:encoded>
+		<excerpt:encoded><![CDATA[]]></excerpt:encoded>
+		<wp:post_id>702</wp:post_id>
+		<wp:post_date><![CDATA[2024-06-01 08:00:00]]></wp:post_date>
+		<wp:post_date_gmt><![CDATA[0000-00-00 00:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[]]></wp:post_name>
+		<wp:status><![CDATA[draft]]></wp:status>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+		<category domain="category" nicename="fixture-wxr-events"><![CDATA[Fixture WXR Events]]></category>
+	</item>
+	<item>
+		<title><![CDATA[Fixture WXR Pending]]></title>
+		<link>http://localhost:8787/?p=703</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[<p>Fixture WXR pending body.</p>]]></content:encoded>
+		<wp:post_id>703</wp:post_id>
+		<wp:post_date_gmt><![CDATA[0000-00-00 00:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-pending]]></wp:post_name>
+		<wp:status><![CDATA[pending]]></wp:status>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+	</item>
+	<item>
+		<title><![CDATA[Fixture WXR Private]]></title>
+		<link>http://localhost:8787/fixture-wxr-private/</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[<p>Fixture WXR private body.</p>]]></content:encoded>
+		<wp:post_id>704</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-05-10 12:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-private]]></wp:post_name>
+		<wp:status><![CDATA[private]]></wp:status>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+	</item>
+	<item>
+		<title><![CDATA[Fixture WXR Scheduled]]></title>
+		<link>http://localhost:8787/fixture-wxr-scheduled/</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[<p>Fixture WXR scheduled body.</p>]]></content:encoded>
+		<wp:post_id>705</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2027-03-01 12:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-scheduled]]></wp:post_name>
+		<wp:status><![CDATA[future]]></wp:status>
+		<wp:post_type><![CDATA[post]]></wp:post_type>
+	</item>
+
+	<item>
+		<title><![CDATA[Fixture WXR Page]]></title>
+		<link>http://localhost:8787/fixture-wxr-page/</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[Fixture WXR page paragraph.]]></content:encoded>
+		<wp:post_id>711</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-01-01 00:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-page]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_type><![CDATA[page]]></wp:post_type>
+	</item>
+
+	<item>
+		<title><![CDATA[Fixture WXR Salon]]></title>
+		<link>http://localhost:8787/business/fixture-wxr-salon/</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[Fixture WXR salon description.]]></content:encoded>
+		<wp:post_id>721</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-02-01 00:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-wxr-salon]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_type><![CDATA[business]]></wp:post_type>
+		<category domain="business_category" nicename="fixture-wxr-salons"><![CDATA[Fixture WXR Salons & Spas]]></category>
+		<wp:postmeta><wp:meta_key><![CDATA[street_address]]></wp:meta_key><wp:meta_value><![CDATA[9 Fixture Rd]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_street_address]]></wp:meta_key><wp:meta_value><![CDATA[field_65a1b2c3d4e5f]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[city]]></wp:meta_key><wp:meta_value><![CDATA[Strasburg]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[zip]]></wp:meta_key><wp:meta_value><![CDATA[44680]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[phone_number]]></wp:meta_key><wp:meta_value><![CDATA[330-555-0199]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[website_url]]></wp:meta_key><wp:meta_value><![CDATA[https://fixture-wxr-salon.test]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[logo]]></wp:meta_key><wp:meta_value><![CDATA[120]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[gallery]]></wp:meta_key><wp:meta_value><![CDATA[a:1:{i:0;s:3:"120";}]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[fixture_unmapped_field]]></wp:meta_key><wp:meta_value><![CDATA[kept]]></wp:meta_value></wp:postmeta>
+	</item>
+
+	<item>
+		<title><![CDATA[Fixture form submission]]></title>
+		<link>http://localhost:8787/?post_type=flamingo_inbound&amp;p=731</link>
+		<dc:creator><![CDATA[fixture-wxr-author]]></dc:creator>
+		<content:encoded><![CDATA[Fixture applicant message]]></content:encoded>
+		<wp:post_id>731</wp:post_id>
+		<wp:post_date_gmt><![CDATA[2024-02-01 00:00:00]]></wp:post_date_gmt>
+		<wp:post_name><![CDATA[fixture-form-submission]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:post_type><![CDATA[flamingo_inbound]]></wp:post_type>
+	</item>
+
+	<item>
+		<title><![CDATA[Fixture WXR Menu Link]]></title>
+		<link>http://localhost:8787/fixture-wxr-menu-link/</link>
+		<wp:post_id>741</wp:post_id>
+		<wp:post_name><![CDATA[fixture-wxr-menu-link]]></wp:post_name>
+		<wp:status><![CDATA[publish]]></wp:status>
+		<wp:menu_order>1</wp:menu_order>
+		<wp:post_type><![CDATA[nav_menu_item]]></wp:post_type>
+		<category domain="nav_menu" nicename="fixture-wxr-menu"><![CDATA[Fixture WXR Menu]]></category>
+		<wp:postmeta><wp:meta_key><![CDATA[_menu_item_type]]></wp:meta_key><wp:meta_value><![CDATA[post_type]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_menu_item_object_id]]></wp:meta_key><wp:meta_value><![CDATA[711]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_menu_item_url]]></wp:meta_key><wp:meta_value><![CDATA[]]></wp:meta_value></wp:postmeta>
+	</item>
+</channel>
+</rss>
