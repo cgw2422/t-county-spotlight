@@ -1,0 +1,766 @@
+// TCountySpotlight database schema
+// Conventions:
+//  - wpId / wpType columns preserve original WordPress identifiers so the
+//    importer can be re-run without creating duplicates.
+//  - Editorial records use soft deletion (deletedAt) so nothing is lost.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Users & auth ─────────────────────────────
+
+enum Role {
+  ADMIN
+  EDITOR
+  BUSINESS_OWNER
+  MEMBER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  passwordHash    String?
+  name            String?
+  role            Role       @default(MEMBER)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  totpSecret      String?
+  totpEnabled     Boolean    @default(false)
+  notificationPrefs Json?
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  sessions          Session[]
+  tokens            VerificationToken[]
+  businesses        BusinessOwner[]
+  savedItems        SavedItem[]
+  follows           BusinessFollow[]
+  redemptions       PromotionRedemption[]
+  pushSubscriptions PushSubscription[]
+  auditLogs         AuditLog[]
+  articles          Article[]           @relation("ArticleAuthor")
+  revisions         ArticleRevision[]
+  media             Media[]
+  applications      BusinessApplication[] @relation("ApplicationSubmitter")
+  submittedEvents   Event[]             @relation("EventSubmitter")
+}
+
+model Session {
+  id          String   @id // sha256 of the cookie token
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  needs2fa    Boolean  @default(false)
+  userAgent   String?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+model VerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      TokenType
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ───────────────────────────── Businesses ─────────────────────────────
+
+enum PublishStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  SUSPENDED
+  ARCHIVED
+}
+
+model BusinessCategory {
+  id          String     @id @default(cuid())
+  wpId        Int?
+  wpTaxonomy  String?
+  name        String
+  slug        String     @unique
+  description String?
+  icon        String?
+  sortOrder   Int        @default(0)
+  businesses  Business[]
+  createdAt   DateTime   @default(now())
+}
+
+model Business {
+  id             String        @id @default(cuid())
+  wpId           Int?
+  wpType         String?
+  slug           String        @unique
+  name           String
+  tagline        String?
+  description    String?       // HTML
+  story          String?       // HTML
+  logoUrl        String?
+  coverUrl       String?
+  address        String?
+  city           String?
+  state          String?       @default("OH")
+  zip            String?
+  latitude       Float?
+  longitude      Float?
+  phone          String?
+  email          String?
+  emailPublic    Boolean       @default(false)
+  website        String?
+  socials        Json?         // { facebook, instagram, x, tiktok, youtube, linkedin }
+  hours          Json?         // [{ day: "Mon", open: "09:00", close: "17:00", closed: false }]
+  status         PublishStatus @default(PUBLISHED)
+  isFeatured     Boolean       @default(false)
+  isSpotlighted  Boolean       @default(false) // editorial spotlight (never implied by payment)
+  seoTitle       String?
+  seoDescription String?
+  legacyPath     String?       @unique
+  wpMeta         Json?
+  publishedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  categories    BusinessCategory[]
+  photos        BusinessPhoto[]
+  owners        BusinessOwner[]
+  articles      ArticleBusiness[]
+  events        Event[]
+  promotions    Promotion[]
+  updates       BusinessUpdate[]
+  followers     BusinessFollow[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  placements    Placement[]
+  jobs          Job[]
+  applications  BusinessApplication[]
+
+  @@unique([wpType, wpId])
+  @@index([status, deletedAt])
+  @@index([city])
+}
+
+model BusinessPhoto {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  url        String
+  alt        String?
+  caption    String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+enum OwnerRole {
+  OWNER
+  MANAGER
+}
+
+model BusinessOwner {
+  userId     String
+  businessId String
+  role       OwnerRole @default(OWNER)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@id([userId, businessId])
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model BusinessApplication {
+  id           String       @id @default(cuid())
+  wpId         Int?         @unique
+  businessName String
+  contactName  String?
+  email        String
+  phone        String?
+  website      String?
+  address      String?
+  city         String?
+  category     String?
+  message      String?
+  wantsSpotlight Boolean    @default(false)
+  data         Json?
+  status       ReviewStatus @default(PENDING)
+  reviewNote   String?
+  userId       String?
+  user         User?        @relation("ApplicationSubmitter", fields: [userId], references: [id])
+  businessId   String?
+  business     Business?    @relation(fields: [businessId], references: [id])
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+}
+
+model BusinessUpdate {
+  id         String        @id @default(cuid())
+  businessId String
+  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title      String
+  body       String
+  imageUrl   String?
+  status     PublishStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model BusinessFollow {
+  userId     String
+  businessId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, businessId])
+}
+
+// ───────────────────────────── Editorial ─────────────────────────────
+
+enum ArticleStatus {
+  DRAFT
+  PENDING
+  SCHEDULED
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum ArticleKind {
+  SPOTLIGHT
+  NEWS
+  ANNOUNCEMENT
+  THINGS_TO_DO
+  GENERAL
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  wpId        Int?      @unique
+  name        String
+  slug        String    @unique
+  description String?
+  articles    Article[]
+}
+
+model Tag {
+  id       String    @id @default(cuid())
+  wpId     Int?      @unique
+  name     String
+  slug     String    @unique
+  articles Article[]
+}
+
+model Article {
+  id               String        @id @default(cuid())
+  wpId             Int?
+  wpType           String?
+  slug             String        @unique
+  title            String
+  excerpt          String?
+  content          String        // HTML, preserved verbatim from WordPress (with media URLs rewritten)
+  originalContent  String?       // untouched WordPress HTML, kept for audit / rollback
+  featuredImageUrl String?
+  featuredImageAlt String?
+  status           ArticleStatus @default(DRAFT)
+  kind             ArticleKind   @default(GENERAL)
+  publishedAt      DateTime?
+  authorName       String?
+  authorId         String?
+  author           User?         @relation("ArticleAuthor", fields: [authorId], references: [id])
+  seoTitle         String?
+  seoDescription   String?
+  ogImageUrl       String?
+  legacyPath       String?       @unique
+  isFeatured       Boolean       @default(false)
+  wpModifiedAt     DateTime?
+  localEditedAt    DateTime?     // set when edited in the new CMS; importer will not overwrite
+  wpMeta           Json?
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  categories Category[]
+  tags       Tag[]
+  businesses ArticleBusiness[]
+  revisions  ArticleRevision[]
+
+  @@unique([wpType, wpId])
+  @@index([status, publishedAt])
+  @@index([kind])
+}
+
+model ArticleBusiness {
+  articleId  String
+  businessId String
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, businessId])
+}
+
+model ArticleRevision {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  title     String
+  excerpt   String?
+  content   String
+  note      String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([articleId, createdAt])
+}
+
+model Page {
+  id               String        @id @default(cuid())
+  wpId             Int?          @unique
+  slug             String        @unique
+  title            String
+  content          String
+  originalContent  String?
+  featuredImageUrl String?
+  status           ArticleStatus @default(DRAFT)
+  seoTitle         String?
+  seoDescription   String?
+  showInNav        Boolean       @default(false)
+  legacyPath       String?       @unique
+  localEditedAt    DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+// ───────────────────────────── Events ─────────────────────────────
+
+enum EventStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+model EventCategory {
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
+  sortOrder Int     @default(0)
+  events    Event[]
+}
+
+model Event {
+  id              String         @id @default(cuid())
+  wpId            Int?           @unique
+  slug            String         @unique
+  title           String
+  description     String?        // HTML
+  imageUrl        String?
+  startAt         DateTime
+  endAt           DateTime?
+  allDay          Boolean        @default(false)
+  // Recurrence: { freq: "DAILY"|"WEEKLY"|"MONTHLY", interval: 1, until: ISO, count?: n }
+  recurrence      Json?
+  locationName    String?
+  address         String?
+  city            String?
+  organizer       String?
+  businessId      String?
+  business        Business?      @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  categoryId      String?
+  category        EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  ticketUrl       String?
+  isFree          Boolean        @default(true)
+  price           String?
+  status          EventStatus    @default(PENDING)
+  isFeatured      Boolean        @default(false)
+  isSponsored     Boolean        @default(false)
+  submittedById   String?
+  submittedBy     User?          @relation("EventSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  submitterEmail  String?
+  rejectionReason String?
+  dedupeKey       String?        @unique
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status, startAt])
+}
+
+// ───────────────────────────── Promotions ─────────────────────────────
+
+enum PromotionStatus {
+  DRAFT
+  PENDING
+  APPROVED      // becomes Scheduled / Active / Expired based on dates
+  REJECTED
+  UNPUBLISHED
+}
+
+model Promotion {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  title           String
+  description     String?
+  businessId      String
+  business        Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  imageUrl        String?
+  startsAt        DateTime        @default(now())
+  endsAt          DateTime?
+  terms           String?
+  couponCode      String?
+  redemptionLimit Int?
+  status          PromotionStatus @default(PENDING)
+  isFeatured      Boolean         @default(false)
+  isSponsored     Boolean         @default(false)
+  rejectionReason String?
+  createdById     String?
+  deletedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  redemptions PromotionRedemption[]
+
+  @@index([status, startsAt, endsAt])
+}
+
+model PromotionRedemption {
+  id          String    @id @default(cuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([promotionId, userId])
+}
+
+// ───────────────────────────── Jobs ─────────────────────────────
+
+model Job {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  businessId     String?
+  business       Business?     @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  employerName   String?
+  description    String?
+  employmentType String?
+  location       String?
+  payRange       String?
+  applyUrl       String?
+  applyEmail     String?
+  status         PublishStatus @default(PENDING)
+  isSponsored    Boolean       @default(false)
+  expiresAt      DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+// ───────────────────────────── Community members ─────────────────────────────
+
+enum SavedType {
+  BUSINESS
+  EVENT
+  PROMOTION
+  ARTICLE
+}
+
+model SavedItem {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      SavedType
+  targetId  String
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, type, targetId])
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  categories String[] @default([])
+  createdAt  DateTime @default(now())
+}
+
+// Real, recorded engagement. Never fabricated.
+model EngagementEvent {
+  id         String   @id @default(cuid())
+  type       String   // view_business, view_event, view_promotion, view_article, click_website, click_phone, click_directions, save
+  businessId String?
+  targetType String?
+  targetId   String?
+  visitorHash String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, type, createdAt])
+  @@index([targetType, targetId])
+}
+
+// ───────────────────────────── Site management ─────────────────────────────
+
+enum MenuLocation {
+  HEADER
+  FOOTER
+  MOBILE
+}
+
+model MenuItem {
+  id           String       @id @default(cuid())
+  location     MenuLocation
+  label        String
+  href         String
+  parentId     String?
+  sortOrder    Int          @default(0)
+  isVisible    Boolean      @default(true)
+  openInNewTab Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+}
+
+model HomepageSection {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  type        String   // hero, explore, weekend, events, businesses, spotlights, specials, things_to_do, announcements, banner
+  title       String
+  subtitle    String?
+  isEnabled   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  limit       Int      @default(6)
+  featuredIds String[] @default([])
+  config      Json?
+  updatedAt   DateTime @updatedAt
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id          String    @id @default(cuid())
+  key         String    @unique   // storage key
+  url         String
+  filename    String
+  mimeType    String
+  size        Int       @default(0)
+  width       Int?
+  height      Int?
+  alt         String?
+  caption     String?
+  title       String?
+  wpId        Int?      @unique
+  sourceUrl   String?   @unique   // original WordPress URL (dedupe key for migrations)
+  uploadedById String?
+  uploadedBy  User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+// Database-backed object storage, used when no S3 bucket is configured.
+model MediaBlob {
+  key       String   @id
+  data      Bytes
+  mimeType  String
+  createdAt DateTime @default(now())
+}
+
+model Redirect {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  source     String   @default("manual") // manual | migration
+  hits       Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?
+  entityId   String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}
+
+// ───────────────────────────── Memberships & payments ─────────────────────────────
+
+enum PlanInterval {
+  FREE
+  MONTH
+  YEAR
+}
+
+model MembershipPlan {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  name          String
+  description   String?
+  priceCents    Int          @default(0)
+  interval      PlanInterval @default(MONTH)
+  features      String[]     @default([])
+  // { promotions: bool, events: bool, updates: bool, analytics: bool, maxPhotos: int }
+  entitlements  Json
+  stripePriceId String?
+  isActive      Boolean      @default(false)
+  isPublic      Boolean      @default(true)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  subscriptions Subscription[]
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  UNPAID
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  businessId           String
+  business             Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planId               String
+  plan                 MembershipPlan     @relation(fields: [planId], references: [id])
+  source               String             @default("stripe") // stripe | manual
+  stripeCustomerId     String?
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(INCOMPLETE)
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([businessId, status])
+}
+
+model Payment {
+  id               String   @id @default(cuid())
+  businessId       String?
+  business         Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  stripeInvoiceId  String?  @unique
+  stripeSessionId  String?  @unique
+  amountCents      Int
+  currency         String   @default("usd")
+  status           String
+  description      String?
+  hostedInvoiceUrl String?
+  paidAt           DateTime?
+  createdAt        DateTime @default(now())
+}
+
+model SponsorshipProduct {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  type          String      // featured_placement, event_sponsorship, weekend_guide, job_listing, category_sponsorship, promotional_placement
+  description   String?
+  priceCents    Int         @default(0)
+  durationDays  Int         @default(30)
+  stripePriceId String?
+  isActive      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  placements    Placement[]
+}
+
+model Placement {
+  id         String              @id @default(cuid())
+  businessId String?
+  business   Business?           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    SponsorshipProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  slot       String              // homepage_featured, weekend_guide, category:<slug>, events
+  title      String?
+  imageUrl   String?
+  linkUrl    String?
+  startsAt   DateTime            @default(now())
+  endsAt     DateTime?
+  isActive   Boolean             @default(true)
+  createdAt  DateTime            @default(now())
+}
+
+model StripeEvent {
+  id          String   @id // Stripe event id — guarantees idempotent webhook handling
+  type        String
+  processedAt DateTime @default(now())
+}
+
+// ───────────────────────────── WordPress migration ─────────────────────────────
+
+model MigrationRun {
+  id         String    @id @default(cuid())
+  source     String    // rest | wxr
+  status     String    @default("running") // running | completed | failed
+  options    Json?
+  report     Json?
+  log        String    @default("")
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+}
+
+model WpRecord {
+  id         String   @id @default(cuid())
+  wpType     String
+  wpId       Int
+  title      String?
+  status     String   // imported | failed | skipped | preserved_local_edits
+  wpStatus   String?
+  targetType String?
+  targetId   String?
+  sourceUrl  String?
+  newPath    String?
+  error      String?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([wpType, wpId])
+}
