@@ -6,12 +6,19 @@ export type Occurrence<T> = T & { occurrenceStart: Date; occurrenceEnd: Date | n
 
 type EventLike = { startAt: Date; endAt: Date | null; recurrence: unknown };
 
+import { fromDateInput, toDateInput } from "./utils";
+
+/** Adds days/weeks/months in America/New_York wall-clock time (DST-safe). */
 function addInterval(d: Date, freq: Recurrence["freq"], n: number) {
-  const x = new Date(d);
+  const local = toDateInput(d); // yyyy-mm-ddThh:mm in New York time
+  const [datePart, timePart] = local.split("T");
+  const [y, m, day] = datePart.split("-").map(Number);
+  const x = new Date(Date.UTC(y, m - 1, day));
   if (freq === "DAILY") x.setUTCDate(x.getUTCDate() + n);
   else if (freq === "WEEKLY") x.setUTCDate(x.getUTCDate() + 7 * n);
   else x.setUTCMonth(x.getUTCMonth() + n);
-  return x;
+  const next = `${x.toISOString().slice(0, 10)}T${timePart}`;
+  return fromDateInput(next) ?? x;
 }
 
 /**
