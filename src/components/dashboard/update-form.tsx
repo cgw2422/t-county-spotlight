@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -9,7 +9,8 @@ import { TextArea, TextField, echoed } from "./fields";
 export function UpdateForm({ businessId }: { businessId: string }) {
   const [state, action] = useActionState(createUpdateAction, null);
   const [round, setRound] = useState(0);
-  useEffect(() => { if (state?.ok) setRound((r) => r + 1); }, [state]);
+  const [seen, setSeen] = useState(state);
+  if (state !== seen) { setSeen(state); if (state?.ok) setRound((r) => r + 1); }
   return (
     <div className="space-y-4">
       <FormMessage state={state} />

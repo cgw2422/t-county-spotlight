@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -9,9 +9,11 @@ export function PhotoAddForm({ businessId }: { businessId: string }) {
   const [state, action] = useActionState(addPhotoAction, null);
   const [round, setRound] = useState(0);
   const [hasImage, setHasImage] = useState(false);
-  useEffect(() => {
+  const [seen, setSeen] = useState(state);
+  if (state !== seen) {
+    setSeen(state);
     if (state?.ok) { setRound((r) => r + 1); setHasImage(false); }
-  }, [state]);
+  }
   return (
     <form action={action} className="space-y-4" key={round}>
       <input type="hidden" name="businessId" value={businessId} />

@@ -15,6 +15,8 @@ import { buySponsorshipAction, setCancelAtPeriodEndAction, startCheckoutAction }
 export const metadata: Metadata = { title: "Membership" };
 export const dynamic = "force-dynamic";
 
+const daysAgo = (n: number) => new Date(Date.now() - n * 86400_000);
+
 const FLASH: Record<string, [string, string]> = {
   "checkout:unavailable": ["Online payments are not yet enabled for this plan. Please contact us and we'll get you set up.", "bg-amber-50 text-amber-900"],
   "checkout:already": ["You already have this membership.", "bg-brand-50 text-navy-900"],
@@ -38,7 +40,7 @@ export default async function MembershipPage({ params, searchParams }: { params:
     db.sponsorshipProduct.findMany({ where: { isActive: true }, orderBy: { priceCents: "asc" } }),
   ]);
   const canPay = settings.paymentsEnabled && stripeConfigured();
-  const visibleSubs = subs.filter((s) => s.status !== "CANCELED" || (s.updatedAt > new Date(Date.now() - 90 * 86400_000)));
+  const visibleSubs = subs.filter((s) => s.status !== "CANCELED" || s.updatedAt > daysAgo(90));
   const hasStripeCustomer = subs.some((s) => s.stripeCustomerId);
   const flash = sp.checkout ? FLASH[`checkout:${sp.checkout}`] : sp.billing ? FLASH[`billing:${sp.billing}`] : null;
   const contact = settings.contactEmail;

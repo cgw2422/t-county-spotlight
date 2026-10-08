@@ -4,7 +4,7 @@ import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { saveSpecialAction } from "@/app/dashboard/[businessId]/actions";
-import { FormSection, TextArea, TextField, echoed, echoedChecked } from "./fields";
+import { FormSection, TextArea, TextField, echoed } from "./fields";
 
 export type SpecialValues = {
   id?: string; title: string; description: string; imageUrl: string; startsAt: string; endsAt: string; terms: string; couponCode: string; redemptionLimit: string;

@@ -78,7 +78,7 @@ export async function changePasswordAction(_p: ActionState, fd: FormData): Promi
   return { message: "Password changed. You've been signed out on your other devices." };
 }
 
-export async function resendVerificationAction(_p: ActionState): Promise<ActionState> {
+export async function resendVerificationAction(): Promise<ActionState> {
   const user = await me();
   if (user.emailVerifiedAt) return { message: "Your email is already confirmed." };
   const ip = await clientIp();

@@ -9,6 +9,8 @@ import { readHours } from "@/components/dashboard/text";
 
 export const dynamic = "force-dynamic";
 
+const daysAgo = (n: number) => new Date(Date.now() - n * 86400_000);
+
 function Stat({ icon: Icon, label, value, hint }: { icon: typeof Eye; label: string; value: number; hint?: string }) {
   return (
     <div className="card p-4">
@@ -23,7 +25,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
   const { businessId } = await params;
   const { user, business } = await requireBusinessAccess(businessId);
   const root = `/dashboard/${business.id}/`;
-  const since = new Date(Date.now() - 30 * 86400_000);
+  const since = daysAgo(30);
   const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement] = await Promise.all([
     getBusinessEntitlements(business.id),
     db.business.findUnique({ where: { id: business.id }, include: { categories: { select: { id: true } }, _count: { select: { photos: true } } } }),

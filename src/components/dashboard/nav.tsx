@@ -6,6 +6,7 @@ import {
   ArrowLeft, CalendarDays, CreditCard, Gauge, Images, Lock, Megaphone, Menu, PencilLine, Receipt, Tag, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoutButton } from "@/components/account/logout-button";
 
 const ICONS = { overview: Gauge, profile: PencilLine, photos: Images, events: CalendarDays, specials: Tag, updates: Megaphone, membership: CreditCard, invoices: Receipt };
 export type DashNavItem = { key: keyof typeof ICONS; href: string; label: string; locked?: boolean };
@@ -61,7 +62,8 @@ export function SidebarNav({ items, root }: { items: DashNavItem[]; root: string
 export function MobileNav({ items, root, title, businesses, currentId }: { items: DashNavItem[]; root: string; title: string; businesses: { id: string; name: string }[]; currentId: string }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
-  useEffect(() => setOpen(false), [path]);
+  const [lastPath, setLastPath] = useState(path);
+  if (path !== lastPath) { setLastPath(path); setOpen(false); }
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -84,7 +86,10 @@ export function MobileNav({ items, root, title, businesses, currentId }: { items
             </div>
             <div className="mb-4"><BusinessSwitcher businesses={businesses} currentId={currentId} /></div>
             <NavList items={items} root={root} onNavigate={() => setOpen(false)} />
-            <Link href="/" className="mt-auto flex min-h-11 items-center gap-2 rounded-xl px-3 pt-6 text-sm font-medium text-slate-200 hover:text-white"><ArrowLeft className="h-4 w-4" /> Back to site</Link>
+            <div className="mt-auto space-y-1 border-t border-white/10 pt-4 pb-safe">
+              <Link href="/" className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-200 hover:text-white"><ArrowLeft className="h-4 w-4" /> Back to site</Link>
+              <LogoutButton className="flex min-h-11 w-full items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-200 hover:text-white" />
+            </div>
           </div>
         </div>
       )}

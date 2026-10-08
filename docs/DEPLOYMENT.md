@@ -29,7 +29,7 @@ Sign in at `/login/` with the admin account. Go to **Admin → WordPress Import*
 ## 3. Scheduled jobs
 Add a second Railway service from the same repo (or a Railway Cron) running every 5–15 minutes:
 ```
-curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/"
+curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/"
 ```
 This publishes scheduled articles and cleans up expired sessions.
 
