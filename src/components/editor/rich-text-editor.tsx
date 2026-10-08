@@ -43,6 +43,14 @@ function Btn({ onClick, active, disabled, label, children }: { onClick: () => vo
   );
 }
 
+/** Inserts a block node without replacing a selected node (e.g. an image). */
+function insertBlock(editor: Editor, node: { type: string; attrs: Record<string, unknown> }) {
+  const sel = editor.state.selection;
+  const isNodeSel = "node" in sel && !!(sel as unknown as { node?: unknown }).node;
+  if (isNodeSel) editor.chain().focus().insertContentAt(sel.to, node).run();
+  else editor.chain().focus().insertContent(node).run();
+}
+
 function Sep() {
   return <span className="mx-0.5 h-6 w-px shrink-0 bg-slate-200" aria-hidden />;
 }
@@ -55,7 +63,7 @@ export function RichTextEditor({ name, defaultValue, placeholder = "Start writin
   const [mediaOpen, setMediaOpen] = useState(false);
   const hidden = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -110,7 +118,7 @@ export function RichTextEditor({ name, defaultValue, placeholder = "Start writin
     } else if (bar === "embed") {
       const src = toEmbedUrl(v);
       if (!src) { setBarError("Paste a YouTube or Vimeo link"); return; }
-      editor.chain().focus().insertContent({ type: "embed", attrs: { src } }).run();
+      insertBlock(editor, { type: "embed", attrs: { src } });
     }
     setBar(null);
   }
@@ -191,7 +199,7 @@ export function RichTextEditor({ name, defaultValue, placeholder = "Start writin
         open={mediaOpen}
         onClose={() => setMediaOpen(false)}
         title="Insert image"
-        onSelect={(m) => editor?.chain().focus().insertContent({ type: "figure", attrs: { src: m.url, alt: m.alt ?? "", caption: m.caption ?? "", width: m.width, height: m.height } }).run()}
+        onSelect={(m) => editor && insertBlock(editor, { type: "figure", attrs: { src: m.url, alt: m.alt ?? "", caption: m.caption ?? "", width: m.width, height: m.height } })}
       />
     </div>
   );

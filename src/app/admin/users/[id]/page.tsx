@@ -11,7 +11,7 @@ import { ActionButton } from "@/components/admin/action-button";
 import { SelectField, TextField } from "@/components/admin/form-field";
 import { SearchSelect } from "@/components/admin/search-select";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { ROLE_LABEL } from "../page";
+import { ROLE_LABEL } from "../../_lib/labels";
 import { linkUserBusinesses, revokeSessions, sendPasswordReset, setUserStatus, updateUser } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +67,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           <ActionForm action={linkUserBusinesses} className="space-y-3">
             <input type="hidden" name="id" value={u.id} />
             <SearchSelect name="businesses" type="business" placeholder="Search businesses to link…" initial={u.businesses.map((b) => ({ id: b.business.id, label: b.business.name, sub: b.business.city }))} />
-            {u.role === "MEMBER" && <p className="text-xs text-slate-500">Linking a business changes this member's role to Business Owner.</p>}
+            {u.role === "MEMBER" && <p className="text-xs text-slate-500">Linking a business changes this member’s role to Business Owner.</p>}
             <Submit pendingText="Saving…">Save ownership</Submit>
           </ActionForm>
           {u.businesses.length > 0 && <p className="mt-3 text-sm text-slate-600">Open: {u.businesses.map((b, i) => <span key={b.businessId}>{i > 0 && ", "}<Link className="text-brand-700 hover:underline" href={`/admin/businesses/${b.businessId}/`}>{b.business.name}</Link></span>)}</p>}

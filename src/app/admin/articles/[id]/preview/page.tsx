@@ -8,7 +8,7 @@ import { PROSE_CLASSES } from "@/lib/prose";
 import { formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { Notice } from "@/components/admin/page-header";
-import { KIND_LABEL } from "../../page";
+import { KIND_LABEL } from "../../../_lib/labels";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Preview" };

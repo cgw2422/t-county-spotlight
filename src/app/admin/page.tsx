@@ -14,7 +14,7 @@ import { publishDueScheduled } from "./_lib/scheduling";
 import { describeAudit } from "./audit/describe";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard" };
+export const metadata = { title: { absolute: "Dashboard · Admin" } };
 
 const ENGAGEMENT_LABELS: Record<string, string> = {
   view_business: "Business page views", view_event: "Event views", view_promotion: "Special views", view_article: "Article views",

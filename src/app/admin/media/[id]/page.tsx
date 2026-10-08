@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Copy, ExternalLink } from "lucide-react";
+import { Trash2, ExternalLink } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
@@ -36,7 +36,7 @@ export default async function MediaItemPage({ params }: { params: Promise<{ id: 
               <a href={m.url} target="_blank" rel="noreferrer" className="btn-ghost btn-sm"><ExternalLink className="h-4 w-4" /> Open</a>
             </div>
           </div>
-          <Card title="Where it's used" description={usage.length ? `${usage.length} reference${usage.length === 1 ? "" : "s"}` : undefined} bodyClassName="p-0">
+          <Card title="Where it’s used" description={usage.length ? `${usage.length} reference${usage.length === 1 ? "" : "s"}` : undefined} bodyClassName="p-0">
             {usage.length ? (
               <ul className="divide-y divide-slate-100">
                 {usage.map((u, i) => (
@@ -46,7 +46,7 @@ export default async function MediaItemPage({ params }: { params: Promise<{ id: 
                   </li>
                 ))}
               </ul>
-            ) : <p className="px-5 py-6 text-sm text-slate-500">Not used anywhere. It's safe to delete.</p>}
+            ) : <p className="px-5 py-6 text-sm text-slate-500">Not used anywhere. It’s safe to delete.</p>}
           </Card>
         </div>
         <div className="space-y-6">
@@ -70,7 +70,7 @@ export default async function MediaItemPage({ params }: { params: Promise<{ id: 
           </Card>
           <Card title="Delete">
             {live.length ? (
-              <Notice tone="warn" title="In use on the live site">This image can't be deleted while {live.length} published item{live.length === 1 ? " uses" : "s use"} it. Replace it in those items first.</Notice>
+              <Notice tone="warn" title="In use on the live site">This image can’t be deleted while {live.length} published item{live.length === 1 ? " uses" : "s use"} it. Replace it in those items first.</Notice>
             ) : (
               <>
                 <p className="mb-3 text-sm text-slate-600">{usage.length ? "Only drafts or hidden items reference this image; they'll show a broken image." : "Removes the file from storage."}</p>

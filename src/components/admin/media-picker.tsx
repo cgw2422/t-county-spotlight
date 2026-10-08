@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ImagePlus, Loader2, Search, Upload, X, Check, Link2 } from "lucide-react";
 import { listMedia, type MediaListItem } from "@/app/admin/_actions/common";
 import { cn } from "@/lib/utils";
@@ -15,14 +16,20 @@ export async function uploadFile(file: File, alt?: string): Promise<MediaListIte
 }
 
 /** Modal that browses the Media table, uploads new images, or accepts a URL. */
-export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an image" }: {
+export function MediaLibraryDialog(props: { open: boolean; onClose: () => void; onSelect: (m: MediaListItem) => void; title?: string }) {
+  // Remount per open so selection/search state starts fresh.
+  if (!props.open) return null;
+  return <MediaLibraryDialogInner {...props} />;
+}
+
+function MediaLibraryDialogInner({ open, onClose, onSelect, title = "Choose an image" }: {
   open: boolean; onClose: () => void; onSelect: (m: MediaListItem) => void; title?: string;
 }) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState<MediaListItem[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<MediaListItem | null>(null);
@@ -30,7 +37,7 @@ export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an
   const [url, setUrl] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const closeRef = useRef(onClose);
-  closeRef.current = onClose;
+  useEffect(() => { closeRef.current = onClose; }, [onClose]);
 
   const load = useCallback(async (query: string, p: number) => {
     setLoading(true); setError(null);
@@ -47,12 +54,15 @@ export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an
 
   useEffect(() => {
     if (!open) return;
-    setSelected(null);
-    load("", 1);
+    let cancelled = false;
+    listMedia("", 1)
+      .then((r) => { if (!cancelled) { setItems(r.items); setHasMore(r.hasMore); setPage(1); } })
+      .catch((e: Error) => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, load]);
+    return () => { cancelled = true; window.removeEventListener("keydown", onKey); };
+  }, [open]);
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -69,9 +79,10 @@ export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an
     }
   }
 
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[70] flex items-stretch justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
+  if (!open || typeof document === "undefined") return null;
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  return createPortal(
+    <div onChange={stop} onInput={stop} onSubmit={stop} className="fixed inset-0 z-[70] flex items-stretch justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
       <button type="button" className="absolute inset-0 bg-slate-900/60" aria-label="Close" onClick={onClose} />
       <div className="relative flex h-full w-full max-w-4xl flex-col overflow-hidden bg-white shadow-2xl sm:h-[85vh] sm:rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
@@ -79,10 +90,10 @@ export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an
           <button type="button" onClick={onClose} className="grid h-10 w-10 place-items-center rounded-lg hover:bg-slate-100" aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex flex-col gap-2 border-b border-slate-100 p-3 sm:flex-row">
-          <form className="relative flex-1" onSubmit={(e) => { e.preventDefault(); load(q, 1); }}>
+          <div className="relative flex-1" role="search">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input type="search" className="input pl-9" placeholder="Search by filename, title or alt text" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search media" />
-          </form>
+            <input type="search" className="input pl-9" placeholder="Search by filename, title or alt text (Enter)" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); load(q, 1); } }} aria-label="Search media" />
+          </div>
           <div className="flex gap-2">
             <button type="button" className="btn-primary flex-1" onClick={() => fileRef.current?.click()} disabled={uploading}>
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Upload
@@ -93,7 +104,7 @@ export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an
         </div>
         {urlMode && (
           <div className="flex gap-2 border-b border-slate-100 p-3">
-            <input className="input" placeholder="https://… or /media/…" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="Image URL" />
+            <input className="input" placeholder="https://… or /media/…" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} aria-label="Image URL" />
             <button type="button" className="btn-primary" disabled={!/^(https?:\/\/|\/)/.test(url.trim())} onClick={() => { onSelect({ id: "", url: url.trim(), filename: url.trim(), alt: null, caption: null, width: null, height: null, mimeType: "" }); onClose(); }}>Use URL</button>
           </div>
         )}
@@ -142,11 +153,11 @@ export function MediaLibraryDialog({ open, onClose, onSelect, title = "Choose an
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
-/** Form field: image preview + library picker, stores the URL in a hidden input (and alt if altName given). */
 export function MediaField({ name, defaultValue, label, help, altName, defaultAlt, aspect = "aspect-video", className }: {
   name: string; defaultValue?: string | null; label?: string; help?: string; altName?: string; defaultAlt?: string | null; aspect?: string; className?: string;
 }) {

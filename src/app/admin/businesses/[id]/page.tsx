@@ -101,8 +101,8 @@ export default async function EditBusinessPage({ params, searchParams }: { param
                 <Card title="Add an owner" description="Link an existing account by email, or create one.">
                   <ActionForm action={addOwner} resetOnSuccess className="space-y-3">
                     <input type="hidden" name="id" value={b.id} />
-                    <TextField name="email" type="email" label="Email" required placeholder="owner@example.com" />
-                    <SelectField name="role" label="Role" options={[{ value: "OWNER", label: "Owner" }, { value: "MANAGER", label: "Manager" }]} />
+                    <TextField id="owner-email" name="email" type="email" label="Email" required placeholder="owner@example.com" />
+                    <SelectField id="owner-role" name="role" label="Role" options={[{ value: "OWNER", label: "Owner" }, { value: "MANAGER", label: "Manager" }]} />
                     <Checkbox name="notify" label="Email them a notification" defaultChecked />
                     <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">If no account exists, a Business Owner account is created with no password. They must use “Forgot password” on the sign-in page to set one. Members are upgraded to the Business Owner role.</p>
                     <Submit pendingText="Adding…"><Mail className="h-4 w-4" /> Add owner</Submit>
@@ -153,7 +153,7 @@ export default async function EditBusinessPage({ params, searchParams }: { param
                       <ActionForm action={grantMembership} resetOnSuccess className="space-y-3">
                         <input type="hidden" name="id" value={b.id} />
                         <SelectField name="planId" label="Plan" required placeholder="Choose a plan…" options={plans.map((p) => ({ value: p.id, label: `${p.name}${p.isActive ? "" : " (inactive)"}` }))} />
-                        <TextField name="endsAt" type="datetime-local" label="Ends" help="Leave blank for no end date. Eastern Time." />
+                        <TextField id="grant-endsAt" name="endsAt" type="datetime-local" label="Ends" help="Leave blank for no end date. Eastern Time." />
                         <Submit pendingText="Granting…">Grant membership</Submit>
                       </ActionForm>
                     ) : <p className="text-sm text-slate-500">Create a membership plan first.</p>}

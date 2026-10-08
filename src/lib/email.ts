@@ -1,8 +1,8 @@
 import "server-only";
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { getSettings } from "./settings";
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
 
 function getTransport() {
   if (!process.env.SMTP_HOST) return null;

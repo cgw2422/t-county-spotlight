@@ -23,7 +23,7 @@ export function InstallPrompt() {
     const ua = navigator.userAgent;
     const isIos = /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios/i.test(ua);
     let t: ReturnType<typeof setTimeout> | undefined;
-    if (isIos) { setIos(true); t = setTimeout(() => setShow(true), 15000); }
+    if (isIos) t = setTimeout(() => { setIos(true); setShow(true); }, 15000);
     return () => { window.removeEventListener("beforeinstallprompt", onBip); if (t) clearTimeout(t); };
   }, []);
 

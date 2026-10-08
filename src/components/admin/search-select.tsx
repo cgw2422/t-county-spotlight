@@ -23,8 +23,8 @@ export function SearchSelect({ name, type, initial = [], multiple = true, placeh
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setLoading(true);
     const t = setTimeout(async () => {
+      setLoading(true);
       try {
         const r = await lookupRecords(type, q, { publishedOnly });
         if (!cancelled) setResults(r);
@@ -101,10 +101,11 @@ export function SearchSelect({ name, type, initial = [], multiple = true, placeh
             aria-label={label ?? placeholder ?? "Search"}
             aria-expanded={open}
             role="combobox"
+            aria-controls={`${name}-listbox`}
             aria-autocomplete="list"
           />
           {open && (
-            <ul role="listbox" className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+            <ul id={`${name}-listbox`} role="listbox" className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
               {loading && !results.length && <li className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Searching…</li>}
               {!loading && !results.length && <li className="px-3 py-2.5 text-sm text-slate-500">No matches</li>}
               {results.map((r) => {

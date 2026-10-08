@@ -1,5 +1,5 @@
 "use client";
-import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import type { ActionState } from "@/components/ui/form-message";
 import { cn } from "@/lib/utils";
@@ -21,21 +21,20 @@ export function ActionButton({ action, fields = {}, children, className, confirm
   confirm?: { title: string; body?: React.ReactNode; confirmLabel?: string; danger?: boolean };
   prompt?: { name: string; label: string; required?: boolean; placeholder?: string };
 }) {
-  const [state, dispatch, pending] = useActionState(action, null as ActionState);
+  // Toast as soon as the action resolves, so feedback survives the row unmounting (e.g. after trash).
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const last = useRef<ActionState>(null);
-
-  useEffect(() => {
-    if (!state || state === last.current) return;
-    last.current = state;
-    if (state.error) toast(state.error, "error");
-    else if (state.message) toast(state.message);
-    if (!state.error) {
+  // Toast as soon as the action resolves, so feedback survives the row unmounting (e.g. after trash).
+  const [, dispatch, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const r = await action(prev, fd);
+    if (r?.error) toast(r.error, "error");
+    else if (r?.message) toast(r.message);
+    if (!r?.error) {
       setOpen(false);
       if (reloadOnSuccess) setTimeout(() => window.location.reload(), 600);
     }
-  }, [state, reloadOnSuccess]);
+    return r;
+  }, null as ActionState);
 
   function run() {
     const fd = new FormData();

@@ -29,26 +29,28 @@ export function ActionForm({ action, children, className, id, onResult, onDirtyC
   resetOnSuccess?: boolean;
   formRef?: React.RefObject<HTMLFormElement | null>;
 }) {
-  const [state, dispatch, pending] = useActionState(action, null);
   const [submitter, setSubmitter] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [gen, setGen] = useState(0);
   const localRef = useRef<HTMLFormElement>(null);
   const ref = formRef ?? localRef;
-  const prevState = useRef<ActionState>(null);
+  const cb = useRef({ onResult, onDirtyChange, resetOnSuccess });
+  useEffect(() => { cb.current = { onResult, onDirtyChange, resetOnSuccess }; }, [onResult, onDirtyChange, resetOnSuccess]);
 
-  useEffect(() => {
-    if (!state || state === prevState.current) return;
-    prevState.current = state;
-    if (state.error) toast(state.error, "error");
-    else if (state.message) toast(state.message, "success");
-    if (!state.error) {
+  // Side effects run when the action resolves (not in an effect), so feedback
+  // survives re-renders/unmounts triggered by the server response.
+  const [state, dispatch, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const r = await action(prev, fd);
+    if (r?.error) toast(r.error, "error");
+    else if (r?.message) toast(r.message, "success");
+    if (!r?.error) {
       setDirty(false);
-      onDirtyChange?.(false);
-      if (resetOnSuccess) { ref.current?.reset(); setGen((g) => g + 1); }
+      cb.current.onDirtyChange?.(false);
+      if (cb.current.resetOnSuccess) { ref.current?.reset(); setGen((g) => g + 1); }
     }
-    onResult?.(state);
-  }, [state, onResult, onDirtyChange, resetOnSuccess, ref]);
+    cb.current.onResult?.(r);
+    return r;
+  }, null as ActionState);
 
   useEffect(() => {
     if (!warnUnsaved || !dirty) return;

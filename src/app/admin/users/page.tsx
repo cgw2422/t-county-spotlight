@@ -10,11 +10,11 @@ import { DataTable, Pagination } from "@/components/admin/data-table";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { pageParams, spGet, type SP } from "../_lib/list";
+import { ROLE_LABEL } from "../_lib/labels";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Users" };
 
-export const ROLE_LABEL: Record<string, string> = { ADMIN: "Admin", EDITOR: "Editor", BUSINESS_OWNER: "Business owner", MEMBER: "Member" };
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<SP> }) {
   await requireAdmin();

@@ -14,6 +14,7 @@ import { ActionButton, ConfirmButton } from "@/components/admin/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { pageParams, spGet, type SP } from "../_lib/list";
 import { publishDueScheduled } from "../_lib/scheduling";
+import { KIND_LABEL } from "../_lib/labels";
 import { deleteArticleForever, restoreArticle, trashArticle } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,6 @@ const TABS = [
   { key: "trash", label: "Trash", where: { deletedAt: { not: null } } },
 ] as const satisfies readonly { key: string; label: string; where: Prisma.ArticleWhereInput }[];
 
-export const KIND_LABEL: Record<string, string> = { SPOTLIGHT: "Spotlight", NEWS: "News", ANNOUNCEMENT: "Announcement", THINGS_TO_DO: "Things to Do", GENERAL: "General" };
 
 export default async function ArticlesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await requireStaff();

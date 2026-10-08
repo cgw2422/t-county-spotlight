@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -84,7 +84,7 @@ function activeHref(path: string) {
 function SidebarNav({ path, isAdmin, counts, collapsed, onNavigate }: { path: string; isAdmin: boolean; counts: Counts; collapsed: boolean; onNavigate?: () => void }) {
   const current = activeHref(path);
   return (
-    <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-4 scrollbar-none">
+    <nav aria-label="Admin" className="flex-1 overflow-y-auto px-3 py-4 [scrollbar-color:rgba(255,255,255,0.15)_transparent] [scrollbar-width:thin]">
       {NAV.map((g) => {
         const items = g.items.filter((i) => isAdmin || !i.adminOnly);
         if (!items.length) return null;
@@ -167,7 +167,8 @@ function UserMenu({ user }: { user: ShellProps["user"] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const path = usePathname();
-  useEffect(() => setOpen(false), [path]);
+  const [lastPath, setLastPath] = useState(path);
+  if (path !== lastPath) { setLastPath(path); setOpen(false); }
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
@@ -204,15 +205,23 @@ function UserMenu({ user }: { user: ShellProps["user"] }) {
   );
 }
 
+const COLLAPSE_KEY = "tcs-admin-collapsed";
+const COLLAPSE_EVENT = "tcs-admin-collapse";
+function readCollapsed() {
+  try { return localStorage.getItem(COLLAPSE_KEY) === "1"; } catch { return false; }
+}
+function subscribeCollapsed(cb: () => void) {
+  window.addEventListener(COLLAPSE_EVENT, cb);
+  window.addEventListener("storage", cb);
+  return () => { window.removeEventListener(COLLAPSE_EVENT, cb); window.removeEventListener("storage", cb); };
+}
+
 export function AdminShell({ children, user, isAdmin, siteName, logoUrl, logoOnDark, counts }: ShellProps) {
   const path = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useSyncExternalStore(subscribeCollapsed, readCollapsed, () => false);
   const [drawer, setDrawer] = useState(false);
-
-  useEffect(() => {
-    try { setCollapsed(localStorage.getItem("tcs-admin-collapsed") === "1"); } catch {}
-  }, []);
-  useEffect(() => setDrawer(false), [path]);
+  const [lastPath, setLastPath] = useState(path);
+  if (path !== lastPath) { setLastPath(path); setDrawer(false); }
   useEffect(() => {
     if (!drawer) return;
     document.body.style.overflow = "hidden";
@@ -222,9 +231,8 @@ export function AdminShell({ children, user, isAdmin, siteName, logoUrl, logoOnD
   }, [drawer]);
 
   function toggleCollapsed() {
-    const v = !collapsed;
-    setCollapsed(v);
-    try { localStorage.setItem("tcs-admin-collapsed", v ? "1" : "0"); } catch {}
+    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? "0" : "1"); } catch {}
+    window.dispatchEvent(new Event(COLLAPSE_EVENT));
   }
 
   return (

@@ -8,7 +8,9 @@ import type { NavItem } from "./nav-data";
 export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[]; signedIn: boolean; accountHref: string }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
-  useEffect(() => setOpen(false), [path]);
+  const [openPath, setOpenPath] = useState(path);
+  // Close the menu after navigation
+  if (open && openPath !== path) { setOpen(false); setOpenPath(path); }
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -17,7 +19,7 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
   }, [open]);
   return (
     <div className="lg:hidden">
-      <button type="button" className="btn-ghost px-3" aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen(!open)}>
+      <button type="button" className="btn-ghost px-3" aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => { setOpenPath(path); setOpen(!open); }}>
         {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
       {open && (
