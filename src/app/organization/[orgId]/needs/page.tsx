@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { requireOrgAccess } from "@/lib/gives/access";
 import { NEED_CATEGORY_LABEL, NEED_STATUS_LABEL, needHref } from "@/lib/gives/constants";
-import { pledgedTotals } from "@/lib/gives/queries";
+import { isOrgPublic, pledgedTotals } from "@/lib/gives/queries";
 import { NeedProgress, UrgencyBadge } from "@/components/gives/badges";
 import { PageHeader, Hint } from "@/components/dashboard/shell";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -66,7 +66,7 @@ export default async function OrgNeedsPage({ params }: { params: Promise<{ orgId
           )}
         </div>
       )}
-      {org.status === "APPROVED" && needs.some((n) => n.status === "OPEN") && (
+      {isOrgPublic(org) && needs.some((n) => n.status === "OPEN") && (
         <Hint className="mt-8">Share your needs! Each one has its own public page, for example <Link className="font-semibold text-brand-700 underline" href={needHref(needs.find((n) => n.status === "OPEN")!)}>this one</Link>.</Hint>
       )}
     </>

@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     db.businessUpdate.count({ where: { status: "PENDING" } }),
     db.article.count({ where: { status: "PENDING", deletedAt: null } }),
     db.job.count({ where: { status: "PENDING", deletedAt: null } }),
-    db.organization.count({ where: { status: "PENDING", deletedAt: null } }),
+    Promise.all([db.organization.count({ where: { status: "PENDING", deletedAt: null } }), db.organizationClaim.count({ where: { status: "PENDING" } })]).then(([o, c]) => o + c),
   ]);
   return (
     <AdminShell

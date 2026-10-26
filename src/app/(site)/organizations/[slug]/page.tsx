@@ -11,7 +11,7 @@ import { Breadcrumbs } from "@/components/public/breadcrumbs";
 import { JsonLd } from "@/components/public/json-ld";
 import { ShareButtons } from "@/components/public/share-buttons";
 import { buildMetadata } from "@/components/public/seo";
-import { ActivitySections, ContactCard, DonateCard, ProfileHeader } from "@/components/gives/profile-sections";
+import { ActivitySections, ContactCard, DonateCard, ProfileHeader, UnclaimedNotice } from "@/components/gives/profile-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +45,7 @@ export default async function OrganizationPage({ params }: Props) {
   const directions = directionsUrl(o);
   const tel = o.phone ? o.phone.replace(/[^\d+]/g, "") : null;
   const socials = safeSocials(o.socials);
+  const claimed = o.ownershipStatus === "CLAIMED";
   const crumbs = <Breadcrumbs items={[{ label: "T-County Gives", href: "/gives/" }, { label: "Organizations", href: "/gives/organizations/" }, { label: o.name }]} />;
 
   return (
@@ -59,6 +60,7 @@ export default async function OrganizationPage({ params }: Props) {
       </ProfileHeader>
 
       <div className="container-page">
+        <UnclaimedNotice o={o} />
         <div className="mt-10 grid grid-cols-1 gap-10 pb-12 lg:grid-cols-[1fr_340px]">
           <div className="min-w-0 space-y-12">
             {(o.mission || description) && (
@@ -66,7 +68,7 @@ export default async function OrganizationPage({ params }: Props) {
                 <h2 id="about-title" className="section-title">About {o.name}</h2>
                 {o.mission && (
                   <blockquote className="mt-4 rounded-2xl bg-cream p-5 ring-1 ring-amber-200/60 sm:p-6">
-                    <p className="text-xs font-bold uppercase tracking-wider text-sunset-600">Our mission</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-sunset-600">{claimed ? "Our mission" : "Mission"}</p>
                     <p className="mt-2 font-display text-xl leading-snug text-navy-900">{o.mission}</p>
                   </blockquote>
                 )}
@@ -75,12 +77,12 @@ export default async function OrganizationPage({ params }: Props) {
             )}
             {impact && (
               <section aria-labelledby="impact-title">
-                <h2 id="impact-title" className="section-title">Our impact</h2>
+                <h2 id="impact-title" className="section-title">{claimed ? "Our impact" : "Community impact"}</h2>
                 <div className={`${PROSE_CLASSES} mt-4 text-slate-800`} dangerouslySetInnerHTML={{ __html: impact }} />
               </section>
             )}
             <ActivitySections o={o} a={a} />
-            {!o.mission && !description && !impact && !a.needs.length && !a.opps.length && !a.events.length && !a.updates.length && (
+            {claimed && !o.mission && !description && !impact && !a.needs.length && !a.opps.length && !a.events.length && !a.updates.length && (
               <p className="rounded-2xl bg-slate-50 p-6 text-slate-600 ring-1 ring-slate-200">{o.name} hasn&apos;t shared more details yet. Check back soon.</p>
             )}
             <ShareButtons url={url} title={o.name} />

@@ -10,8 +10,8 @@ import { getSettings } from "@/lib/settings";
 import { audit } from "@/lib/audit";
 import { sanitizePlain } from "@/lib/sanitize";
 import { absoluteUrl, formatDate, formatDateTime, stripHtml } from "@/lib/utils";
-import { ORG_KINDS, KIND_LABEL, needHref, opportunityHref } from "@/lib/gives/constants";
-import { openNeedWhere, openOpportunityWhere, orgRecipients, orgSlug } from "@/lib/gives/queries";
+import { ORG_KINDS, KIND_LABEL, claimHref, needHref, opportunityHref } from "@/lib/gives/constants";
+import { isOrgPublic, openNeedWhere, openOpportunityWhere, orgRecipients, orgSlug } from "@/lib/gives/queries";
 import { normalizeUrl, textToHtml } from "@/components/dashboard/text";
 import type { ActionState } from "@/components/ui/form-message";
 
@@ -47,7 +47,7 @@ export async function pledgeAction(_p: ActionState, fd: FormData): Promise<Actio
   });
   if (!parsed.success) return issues(parsed.error);
   const d = parsed.data;
-  const need = await db.communityNeed.findFirst({ where: openNeedWhere({ id: d.needId }), include: { organization: { select: { id: true, name: true, email: true, phone: true } } } });
+  const need = await db.communityNeed.findFirst({ where: openNeedWhere({ id: d.needId }), include: { organization: { select: { id: true, name: true, email: true, phone: true, ownershipStatus: true } } } });
   if (!need) return { error: "This need is no longer accepting pledges. Thank you for wanting to help!" };
   const user = await getCurrentUser();
 
@@ -67,7 +67,7 @@ export async function pledgeAction(_p: ActionState, fd: FormData): Promise<Actio
     [
       `Hi ${d.name},`,
       ``,
-      `Thank you for pledging ${d.quantity}${unit} for "${need.title}". ${org.name} has been notified.`,
+      `Thank you for pledging ${d.quantity}${unit} for "${need.title}". ${org.ownershipStatus === "CLAIMED" ? `${org.name} has been notified.` : "Our team has been notified and will help connect you with the organization."}`,
       ``,
       need.instructions ? `How to give:\n${need.instructions}\n` : "",
       need.dropoffLocation ? `Drop-off location: ${need.dropoffLocation}\n` : "",
@@ -88,7 +88,7 @@ export async function pledgeAction(_p: ActionState, fd: FormData): Promise<Actio
     );
   }
   revalidatePath(needHref(need));
-  return { ok: true, message: `Thank you, ${d.name}! We emailed you the drop-off details, and ${org.name} knows you're coming.` };
+  return { ok: true, message: `Thank you, ${d.name}! We emailed you the drop-off details${org.ownershipStatus === "CLAIMED" ? `, and ${org.name} knows you're coming` : ""}.` };
 }
 
 // ───────────── Volunteer sign-up ─────────────
@@ -110,7 +110,7 @@ export async function volunteerSignupAction(_p: ActionState, fd: FormData): Prom
   });
   if (!parsed.success) return issues(parsed.error);
   const d = parsed.data;
-  const opp = await db.volunteerOpportunity.findFirst({ where: openOpportunityWhere({ id: d.oppId }), include: { organization: { select: { id: true, name: true, email: true, phone: true } } } });
+  const opp = await db.volunteerOpportunity.findFirst({ where: openOpportunityWhere({ id: d.oppId }), include: { organization: { select: { id: true, name: true, email: true, phone: true, ownershipStatus: true } } } });
   if (!opp || !opp.registrationOpen || opp.externalSignupUrl) return { error: "Sign-ups for this opportunity are closed." };
   if (opp.minAge != null && !d.isAdult) {
     if (opp.minAge >= 18) return { error: `Volunteers must be ${opp.minAge} or older for this opportunity.`, fieldErrors: { isAdult: "Required" } };
@@ -219,10 +219,16 @@ export async function registerOrgAction(_p: ActionState, fd: FormData): Promise<
 
   const duplicate = await db.organization.findFirst({
     where: { deletedAt: null, name: { equals: name, mode: "insensitive" }, city: { equals: cityClean, mode: "insensitive" } },
-    select: { id: true, name: true, slug: true, kind: true, status: true },
+    select: { id: true, name: true, slug: true, kind: true, status: true, isPublished: true, deletedAt: true, ownershipStatus: true },
   });
   if (duplicate) {
     const settings = await getSettings();
+    if (isOrgPublic(duplicate) && duplicate.ownershipStatus !== "CLAIMED") {
+      return {
+        error: `“${duplicate.name}” in ${cityClean} is already listed but hasn't been claimed yet. To manage it, claim the existing listing instead of registering a new one: ${absoluteUrl(claimHref(duplicate))}`,
+        fieldErrors: { name: "Already listed — claim it instead" },
+      };
+    }
     return {
       error: `“${duplicate.name}” in ${cityClean} may already be listed. To avoid duplicate pages, please ask its current manager to add you from their Team page${settings.contactEmail ? `, or email ${settings.contactEmail} and we'll help you get access` : ", or contact us and we'll help you get access"}.`,
       fieldErrors: { name: "Possible duplicate" },
@@ -234,6 +240,7 @@ export async function registerOrgAction(_p: ActionState, fd: FormData): Promise<
       name, slug: await orgSlug(name), kind: d.kind, orgType: d.orgType ? sanitizePlain(d.orgType, 80) : null,
       ein: d.ein || null, website, email: d.email, phone: d.phone ? sanitizePlain(d.phone, 30) : null, city: cityClean,
       description: textToHtml(sanitizePlain(d.description, 2000)), status: "PENDING",
+      isPublished: true, ownershipStatus: "CLAIMED", source: "self_registered", createdById: user.id,
       members: { create: { userId: user.id, role: "OWNER" } },
     },
   });

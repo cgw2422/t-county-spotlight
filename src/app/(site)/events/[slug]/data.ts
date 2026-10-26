@@ -11,7 +11,7 @@ export function loadEvent(slug: string) {
     include: {
       category: { select: { name: true, slug: true } },
       business: { select: { ...businessCardSelect, status: true, deletedAt: true } },
-      organization: { select: { ...orgCardSelect, status: true, deletedAt: true } },
+      organization: { select: { ...orgCardSelect, status: true, isPublished: true, deletedAt: true } },
     },
   });
 }

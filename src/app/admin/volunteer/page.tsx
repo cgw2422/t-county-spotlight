@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { OPPORTUNITY_STATUSES, OPPORTUNITY_STATUS_LABEL, opportunityHref } from "@/lib/gives/constants";
+import { isOrgPublic } from "@/lib/gives/queries";
 import { PageHeader } from "@/components/admin/page-header";
 import { ListToolbar } from "@/components/admin/list-toolbar";
 import { DataTable, Pagination } from "@/components/admin/data-table";
@@ -30,7 +31,7 @@ export default async function AdminVolunteerPage({ searchParams }: { searchParam
     ...(q ? { AND: [{ OR: [{ title: { contains: q, mode: "insensitive" } }, { organization: { name: { contains: q, mode: "insensitive" } } }] }] } : {}),
   };
   const [rows, total] = await Promise.all([
-    db.volunteerOpportunity.findMany({ where, skip, take, orderBy: { createdAt: "desc" }, include: { organization: { select: { id: true, name: true, status: true } }, signups: { select: { status: true } } } }),
+    db.volunteerOpportunity.findMany({ where, skip, take, orderBy: { createdAt: "desc" }, include: { organization: { select: { id: true, name: true, status: true, isPublished: true, deletedAt: true } }, signups: { select: { status: true } } } }),
     db.volunteerOpportunity.count({ where }),
   ]);
   return (
@@ -64,7 +65,7 @@ export default async function AdminVolunteerPage({ searchParams }: { searchParam
           ) : (
             <>
               <Link href={`/admin/volunteer/${r.id}/`} className="btn-secondary btn-sm">Registrations</Link>
-              {r.organization.status === "APPROVED" && r.status !== "DRAFT" && <a href={opportunityHref(r)} target="_blank" rel="noreferrer" className="btn-ghost btn-sm" aria-label="View"><ExternalLink className="h-4 w-4" /></a>}
+              {isOrgPublic(r.organization) && r.status !== "DRAFT" && <a href={opportunityHref(r)} target="_blank" rel="noreferrer" className="btn-ghost btn-sm" aria-label="View"><ExternalLink className="h-4 w-4" /></a>}
               {r.status === "PUBLISHED" ? <ActionButton action={moderateOpportunity} fields={{ oppId: r.id, op: "close" }}><Ban className="h-4 w-4" /> Close</ActionButton> : <ActionButton action={moderateOpportunity} fields={{ oppId: r.id, op: "reopen" }}><RotateCcw className="h-4 w-4" /> Reopen</ActionButton>}
               <ConfirmButton action={moderateOpportunity} fields={{ oppId: r.id, op: "remove" }} title="Remove this opportunity?" body="It is hidden from the public site and the organization's dashboard." confirmLabel="Remove"><Trash2 className="h-4 w-4" /> Remove</ConfirmButton>
             </>

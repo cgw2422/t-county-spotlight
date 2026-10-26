@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sanitizePlain } from "@/lib/sanitize";
 import { normalizeUrl, textToHtml } from "@/components/dashboard/text";
 import { Prisma, type Organization } from "@/generated/prisma/client";
-import { SERVICE_DAYS, SOCIAL_KEYS, ORG_KINDS, readLeaders, readServiceTimes } from "./constants";
+import { IMAGE_RIGHTS_LABEL, SERVICE_DAYS, SOCIAL_KEYS, ORG_KINDS, readLeaders, readServiceTimes } from "./constants";
 import { ownImageUrl } from "./queries";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -23,7 +23,7 @@ function jsonArr(fd: FormData, k: string): unknown[] {
  * Parses the organization profile form (shared by the organization dashboard
  * and the admin editor). Returns Prisma update data or field errors.
  */
-export function parseOrgProfile(fd: FormData, existing: Organization, opts: { allowKind?: boolean } = {}) {
+export function parseOrgProfile(fd: FormData, existing: Pick<Organization, "logoUrl" | "coverUrl" | "kind">, opts: { allowKind?: boolean } = {}) {
   const fieldErrors: Record<string, string> = {};
   const name = sanitizePlain(str(fd, "name"), 160);
   if (!name) fieldErrors.name = "Please enter the organization's name.";
@@ -109,4 +109,40 @@ export function parseOrgProfile(fd: FormData, existing: Organization, opts: { al
   }
 
   return { data, fieldErrors };
+}
+
+/**
+ * Staff-only listing fields (admin create/edit): SEO, internal notes, public
+ * sources, "information last checked" date and the basis for using images.
+ * Mutates `data` / `fieldErrors`. Logo/cover require an image-rights value.
+ */
+export function parseStaffOrgFields(fd: FormData, data: Prisma.OrganizationUpdateInput, fieldErrors: Record<string, string>) {
+  data.seoTitle = sanitizePlain(str(fd, "seoTitle"), 200) || null;
+  data.seoDescription = sanitizePlain(str(fd, "seoDescription"), 400) || null;
+  data.internalNotes = String(fd.get("internalNotes") ?? "").replace(/\r\n/g, "\n").trim().slice(0, 5000) || null;
+
+  const sources: string[] = [];
+  for (const line of String(fd.get("sourceUrls") ?? "").split(/[\n,]+/).map((l) => l.trim()).filter(Boolean).slice(0, 20)) {
+    const u = /^http:\/\//i.test(line) ? null : normalizeUrl(line);
+    if (!u) { fieldErrors.sourceUrls = `“${line.slice(0, 60)}” isn't a valid https:// link.`; continue; }
+    if (!sources.includes(u)) sources.push(u);
+  }
+  data.sourceUrls = sources;
+
+  const checkedRaw = str(fd, "infoCheckedAt");
+  if (checkedRaw) {
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(checkedRaw) ? new Date(`${checkedRaw}T12:00:00Z`) : null;
+    if (!d || Number.isNaN(d.getTime()) || d.getTime() > Date.now() + 2 * 86400_000) fieldErrors.infoCheckedAt = "Choose a valid date that isn't in the future.";
+    else data.infoCheckedAt = d;
+  } else if (sources.length) data.infoCheckedAt = new Date();
+  else data.infoCheckedAt = null;
+
+  const rightsKey = str(fd, "imageRights");
+  const rightsNote = sanitizePlain(str(fd, "imageRightsNote"), 300);
+  if (rightsKey && !IMAGE_RIGHTS_LABEL[rightsKey]) fieldErrors.imageRights = "Choose where the images come from.";
+  if (rightsKey === "other" && !rightsNote) fieldErrors.imageRights = "Describe the image rights for “Other”.";
+  data.imageRights = rightsKey && IMAGE_RIGHTS_LABEL[rightsKey] ? (rightsNote ? `${rightsKey}: ${rightsNote}` : rightsKey) : null;
+  if ((data.logoUrl || data.coverUrl) && !data.imageRights) {
+    fieldErrors.imageRights = "Choose the image rights before saving a logo or cover photo (or remove the images).";
+  }
 }

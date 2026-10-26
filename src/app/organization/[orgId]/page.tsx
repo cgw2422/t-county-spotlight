@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { AlertTriangle, BadgeCheck, CalendarDays, Clock, HandHelping, Inbox, PencilLine, UsersRound } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CalendarDays, Clock, Eye, EyeOff, HandHelping, Inbox, PencilLine, UsersRound } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { requireOrgAccess } from "@/lib/gives/access";
 import { KIND_LABEL, orgHref } from "@/lib/gives/constants";
-import { OrgStatusBadge } from "@/components/gives/badges";
+import { OrgStatusBadge, PublishBadge } from "@/components/gives/badges";
+import { ActionButton } from "@/components/admin/action-button";
+import { setOrgPublishedAction } from "./actions";
 import { PageHeader, Hint } from "@/components/dashboard/shell";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,8 @@ function Stat({ label, value, href, icon: Icon, tone = "bg-brand-50 text-brand-7
 export default async function OrgOverview({ params, searchParams }: { params: Promise<{ orgId: string }>; searchParams: Promise<{ registered?: string; denied?: string }> }) {
   const { orgId } = await params;
   const sp = await searchParams;
-  const { org } = await requireOrgAccess(orgId);
+  const { org, role, staff } = await requireOrgAccess(orgId);
+  const canPublish = role === "OWNER" || staff;
   const now = new Date();
   const root = `/organization/${org.id}/`;
   const [openNeeds, pendingPledges, upcomingOpps, activeSignups, pendingEvents] = await Promise.all([
@@ -67,7 +70,14 @@ export default async function OrgOverview({ params, searchParams }: { params: Pr
           </div>
         </div>
       )}
-      {org.status === "APPROVED" && (
+      {org.status === "APPROVED" && !org.isPublished && (
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-800 sm:p-5">
+          <EyeOff className="h-5 w-5 shrink-0 text-slate-500" aria-hidden />
+          <p className="min-w-0 flex-1 text-sm"><span className="font-semibold">Approved — your page is a draft.</span> It&apos;s hidden from the public until {canPublish ? "you publish it" : "an owner publishes it"}.</p>
+          {canPublish && <ActionButton action={setOrgPublishedAction} fields={{ orgId: org.id, publish: "1" }} className="btn-primary btn-sm"><Eye className="h-4 w-4" aria-hidden /> Publish page</ActionButton>}
+        </div>
+      )}
+      {org.status === "APPROVED" && org.isPublished && (
         <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 sm:p-5">
           {org.verifiedAt ? <BadgeCheck className="h-5 w-5 shrink-0 text-brand-600" aria-hidden /> : null}
           <p className="min-w-0 flex-1 text-sm">
@@ -75,9 +85,14 @@ export default async function OrgOverview({ params, searchParams }: { params: Pr
             {org.verifiedAt ? `Verified on ${formatDate(org.verifiedAt)}.` : "Verification is done by our team after an additional check."}
           </p>
           <Link href={orgHref(org)} className="btn-secondary btn-sm">View public page</Link>
+          {canPublish && (
+            <ActionButton action={setOrgPublishedAction} fields={{ orgId: org.id, publish: "0" }} confirm={{ title: "Switch your page to draft?", body: "Your page, needs and volunteer opportunities are hidden from the public until you publish again.", confirmLabel: "Switch to draft" }}>
+              <EyeOff className="h-4 w-4" aria-hidden /> Switch to draft
+            </ActionButton>
+          )}
         </div>
       )}
-      <div className="mb-6 flex items-center gap-2 text-sm text-slate-600">Status: <OrgStatusBadge status={org.status} /></div>
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-600">Status: <OrgStatusBadge status={org.status} />{org.status === "APPROVED" && <PublishBadge published={org.isPublished} />}</div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Open needs" value={openNeeds} href={`${root}needs/`} icon={HandHelping} tone="bg-orange-50 text-sunset-600" />

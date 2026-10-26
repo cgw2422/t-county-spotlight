@@ -4,6 +4,7 @@ import { ChevronLeft, Download, ExternalLink, Mail, Phone, Trash2 } from "lucide
 import { db } from "@/lib/db";
 import { formatDateTime, toDateInput } from "@/lib/utils";
 import { requireOrgAccess } from "@/lib/gives/access";
+import { isOrgPublic } from "@/lib/gives/queries";
 import { SIGNUP_BADGE, SIGNUP_STATUS_LABEL, opportunityHref } from "@/lib/gives/constants";
 import { OpportunityForm } from "@/components/gives/dashboard-forms";
 import { PageHeader } from "@/components/dashboard/shell";
@@ -41,9 +42,9 @@ export default async function OpportunityDetailPage({ params, searchParams }: { 
       <Link href={`/organization/${org.id}/volunteer/`} className="mb-2 inline-flex min-h-9 items-center gap-1 text-sm font-medium text-slate-500 hover:text-brand-700"><ChevronLeft className="h-4 w-4" aria-hidden /> Volunteer opportunities</Link>
       <PageHeader
         title={opp.title}
-        description={org.status === "APPROVED" && opp.status !== "DRAFT" ? <Link href={opportunityHref(opp)} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline">View public page <ExternalLink className="h-3.5 w-3.5" aria-hidden /></Link> : "Not public yet."}
+        description={isOrgPublic(org) && opp.status !== "DRAFT" ? <Link href={opportunityHref(opp)} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline">View public page <ExternalLink className="h-3.5 w-3.5" aria-hidden /></Link> : "Not public yet."}
       />
-      {created && <p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Opportunity saved.{org.status !== "APPROVED" && " It will appear publicly once your organization is approved."}</p>}
+      {created && <p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Opportunity saved.{!isOrgPublic(org) && " It will appear publicly once your organization is approved and published."}</p>}
 
       <section className="card mb-6 overflow-hidden" aria-labelledby="reg-title">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4 sm:p-5">

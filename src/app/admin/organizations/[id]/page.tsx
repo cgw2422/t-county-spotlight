@@ -1,28 +1,33 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Archive, BadgeCheck, Ban, CheckCircle2, ExternalLink, LayoutDashboard, RotateCcw, Star, Trash2, UserMinus, XCircle } from "lucide-react";
+import { Archive, BadgeCheck, Ban, CalendarCheck, CalendarPlus, CheckCircle2, Eye, EyeOff, ExternalLink, LayoutDashboard, RotateCcw, Star, Trash2, UserMinus, XCircle } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { KIND_LABEL, NEED_STATUS_LABEL, OPPORTUNITY_STATUS_LABEL, ORG_ROLES, ORG_ROLE_LABEL, needHref, opportunityHref, orgHref } from "@/lib/gives/constants";
+import { CLAIM_STATUS_BADGE, CLAIM_STATUS_LABEL, KIND_LABEL, NEED_STATUS_LABEL, OPPORTUNITY_STATUS_LABEL, ORG_ROLES, ORG_ROLE_LABEL, ORG_SOURCE_LABEL, needHref, opportunityHref, orgHref } from "@/lib/gives/constants";
+import { isOrgPublic } from "@/lib/gives/queries";
+import { isDonationVerified } from "@/lib/gives/admin";
 import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { ClientTabs } from "@/components/admin/client-tabs";
 import { ActionForm, Submit } from "@/components/admin/action-form";
 import { ActionButton, ConfirmButton } from "@/components/admin/action-button";
-import { Checkbox, SelectField, TextArea, TextField } from "@/components/admin/form-field";
+import { Checkbox, SelectField, TextArea } from "@/components/admin/form-field";
+import { SearchSelect } from "@/components/admin/search-select";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { OrgStatusBadge, KindBadge } from "@/components/gives/badges";
+import { OrgStatusBadge, KindBadge, OwnershipBadge, PublishBadge } from "@/components/gives/badges";
+import { StaffListingFields } from "@/components/gives/staff-listing-fields";
 import { OrgProfileForm } from "@/components/gives/org-profile-form";
 import { toOrgFormValues } from "@/components/gives/org-form-values";
-import { adminAddOrgMember, adminRemoveOrgMember, adminSaveOrg, setOrgStatus, toggleOrgFeatured, trashOrg, verifyOrg } from "../actions";
+import { adminAssignManager, adminRemoveOrgMember, adminSaveOrg, markOrgChecked, setOrgPublished, setOrgStatus, toggleOrgFeatured, trashOrg, verifyOrg } from "../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Organization" };
 
-export default async function AdminOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminOrganizationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string }> }) {
   const user = await requireStaff();
   const isAdmin = user.role === "ADMIN";
   const { id } = await params;
+  const { created } = await searchParams;
   const org = await db.organization.findUnique({
     where: { id },
     include: {
@@ -31,25 +36,28 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
       opportunities: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, take: 50, include: { _count: { select: { signups: true } } } },
       updates: { orderBy: { createdAt: "desc" }, take: 20 },
       events: { where: { deletedAt: null }, orderBy: { startAt: "desc" }, take: 20, select: { id: true, title: true, startAt: true, status: true } },
+      claims: { orderBy: { createdAt: "desc" }, take: 20, select: { id: true, applicantName: true, role: true, status: true, createdAt: true, emailVerifiedAt: true } },
     },
   });
   if (!org) notFound();
-  const [registration, verifier] = await Promise.all([
+  const [registration, verifier, creator, donationVerified, importBatch] = await Promise.all([
     db.auditLog.findFirst({ where: { action: "organization.register", entityId: org.id }, include: { user: { select: { email: true, name: true } } } }),
     org.verifiedById ? db.user.findUnique({ where: { id: org.verifiedById }, select: { email: true, name: true } }) : null,
+    org.createdById ? db.user.findUnique({ where: { id: org.createdById }, select: { email: true, name: true } }) : null,
+    isDonationVerified(org.id, org.donationUrl),
+    org.importBatchId ? db.organizationImport.findUnique({ where: { id: org.importBatchId }, select: { id: true, filename: true } }) : null,
   ]);
+  const isPublic = isOrgPublic(org);
   const reg = (registration?.details ?? {}) as Record<string, string>;
   const fid = { orgId: org.id };
 
   const seoExtra = (
-    <section className="card p-5 sm:p-6">
-      <h2 className="text-lg font-semibold text-navy-900">Admin: URL & SEO</h2>
-      <div className="mt-4 space-y-4">
-        <TextField name="slug" label="Slug" defaultValue={org.slug} help={`Public URL: ${orgHref(org)}`} />
-        <TextField name="seoTitle" label="SEO title" defaultValue={org.seoTitle ?? ""} maxLength={200} />
-        <TextArea name="seoDescription" label="Meta description" defaultValue={org.seoDescription ?? ""} maxLength={400} rows={2} />
-      </div>
-    </section>
+    <StaffListingFields
+      v={{
+        slug: org.slug, publicPath: orgHref(org), seoTitle: org.seoTitle, seoDescription: org.seoDescription, internalNotes: org.internalNotes,
+        sourceUrls: org.sourceUrls, infoCheckedAt: org.infoCheckedAt, imageRights: org.imageRights, donationVerified,
+      }}
+    />
   );
 
   return (
@@ -57,19 +65,36 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
       <PageHeader
         title={org.name}
         back={{ href: "/admin/organizations/", label: "Nonprofits & churches" }}
-        eyebrow={<div className="flex flex-wrap gap-1.5"><OrgStatusBadge status={org.status} /><KindBadge kind={org.kind} />{org.verifiedAt && <span className="badge-blue"><BadgeCheck className="h-3 w-3" /> Verified</span>}{org.isFeatured && <span className="badge-orange">Featured</span>}{org.deletedAt && <span className="badge-red">Deleted</span>}</div>}
+        eyebrow={<div className="flex flex-wrap gap-1.5"><OrgStatusBadge status={org.status} /><PublishBadge published={org.isPublished} /><OwnershipBadge status={org.ownershipStatus} /><KindBadge kind={org.kind} />{org.verifiedAt && <span className="badge-blue"><BadgeCheck className="h-3 w-3" /> Verified</span>}{org.isFeatured && <span className="badge-orange">Featured</span>}{org.deletedAt && <span className="badge-red">Deleted</span>}</div>}
         actions={
           <>
-            {org.status === "APPROVED" && !org.deletedAt && <a href={orgHref(org)} target="_blank" rel="noreferrer" className="btn-secondary btn-sm"><ExternalLink className="h-4 w-4" /> View</a>}
+            {isPublic && <a href={orgHref(org)} target="_blank" rel="noreferrer" className="btn-secondary btn-sm"><ExternalLink className="h-4 w-4" /> View</a>}
+            {org.isPublished
+              ? <ActionButton action={setOrgPublished} fields={{ ...fid, publish: "0" }} confirm={{ title: `Unpublish ${org.name}?`, body: "The listing is hidden from the public. Ownership, members and content are kept.", confirmLabel: "Unpublish" }}><EyeOff className="h-4 w-4" /> Unpublish</ActionButton>
+              : <ActionButton action={setOrgPublished} fields={{ ...fid, publish: "1" }} className="btn-primary btn-sm"><Eye className="h-4 w-4" /> Publish</ActionButton>}
             <Link href={`/organization/${org.id}/`} className="btn-secondary btn-sm"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
             {org.status !== "APPROVED" && <ActionButton action={setOrgStatus} fields={{ ...fid, status: "APPROVED" }} className="btn-primary btn-sm"><CheckCircle2 className="h-4 w-4" /> {org.status === "PENDING" ? "Approve" : "Restore & approve"}</ActionButton>}
             {org.status === "PENDING" && <ActionButton action={setOrgStatus} fields={{ ...fid, status: "REJECTED" }} prompt={{ name: "note", label: "Why isn't it approved? (emailed to the owner)", required: true }} confirm={{ title: `Reject ${org.name}?`, confirmLabel: "Reject and email owner", danger: true }}><XCircle className="h-4 w-4" /> Reject</ActionButton>}
             {org.status === "APPROVED" && <ActionButton action={setOrgStatus} fields={{ ...fid, status: "SUSPENDED" }} prompt={{ name: "note", label: "Reason (internal, shown to the owner)" }} confirm={{ title: `Suspend ${org.name}?`, body: "The page is hidden and members lose dashboard access.", confirmLabel: "Suspend", danger: true }}><Ban className="h-4 w-4" /> Suspend</ActionButton>}
             {org.status !== "ARCHIVED" && <ActionButton action={setOrgStatus} fields={{ ...fid, status: "ARCHIVED" }} confirm={{ title: `Archive ${org.name}?`, body: "Hidden from the site (e.g. organization closed). You can restore it later.", confirmLabel: "Archive" }}><Archive className="h-4 w-4" /> Archive</ActionButton>}
             <ActionButton action={toggleOrgFeatured} fields={fid}><Star className="h-4 w-4" /> {org.isFeatured ? "Unfeature" : "Feature"}</ActionButton>
+            <ActionButton action={markOrgChecked} fields={fid} title="Record that the public information was checked today"><CalendarCheck className="h-4 w-4" /> Mark checked today</ActionButton>
+            <Link href={`/admin/events/new/?organizationId=${org.id}`} className="btn-secondary btn-sm"><CalendarPlus className="h-4 w-4" /> Add event for this organization</Link>
           </>
         }
       />
+      {created && (
+        <div className="mb-4"><Notice tone="success" title={created === "published" ? "Listing created and published" : "Listing saved as a draft"}>{created === "published" ? "It's public now and shows a “claim this listing” notice until a representative manages it." : "It isn't public yet. Use Publish when it's ready."}</Notice></div>
+      )}
+      {org.status === "APPROVED" && !org.isPublished && !created && (
+        <div className="mb-4"><Notice tone="warn" title="Draft">Approved but not published — the listing is hidden from the public.</Notice></div>
+      )}
+      <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+        <span>Source: {ORG_SOURCE_LABEL[org.source] ?? org.source}{importBatch && <> (<Link href={`/admin/organizations/import/${importBatch.id}/`} className="text-brand-700 hover:underline">{importBatch.filename}</Link>)</>}</span>
+        {creator && <span>Added by {creator.name || creator.email}</span>}
+        <span>Info last checked: {org.infoCheckedAt ? formatDate(org.infoCheckedAt) : "never"}</span>
+        {org.publishedAt && <span>First published {formatDate(org.publishedAt)}</span>}
+      </div>
       {org.status === "PENDING" && (
         <div className="mb-4"><Notice tone="warn" title="Waiting for review">Check that this is a real organization serving Tuscarawas County and that it isn&apos;t a duplicate. Approving publishes the page and emails the owner.</Notice></div>
       )}
@@ -119,7 +144,7 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
             id: "members", label: "Members", badge: org.members.length,
             content: (
               <div className="grid gap-6 lg:grid-cols-2">
-                <Card title="Team members" bodyClassName="p-0">
+                <Card title="Team members" description={<>Ownership: <OwnershipBadge status={org.ownershipStatus} /></>} bodyClassName="p-0">
                   {org.members.length ? (
                     <ul className="divide-y divide-slate-100">
                       {org.members.map((m) => (
@@ -130,22 +155,34 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
                           </div>
                           <div className="flex gap-2">
                             {isAdmin && <Link href={`/admin/users/${m.userId}/`} className="btn-ghost btn-sm">User</Link>}
-                            <ConfirmButton action={adminRemoveOrgMember} fields={{ ...fid, userId: m.userId }} title={`Remove ${m.user.email}?`} body="They lose access to this organization. Their account is kept." confirmLabel="Remove"><UserMinus className="h-4 w-4" /> Remove</ConfirmButton>
+                            <ConfirmButton action={adminRemoveOrgMember} fields={{ ...fid, userId: m.userId }} title={`Remove ${m.user.email}?`} body={org.members.length === 1 ? "They lose access. This is the last manager, so the listing becomes unclaimed (it stays published). Their account is kept." : "They lose access to this organization. Their account is kept."} confirmLabel="Remove"><UserMinus className="h-4 w-4" /> Remove</ConfirmButton>
                           </div>
                         </li>
                       ))}
                     </ul>
                   ) : <p className="px-5 py-6 text-sm text-slate-500">No members.</p>}
                 </Card>
-                <Card title="Add or change a member" description="Existing members get the new role.">
-                  <ActionForm action={adminAddOrgMember} resetOnSuccess className="space-y-3">
+                <Card title="Assign organization manager" description="Give an existing account access. Existing members get the new role.">
+                  <ActionForm action={adminAssignManager} resetOnSuccess className="space-y-3">
                     <input type="hidden" name="orgId" value={org.id} />
-                    <TextField id="m-email" name="email" type="email" label="Email" required />
+                    <SearchSelect name="user" type="user" multiple={false} label="Existing account (search email or name)" placeholder="Search accounts…" />
                     <SelectField id="m-role" name="role" label="Role" defaultValue="OWNER" options={ORG_ROLES.map((r) => ({ value: r, label: ORG_ROLE_LABEL[r] }))} />
-                    <Checkbox name="notify" label="Email them" defaultChecked />
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">New accounts are created as Members with no password; they set one with “Forgot password”.</p>
-                    <Submit pendingText="Saving…">Save member</Submit>
+                    <Checkbox name="notify" label="Email them that they've been given access" defaultChecked />
+                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">No account yet? We never create accounts for people. Ask them to create a free account at <span className="font-mono">/register/</span> or submit a claim from the listing page{isPublic ? <> (<Link href={`/gives/claim/${org.slug}/`} className="text-brand-700 underline">claim link</Link>)</> : null}.</p>
+                    <Submit pendingText="Saving…">Assign manager</Submit>
                   </ActionForm>
+                </Card>
+                <Card title="Ownership claims" bodyClassName="p-0" actions={<Link href="/admin/organizations/claims/" className="btn-ghost btn-sm">Claims queue</Link>}>
+                  {org.claims.length ? (
+                    <ul className="divide-y divide-slate-100">
+                      {org.claims.map((c) => (
+                        <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm sm:px-5">
+                          <span className="min-w-0"><span className="font-medium text-slate-900">{c.applicantName}</span> <span className="text-slate-500">· {c.role} · {formatDate(c.createdAt, { month: "short", day: "numeric", year: "numeric" })}</span></span>
+                          <span className="flex gap-1.5">{c.emailVerifiedAt && <span className="badge-green">Email verified</span>}<span className={CLAIM_STATUS_BADGE[c.status]}>{CLAIM_STATUS_LABEL[c.status]}</span></span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p className="px-5 py-6 text-sm text-slate-500">No claims.</p>}
                 </Card>
               </div>
             ),
@@ -158,7 +195,7 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
                   {org.needs.length ? <ul className="divide-y divide-slate-100">{org.needs.map((n) => (
                     <li key={n.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm sm:px-5">
                       <Link href={`/organization/${org.id}/needs/${n.id}/`} className="min-w-0 truncate font-medium text-slate-900 hover:text-brand-700">{n.title}</Link>
-                      <span className="flex shrink-0 items-center gap-2"><span className="text-slate-500">{n._count.pledges} pledges</span><span className="badge-gray">{NEED_STATUS_LABEL[n.status]}</span>{org.status === "APPROVED" && n.status !== "DRAFT" && <a href={needHref(n)} target="_blank" rel="noreferrer" aria-label="View"><ExternalLink className="h-4 w-4 text-slate-400" /></a>}</span>
+                      <span className="flex shrink-0 items-center gap-2"><span className="text-slate-500">{n._count.pledges} pledges</span><span className="badge-gray">{NEED_STATUS_LABEL[n.status]}</span>{isPublic && n.status !== "DRAFT" && <a href={needHref(n)} target="_blank" rel="noreferrer" aria-label="View"><ExternalLink className="h-4 w-4 text-slate-400" /></a>}</span>
                     </li>
                   ))}</ul> : <p className="px-5 py-6 text-sm text-slate-500">No needs.</p>}
                 </Card>
@@ -166,7 +203,7 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
                   {org.opportunities.length ? <ul className="divide-y divide-slate-100">{org.opportunities.map((o) => (
                     <li key={o.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm sm:px-5">
                       <Link href={`/admin/volunteer/${o.id}/`} className="min-w-0 truncate font-medium text-slate-900 hover:text-brand-700">{o.title}</Link>
-                      <span className="flex shrink-0 items-center gap-2"><span className="text-slate-500">{o._count.signups} sign-ups</span><span className="badge-gray">{OPPORTUNITY_STATUS_LABEL[o.status]}</span>{org.status === "APPROVED" && o.status !== "DRAFT" && <a href={opportunityHref(o)} target="_blank" rel="noreferrer" aria-label="View"><ExternalLink className="h-4 w-4 text-slate-400" /></a>}</span>
+                      <span className="flex shrink-0 items-center gap-2"><span className="text-slate-500">{o._count.signups} sign-ups</span><span className="badge-gray">{OPPORTUNITY_STATUS_LABEL[o.status]}</span>{isPublic && o.status !== "DRAFT" && <a href={opportunityHref(o)} target="_blank" rel="noreferrer" aria-label="View"><ExternalLink className="h-4 w-4 text-slate-400" /></a>}</span>
                     </li>
                   ))}</ul> : <p className="px-5 py-6 text-sm text-slate-500">No opportunities.</p>}
                 </Card>

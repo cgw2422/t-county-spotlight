@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { NEED_CATEGORIES, NEED_CATEGORY_LABEL, NEED_STATUSES, NEED_STATUS_LABEL, NEED_URGENCIES, URGENCY_LABEL, needHref } from "@/lib/gives/constants";
+import { isOrgPublic } from "@/lib/gives/queries";
 import { PageHeader } from "@/components/admin/page-header";
 import { ListToolbar } from "@/components/admin/list-toolbar";
 import { DataTable, Pagination } from "@/components/admin/data-table";
@@ -33,7 +34,7 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
   const [rows, total] = await Promise.all([
     db.communityNeed.findMany({
       where, skip, take, orderBy: { createdAt: "desc" },
-      include: { organization: { select: { id: true, name: true, status: true } }, pledges: { select: { status: true, quantity: true } } },
+      include: { organization: { select: { id: true, name: true, status: true, isPublished: true, deletedAt: true } }, pledges: { select: { status: true, quantity: true } } },
     }),
     db.communityNeed.count({ where }),
   ]);
@@ -57,7 +58,7 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
             { header: "Need", primary: true, className: "min-w-[220px]", cell: (r) => (
               <div className="min-w-0">
                 <Link href={`/organization/${r.organization.id}/needs/${r.id}/`} className="font-semibold text-slate-900 hover:text-brand-700">{r.title}</Link>
-                <p className="text-sm text-slate-500"><Link href={`/admin/organizations/${r.organization.id}/`} className="hover:underline">{r.organization.name}</Link>{r.organization.status !== "APPROVED" && ` (${r.organization.status.toLowerCase()})`}</p>
+                <p className="text-sm text-slate-500"><Link href={`/admin/organizations/${r.organization.id}/`} className="hover:underline">{r.organization.name}</Link>{r.organization.status !== "APPROVED" ? ` (${r.organization.status.toLowerCase()})` : !r.organization.isPublished ? " (draft)" : ""}</p>
               </div>
             ) },
             { header: "Urgency", cell: (r) => <UrgencyBadge urgency={r.urgency} /> },
@@ -70,7 +71,7 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
             <ActionButton action={moderateNeed} fields={{ needId: r.id, op: "reopen" }}><RotateCcw className="h-4 w-4" /> Restore</ActionButton>
           ) : (
             <>
-              {r.organization.status === "APPROVED" && r.status !== "DRAFT" && <a href={needHref(r)} target="_blank" rel="noreferrer" className="btn-ghost btn-sm" aria-label="View"><ExternalLink className="h-4 w-4" /></a>}
+              {isOrgPublic(r.organization) && r.status !== "DRAFT" && <a href={needHref(r)} target="_blank" rel="noreferrer" className="btn-ghost btn-sm" aria-label="View"><ExternalLink className="h-4 w-4" /></a>}
               {["OPEN", "PARTIALLY_FULFILLED"].includes(r.status) ? (
                 <ActionButton action={moderateNeed} fields={{ needId: r.id, op: "close" }}><Ban className="h-4 w-4" /> Close</ActionButton>
               ) : (

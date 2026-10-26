@@ -60,12 +60,15 @@ export async function saveEvent(_: ActionState, fd: FormData): Promise<ActionSta
   else if (await db.event.findFirst({ where: { slug, NOT: { id: d.id ?? "" } }, select: { id: true } })) return { error: `The slug “${slug}” is already used by another event.` };
 
   const businessId = getAll(fd, "business")[0] ?? null;
+  const orgPick = getAll(fd, "organization")[0] ?? null;
+  const organizationId = orgPick ? (await db.organization.findFirst({ where: { id: orgPick, deletedAt: null }, select: { id: true } }))?.id ?? null : null;
+  if (orgPick && !organizationId) return { error: "That organization wasn't found." };
   const data = {
     title: d.title, slug, description: d.description, imageUrl: d.imageUrl, startAt, endAt, allDay: d.allDay,
     recurrence: recurrence ?? Prisma.DbNull, locationName: d.locationName, address: d.address,
     city: d.city === "__other" ? d.cityOther : d.city, organizer: d.organizer, ticketUrl: d.ticketUrl,
     isFree: d.isFree, price: d.isFree ? null : d.price, status: d.status, isFeatured: d.isFeatured, isSponsored: d.isSponsored,
-    businessId, categoryId: d.categoryId,
+    businessId, categoryId: d.categoryId, organizationId,
   };
   let id = d.id;
   try {
@@ -76,7 +79,7 @@ export async function saveEvent(_: ActionState, fd: FormData): Promise<ActionSta
     throw e;
   }
   const changed = existing && existing.status !== d.status;
-  await audit(user.id, !existing ? "event.create" : changed ? `event.${d.status === "PUBLISHED" ? "publish" : d.status.toLowerCase()}` : "event.update", "Event", id, { title: d.title, status: d.status });
+  await audit(user.id, !existing ? "event.create" : changed ? `event.${d.status === "PUBLISHED" ? "publish" : d.status.toLowerCase()}` : "event.update", "Event", id, { title: d.title, status: d.status, organizationId });
   revalidatePath("/admin/events");
   revalidatePath("/", "layout");
   if (!existing) redirect(`/admin/events/${id}/?created=1`);

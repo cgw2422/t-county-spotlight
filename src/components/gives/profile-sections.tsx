@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ExternalLink, Gift, Globe, HeartHandshake, Mail, MapPin, Megaphone, Navigation, Phone } from "lucide-react";
+import { ExternalLink, Gift, Globe, HeartHandshake, Info, Mail, MapPin, Megaphone, Navigation, Phone } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { EventCard } from "@/components/cards/event-card";
 import { formatDate } from "@/lib/utils";
 import { sanitizeRichText } from "@/lib/sanitize";
-import { directionsUrl, externalUrl, safeSocials, type OrgKindValue } from "@/lib/gives/constants";
+import { claimHref, directionsUrl, externalUrl, safeSocials, type OrgKindValue } from "@/lib/gives/constants";
 import { spotsLeft } from "@/lib/gives/queries";
 import type { loadOrgActivity } from "@/lib/gives/public";
 import { NeedCard, OpportunityCard } from "./cards";
@@ -17,6 +17,24 @@ type Org = {
   denomination?: string | null; ein?: string | null;
 };
 type Activity = Awaited<ReturnType<typeof loadOrgActivity>>;
+
+/**
+ * Shown on listings nobody manages yet (UNCLAIMED / CLAIM_PENDING). Neutral
+ * wording — it never implies the organization endorses or partners with us.
+ */
+export function UnclaimedNotice({ o }: { o: { slug: string; ownershipStatus: string; infoCheckedAt?: Date | null } }) {
+  if (o.ownershipStatus === "CLAIMED") return null;
+  return (
+    <aside aria-label="About this listing" className="mt-6 flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 ring-1 ring-slate-200 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
+      <Info className="hidden h-5 w-5 shrink-0 text-slate-400 sm:block" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p>This organization has not yet claimed its TCountySpotlight profile. Information may need confirmation.</p>
+        {o.infoCheckedAt && <p className="mt-1 text-xs text-slate-500">Information last checked {formatDate(o.infoCheckedAt, { month: "short", year: "numeric" })}</p>}
+      </div>
+      <Link href={claimHref(o)} className="btn-secondary btn-sm shrink-0 justify-center" rel="nofollow">Manage This Organization? Claim Listing</Link>
+    </aside>
+  );
+}
 
 /** Cover + logo + name header shared by organization and church profiles. */
 export function ProfileHeader({ o, crumbs, children }: { o: Org; crumbs: React.ReactNode; children?: React.ReactNode }) {

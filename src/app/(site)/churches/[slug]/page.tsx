@@ -11,7 +11,7 @@ import { Breadcrumbs } from "@/components/public/breadcrumbs";
 import { JsonLd } from "@/components/public/json-ld";
 import { ShareButtons } from "@/components/public/share-buttons";
 import { buildMetadata } from "@/components/public/seo";
-import { ActivitySections, ContactCard, DonateCard, ProfileHeader } from "@/components/gives/profile-sections";
+import { ActivitySections, ContactCard, DonateCard, ProfileHeader, UnclaimedNotice } from "@/components/gives/profile-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +87,7 @@ export default async function ChurchPage({ params }: Props) {
       </ProfileHeader>
 
       <div className="container-page">
+        <UnclaimedNotice o={o} />
         <div className="mt-10 grid grid-cols-1 gap-10 pb-12 lg:grid-cols-[1fr_340px]">
           <div className="min-w-0 space-y-12">
             {times.length > 0 && (
@@ -100,7 +101,7 @@ export default async function ChurchPage({ params }: Props) {
                   {midweek.length > 0 && <ScheduleTable rows={midweek} caption="Midweek & other days" />}
                 </div>
                 {live && <p className="mt-4 text-sm text-slate-600">Can&apos;t make it in person? <a href={live.toString()} target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-700 hover:underline">Watch the livestream</a>.</p>}
-                <p className="mt-2 text-xs text-slate-500">Times are Eastern Time and provided by the church. Holiday schedules may differ.</p>
+                <p className="mt-2 text-xs text-slate-500">{o.ownershipStatus === "CLAIMED" ? "Times are Eastern Time and provided by the church. Holiday schedules may differ." : "Times are Eastern Time. Please confirm with the church before visiting — holiday schedules may differ."}</p>
               </section>
             )}
 

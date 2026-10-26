@@ -146,3 +146,98 @@ export function directionsUrl(o: { name: string; address?: string | null; city?:
 export function mapsUrl(q: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 }
+
+// ───────── Ownership & claims ─────────
+export const OWNERSHIP_LABEL: Record<string, string> = { UNCLAIMED: "Unclaimed", CLAIM_PENDING: "Claim pending", CLAIMED: "Claimed" };
+export const OWNERSHIP_BADGE: Record<string, string> = { UNCLAIMED: "badge-gray", CLAIM_PENDING: "badge-amber", CLAIMED: "badge-green" };
+export const ORG_SOURCE_LABEL: Record<string, string> = { admin: "Added by staff", import: "CSV import", self_registered: "Self-registered" };
+export const CLAIM_STATUS_LABEL: Record<string, string> = { PENDING: "Pending", APPROVED: "Approved", REJECTED: "Rejected", WITHDRAWN: "Withdrawn" };
+export const CLAIM_STATUS_BADGE: Record<string, string> = { PENDING: "badge-amber", APPROVED: "badge-green", REJECTED: "badge-red", WITHDRAWN: "badge-gray" };
+export const CLAIM_ROLES = ["Pastor/Minister", "Executive Director", "Staff member", "Board member", "Volunteer coordinator", "Other"] as const;
+export const CLAIM_VERIFY_METHODS = [
+  { value: "org_email", label: "Email at the organization's domain" },
+  { value: "phone_callback", label: "Call the organization's public phone number" },
+  { value: "document", label: "Documentation (letter on letterhead, IRS determination letter…)" },
+  { value: "other", label: "Other" },
+] as const;
+export const CLAIM_VERIFY_LABEL: Record<string, string> = Object.fromEntries(CLAIM_VERIFY_METHODS.map((m) => [m.value, m.label]));
+export function claimHref(o: { slug: string }) {
+  return `/gives/claim/${o.slug}/`;
+}
+
+const FREE_EMAIL_PROVIDERS = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "ymail.com", "rocketmail.com", "outlook.com", "hotmail.com", "live.com", "msn.com",
+  "aol.com", "icloud.com", "me.com", "mac.com", "proton.me", "protonmail.com", "gmx.com", "mail.com", "zoho.com", "yandex.com",
+  "pm.me", "hotmail.co.uk", "yahoo.co.uk", "att.net", "sbcglobal.net", "comcast.net", "verizon.net", "frontier.com", "frontiernet.net", "charter.net", "spectrum.net", "roadrunner.com", "rr.com",
+]);
+
+/** Approximate registrable domain ("www.dover.k12.oh.us" → "k12.oh.us" is avoided for 2-letter ccTLD second levels). */
+export function registrableDomain(host: string) {
+  const parts = host.toLowerCase().replace(/^www\./, "").replace(/\.$/, "").split(".").filter(Boolean);
+  if (parts.length <= 2) return parts.join(".");
+  const tld = parts[parts.length - 1];
+  const sld = parts[parts.length - 2];
+  if (tld.length === 2 && ["co", "com", "org", "net", "gov", "edu", "ac", "k12", "or", "ne"].includes(sld)) return parts.slice(-3).join(".");
+  if (tld === "us" && parts.length >= 4) return parts.slice(-4).join("."); // e.g. dover.k12.oh.us
+  return parts.slice(-2).join(".");
+}
+
+/** Website host without "www.", or null. */
+export function websiteHost(w: string | null | undefined) {
+  return externalUrl(w)?.hostname.toLowerCase().replace(/^www\./, "") || null;
+}
+
+/** True when the email's domain belongs to the organization's website domain (free mail providers never match). */
+export function emailMatchesWebsite(email: string, website: string | null | undefined) {
+  const host = websiteHost(website);
+  const domain = email.split("@")[1]?.toLowerCase().trim();
+  if (!host || !domain || isPersonalEmailDomain(email)) return false;
+  return registrableDomain(domain) === registrableDomain(host);
+}
+
+// ───────── Listing provenance (staff-maintained listings) ─────────
+export const IMAGE_RIGHTS = [
+  { value: "provided_by_org", label: "Provided by the organization" },
+  { value: "licensed", label: "Licensed" },
+  { value: "own_photo", label: "Our own photo" },
+  { value: "public_domain_cc", label: "Public domain or CC with attribution" },
+  { value: "other", label: "Other" },
+] as const;
+export const IMAGE_RIGHTS_LABEL: Record<string, string> = Object.fromEntries(IMAGE_RIGHTS.map((r) => [r.value, r.label]));
+/** imageRights is stored as "<key>" or "<key>: <note>". */
+export function readImageRights(raw: string | null | undefined) {
+  if (!raw) return { key: "", note: "" };
+  const i = raw.indexOf(":");
+  const key = (i < 0 ? raw : raw.slice(0, i)).trim();
+  const note = i < 0 ? "" : raw.slice(i + 1).trim();
+  if (IMAGE_RIGHTS_LABEL[key]) return { key, note };
+  return { key: "other", note: raw.trim() };
+}
+/** Listings whose information hasn't been checked for this long count as stale. */
+export const STALE_AFTER_DAYS = 365;
+
+/** Personal mailbox providers — never sufficient on their own to prove affiliation. */
+export function isPersonalEmailDomain(email: string) {
+  const d = email.split("@")[1]?.toLowerCase().trim() ?? "";
+  return FREE_EMAIL_PROVIDERS.has(d) || /(^|\.)(gmail|yahoo|outlook|hotmail|icloud|aol|proton|protonmail|live|msn)\./.test(d);
+}
+
+/** What a reviewer actually did to verify a claim (stored in the claim's reviewNote). */
+export const CLAIM_REVIEW_CHECKS: Record<string, string> = {
+  domain_email: "Organization-domain email confirmed",
+  phone_call: "Called the organization's public phone number",
+  documentation: "Documentation reviewed",
+  other: "Other",
+};
+
+/** Why a claim's email evidence is weak on its own (approval then needs an override note). */
+export function claimRiskReasons(c: { email: string; emailVerifiedAt: Date | null; emailDomainMatches: boolean }) {
+  const reasons: string[] = [];
+  if (!c.emailVerifiedAt) reasons.push("the organization email is not confirmed");
+  if (isPersonalEmailDomain(c.email)) reasons.push("it uses a personal email provider");
+  else if (!c.emailDomainMatches) reasons.push("the email domain doesn't match the listing's website");
+  return reasons;
+}
+export function daysAgo(days: number) {
+  return new Date(Date.now() - days * 86400_000);
+}

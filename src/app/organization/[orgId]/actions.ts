@@ -11,7 +11,8 @@ import { sanitizePlain } from "@/lib/sanitize";
 import { absoluteUrl, fromDateInput, slugify } from "@/lib/utils";
 import { requireOrgAccess } from "@/lib/gives/access";
 import { parseOrgProfile } from "@/lib/gives/profile";
-import { needSlug, opportunitySlug, ownImageUrl, recalcNeed } from "@/lib/gives/queries";
+import { isOrgPublic, needSlug, opportunitySlug, ownImageUrl, recalcNeed } from "@/lib/gives/queries";
+import { recomputeOwnership } from "@/lib/gives/ownership";
 import {
   NEED_CATEGORIES, NEED_STATUSES, NEED_URGENCIES, OPPORTUNITY_STATUSES, ORG_ROLES, ROLE_RANK, SIGNUP_STATUSES, type OrgRoleValue,
 } from "@/lib/gives/constants";
@@ -49,10 +50,27 @@ export async function saveOrgProfileAction(_p: ActionState, fd: FormData): Promi
   const { user, org } = await access(fd);
   const { data, fieldErrors } = parseOrgProfile(fd, org);
   if (Object.keys(fieldErrors).length) return bad(fieldErrors);
+  // Images uploaded by the organization's own managers are provided by the organization.
+  if ((data.logoUrl || data.coverUrl) && !org.imageRights) data.imageRights = "provided_by_org";
   await db.organization.update({ where: { id: org.id }, data });
   await audit(user.id, "organization.member_update", "Organization", org.id, { fields: Object.keys(data) });
   refresh(org.id, org.slug, org.kind);
-  return { ok: true, message: org.status === "APPROVED" ? "Saved! Your changes are live." : "Saved. Your page goes live once our team approves your organization." };
+  return {
+    ok: true,
+    message: isOrgPublic(org) ? "Saved! Your changes are live." : org.status === "APPROVED" ? "Saved. Your page is a draft — publish it from the Overview when you're ready." : "Saved. Your page goes live once our team approves your organization.",
+  };
+}
+
+/** Owners (and staff) choose whether their approved page is published or a draft. */
+export async function setOrgPublishedAction(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const { user, org, staff } = await access(fd, "OWNER");
+  const publish = str(fd, "publish") === "1";
+  if (org.status !== "APPROVED" && !staff) return { error: "Your organization needs to be approved before its page can be published." };
+  if (publish === org.isPublished) return null;
+  await db.organization.update({ where: { id: org.id }, data: { isPublished: publish, ...(publish && !org.publishedAt ? { publishedAt: new Date() } : {}) } });
+  await audit(user.id, publish ? "organization.publish" : "organization.unpublish", "Organization", org.id, { name: org.name, by: staff ? "staff" : "member" });
+  refresh(org.id, org.slug, org.kind);
+  return { ok: true, message: publish ? "Published — your page is public." : "Your page is now a draft and hidden from the public." };
 }
 
 // ───────────── Needs ─────────────
@@ -340,30 +358,27 @@ export async function addMemberAction(_p: ActionState, fd: FormData): Promise<Ac
   if (!(ORG_ROLES as readonly string[]).includes(role)) return { error: "Choose a role." };
   if (role === "OWNER" && myRole !== "OWNER" && !staff) return { error: "Only an owner can add another owner." };
 
-  let target = await db.user.findUnique({ where: { email: email.data } });
-  let created = false;
-  if (!target) {
-    target = await db.user.create({ data: { email: email.data, role: "MEMBER" } });
-    created = true;
+  // Never create placeholder accounts: the person signs up for a free account first.
+  const target = await db.user.findUnique({ where: { email: email.data } });
+  if (!target || target.status !== "ACTIVE") {
+    return {
+      error: `No TCountySpotlight account uses ${email.data} yet. Ask them to create a free account at ${absoluteUrl("/register/")} with that email, then add them here.`,
+      fieldErrors: { email: "No account with this email" },
+    };
   }
   const existing = await db.organizationMember.findUnique({ where: { userId_organizationId: { userId: target.id, organizationId: org.id } } });
   if (existing) return { error: `${email.data} is already on your team.` };
   await db.organizationMember.create({ data: { userId: target.id, organizationId: org.id, role } });
-  await audit(user.id, "organization.member_add", "Organization", org.id, { email: email.data, role, createdUser: created });
+  await recomputeOwnership(org.id);
+  await audit(user.id, "organization.member_add", "Organization", org.id, { email: email.data, role });
   await sendEmail(
     email.data,
     `You've been added to ${org.name} on T-County Gives`,
     `${user.name || user.email} added you to ${org.name} on T-County Gives as ${role.toLowerCase()}.\n\n` +
-      (created ? `An account was created for ${email.data}. Choose your password here: ${absoluteUrl("/forgot-password/")}\n\n` : "") +
       `Sign in to help manage your organization's page: ${absoluteUrl(`/organization/${org.id}/`)}`,
   );
   revalidatePath(`/organization/${org.id}/team/`);
-  return {
-    ok: true,
-    message: created
-      ? `Added ${email.data}. They don't have a password yet — ask them to use “Forgot password” on the sign-in page.`
-      : `Added ${email.data} to your team.`,
-  };
+  return { ok: true, message: `Added ${email.data} to your team.` };
 }
 
 export async function removeMemberAction(_p: ActionState, fd: FormData): Promise<ActionState> {
@@ -377,6 +392,7 @@ export async function removeMemberAction(_p: ActionState, fd: FormData): Promise
     if (owners <= 1) return { error: "You can't remove the last owner. Add another owner first." };
   }
   await db.organizationMember.delete({ where: { userId_organizationId: { userId, organizationId: org.id } } });
+  await recomputeOwnership(org.id);
   await audit(user.id, "organization.member_remove", "Organization", org.id, { email: link.user.email });
   revalidatePath(`/organization/${org.id}/team/`);
   if (userId === user.id) redirect("/organization/");

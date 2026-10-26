@@ -171,7 +171,7 @@ export function AddMemberForm({ orgId, canAddOwner }: { orgId: string; canAddOwn
       <input type="hidden" name="orgId" value={orgId} />
       <TextField name="email" type="email" label="Email address" required placeholder="name@example.com" autoComplete="off" />
       <SelectField name="role" label="Role" defaultValue="EDITOR" options={roles.map((r) => ({ value: r, label: `${ORG_ROLE_LABEL[r]} — ${ORG_ROLE_HELP[r]}` }))} />
-      <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">We&apos;ll email them. If they don&apos;t have an account yet, one is created without a password — they set it with “Forgot password” on the sign-in page.</p>
+      <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">They need a free TCountySpotlight account first — ask them to create one at /register/ with this email. We&apos;ll email them when they&apos;re added.</p>
       <Submit pendingText="Adding…">Add to team</Submit>
     </ActionForm>
   );

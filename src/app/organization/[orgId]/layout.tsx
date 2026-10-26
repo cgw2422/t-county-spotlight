@@ -2,6 +2,7 @@ import { isStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { requireOrgAccess, getUserOrganizations } from "@/lib/gives/access";
 import { orgHref } from "@/lib/gives/constants";
+import { isOrgPublic } from "@/lib/gives/queries";
 import { OrgShell } from "@/components/gives/org-shell";
 import type { OrgNavItem } from "@/components/gives/org-nav";
 
@@ -27,7 +28,7 @@ export default async function OrgDashboardLayout({ children, params }: { childre
     ...(role === "EDITOR" ? [] : [{ key: "team" as const, href: `${root}team/`, label: "Team" }]),
   ];
   return (
-    <OrgShell items={items} root={root} org={{ id: org.id, name: org.name }} orgs={orgs} publicHref={org.status === "APPROVED" && !org.deletedAt ? orgHref(org) : null} userName={user.name || user.email}>
+    <OrgShell items={items} root={root} org={{ id: org.id, name: org.name }} orgs={orgs} publicHref={isOrgPublic(org) ? orgHref(org) : null} userName={user.name || user.email}>
       {children}
     </OrgShell>
   );

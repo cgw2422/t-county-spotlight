@@ -1,18 +1,28 @@
 import "server-only";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
+import { getSettings } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { ACTIVE_SIGNUP_STATUSES } from "./constants";
 
 // ───────── Public visibility rules ─────────
 
-/** Organizations visible to the public: approved and not deleted. */
+/**
+ * Organizations visible to the public: approved (moderation), published
+ * (publication) and not deleted. Ownership (claimed or not) never matters.
+ */
 export const publicOrgWhere = (extra: Prisma.OrganizationWhereInput = {}): Prisma.OrganizationWhereInput => ({
   status: "APPROVED",
+  isPublished: true,
   deletedAt: null,
   ...extra,
 });
+
+/** In-memory twin of `publicOrgWhere` for an already-loaded organization. */
+export function isOrgPublic(o: { status: string; isPublished: boolean; deletedAt: Date | null } | null | undefined): boolean {
+  return !!o && o.status === "APPROVED" && o.isPublished && !o.deletedAt;
+}
 
 /** Needs shown on boards (open or partly met) from public organizations. */
 export const openNeedWhere = (extra: Prisma.CommunityNeedWhereInput = {}): Prisma.CommunityNeedWhereInput => ({
@@ -112,14 +122,23 @@ export async function recalcNeed(needId: string) {
   return db.communityNeed.update({ where: { id: needId }, data: { quantityReceived: received, status } });
 }
 
-/** Email addresses to notify for an organization (org email + members), deduplicated. */
+/**
+ * Email addresses to notify for an organization (org email + members), deduplicated.
+ * Listings nobody manages yet (unclaimed / claim pending, no active members) notify
+ * the site team (settings.notifyAdminEmail) instead — never an unverified address.
+ */
 export async function orgRecipients(orgId: string) {
   const org = await db.organization.findUnique({
     where: { id: orgId },
     select: { email: true, members: { select: { user: { select: { email: true, status: true } } } } },
   });
   if (!org) return [];
-  const list = [org.email, ...org.members.filter((m) => m.user.status === "ACTIVE").map((m) => m.user.email)].filter((e): e is string => !!e);
+  const active = org.members.filter((m) => m.user.status === "ACTIVE").map((m) => m.user.email);
+  if (!active.length) {
+    const staff = (await getSettings()).notifyAdminEmail;
+    return staff ? [staff.toLowerCase()] : [];
+  }
+  const list = [org.email, ...active].filter((e): e is string => !!e);
   return [...new Set(list.map((e) => e.toLowerCase()))];
 }
 
@@ -133,8 +152,11 @@ export async function uniqueSlug(base: string, exists: (slug: string) => Promise
   return `${root}-${Date.now().toString(36)}`;
 }
 
+/** Slugs that would collide with static routes under /gives/claim/, /gives/, etc. */
+export const RESERVED_ORG_SLUGS = new Set(["verify", "new", "register", "claim", "import", "claims", "needs", "volunteer", "organizations"]);
+
 export const orgSlug = (name: string, id?: string) =>
-  uniqueSlug(name, async (s) => !!(await db.organization.findFirst({ where: { slug: s, ...(id ? { NOT: { id } } : {}) }, select: { id: true } })));
+  uniqueSlug(name, async (s) => RESERVED_ORG_SLUGS.has(s) || !!(await db.organization.findFirst({ where: { slug: s, ...(id ? { NOT: { id } } : {}) }, select: { id: true } })));
 export const needSlug = (title: string) => uniqueSlug(title, async (s) => !!(await db.communityNeed.findUnique({ where: { slug: s }, select: { id: true } })));
 export const opportunitySlug = (title: string) => uniqueSlug(title, async (s) => !!(await db.volunteerOpportunity.findUnique({ where: { slug: s }, select: { id: true } })));
 

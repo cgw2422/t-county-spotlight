@@ -32,8 +32,11 @@ export const ORG_TYPE_SUGGESTIONS = [
   "Civic & service club", "Sports & recreation",
 ];
 
-export function OrgProfileForm({ org, action, allowKind, extra, submitLabel = "Save profile" }: {
+export function OrgProfileForm({ org, action, allowKind, extra, submitLabel = "Save profile", submitArea, kindOptions = ORG_KINDS }: {
   org: OrgFormValues; action: FormAction; allowKind?: boolean; extra?: React.ReactNode; submitLabel?: string;
+  /** Replaces the default single submit button (e.g. "Save as draft" + "Save & publish"). */
+  submitArea?: React.ReactNode;
+  kindOptions?: readonly string[];
 }) {
   const socials = (org.socials ?? {}) as Record<string, string>;
   const church = org.kind === "CHURCH";
@@ -49,7 +52,7 @@ export function OrgProfileForm({ org, action, allowKind, extra, submitLabel = "S
             <div>
               <label htmlFor="f-kind" className="label">Kind</label>
               <select id="f-kind" name="kind" className="input" defaultValue={org.kind}>
-                {ORG_KINDS.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
+                {kindOptions.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
               </select>
               <p className="help">Save to show or hide the church sections.</p>
             </div>
@@ -136,7 +139,7 @@ export function OrgProfileForm({ org, action, allowKind, extra, submitLabel = "S
       {extra}
 
       <div className="sticky bottom-[calc(3.5rem+var(--safe-bottom,0px))] z-20 -mx-4 flex items-center gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 lg:bottom-0">
-        <Submit pendingText="Saving…" className="btn-primary min-h-12 flex-1 text-base sm:flex-none">{submitLabel}</Submit>
+        {submitArea ?? <Submit pendingText="Saving…" className="btn-primary min-h-12 flex-1 text-base sm:flex-none">{submitLabel}</Submit>}
         <DirtyIndicator />
       </div>
     </ActionForm>

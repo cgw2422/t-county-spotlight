@@ -1,21 +1,24 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { sanitizePlain } from "@/lib/sanitize";
 import { absoluteUrl, slugify } from "@/lib/utils";
-import { parseOrgProfile } from "@/lib/gives/profile";
-import { recalcNeed } from "@/lib/gives/queries";
-import { ORG_ROLES, orgHref, type OrgRoleValue } from "@/lib/gives/constants";
+import { parseOrgProfile, parseStaffOrgFields } from "@/lib/gives/profile";
+import { orgSlug, recalcNeed } from "@/lib/gives/queries";
+import { recomputeOwnership } from "@/lib/gives/ownership";
+import { isDonationVerified } from "@/lib/gives/admin";
+import { ORG_KINDS, ORG_ROLES, ORG_ROLE_LABEL, orgHref, type OrgKindValue, type OrgRoleValue } from "@/lib/gives/constants";
+import type { Prisma } from "@/generated/prisma/client";
 import type { ActionState } from "@/components/ui/form-message";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 function refresh(orgId?: string) {
-  revalidatePath("/admin/organizations/");
+  revalidatePath("/admin/organizations/", "layout");
   if (orgId) revalidatePath(`/admin/organizations/${orgId}/`);
   revalidatePath("/gives/", "layout");
   revalidatePath("/churches/", "layout");
@@ -24,6 +27,14 @@ function refresh(orgId?: string) {
 async function ownerEmails(orgId: string) {
   const m = await db.organizationMember.findMany({ where: { organizationId: orgId, role: { in: ["OWNER", "ADMIN"] } }, select: { user: { select: { email: true } } } });
   return [...new Set(m.map((x) => x.user.email))];
+}
+
+async function recordDonationVerification(userId: string, org: { id: string; name: string }, fd: FormData, donationUrl: string | null | undefined, before?: string | null) {
+  const want = fd.get("donationVerified") === "on";
+  if (!donationUrl) return;
+  const was = before === donationUrl && (await isDonationVerified(org.id, donationUrl));
+  if (want && !was) await audit(userId, "organization.donation_verified", "Organization", org.id, { name: org.name, url: donationUrl });
+  if (!want && was) await audit(userId, "organization.donation_unverified", "Organization", org.id, { name: org.name, url: donationUrl });
 }
 
 export async function adminSaveOrg(_p: ActionState, fd: FormData): Promise<ActionState> {
@@ -39,13 +50,67 @@ export async function adminSaveOrg(_p: ActionState, fd: FormData): Promise<Actio
       else data.slug = slug;
     }
   }
+  parseStaffOrgFields(fd, data, fieldErrors);
   if (Object.keys(fieldErrors).length) return { error: Object.values(fieldErrors)[0], fieldErrors };
-  data.seoTitle = sanitizePlain(str(fd, "seoTitle"), 200) || null;
-  data.seoDescription = sanitizePlain(str(fd, "seoDescription"), 400) || null;
   await db.organization.update({ where: { id: org.id }, data });
   await audit(user.id, "organization.admin_update", "Organization", org.id, { fields: Object.keys(data) });
+  await recordDonationVerification(user.id, org, fd, data.donationUrl as string | null, org.donationUrl);
   refresh(org.id);
   return { ok: true, message: "Organization saved." };
+}
+
+/** Admin "Add organization": an admin-vetted listing that exists without any user account. */
+export async function adminCreateOrg(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireStaff();
+  const kindRaw = str(fd, "kind");
+  const kind = (ORG_KINDS as readonly string[]).includes(kindRaw) ? (kindRaw as OrgKindValue) : "NONPROFIT";
+  const { data, fieldErrors } = parseOrgProfile(fd, { logoUrl: null, coverUrl: null, kind }, { allowKind: true });
+  parseStaffOrgFields(fd, data, fieldErrors);
+  if (Object.keys(fieldErrors).length) return { error: Object.values(fieldErrors)[0], fieldErrors };
+  const publish = str(fd, "intent") === "publish";
+  const name = String(data.name);
+  const created = await db.organization.create({
+    data: {
+      ...(data as Prisma.OrganizationCreateInput),
+      name,
+      kind,
+      slug: await orgSlug(name),
+      status: "APPROVED",
+      isPublished: publish,
+      publishedAt: publish ? new Date() : null,
+      ownershipStatus: "UNCLAIMED",
+      source: "admin",
+      createdById: user.id,
+    },
+  });
+  await audit(user.id, "organization.admin_create", "Organization", created.id, { name, kind, published: publish });
+  if (publish) await audit(user.id, "organization.publish", "Organization", created.id, { name });
+  await recordDonationVerification(user.id, created, fd, created.donationUrl);
+  refresh(created.id);
+  redirect(`/admin/organizations/${created.id}/?created=${publish ? "published" : "draft"}`);
+}
+
+/** Publication is independent of moderation status and ownership. */
+export async function setOrgPublished(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireStaff();
+  const org = await db.organization.findUnique({ where: { id: str(fd, "orgId") }, select: { id: true, name: true, isPublished: true, publishedAt: true, status: true } });
+  if (!org) return { error: "Organization not found." };
+  const publish = str(fd, "publish") === "1";
+  if (publish === org.isPublished) return { ok: true, message: publish ? "Already published." : "Already a draft." };
+  await db.organization.update({ where: { id: org.id }, data: { isPublished: publish, ...(publish ? { publishedAt: org.publishedAt ?? new Date() } : {}) } });
+  await audit(user.id, publish ? "organization.publish" : "organization.unpublish", "Organization", org.id, { name: org.name, by: "staff" });
+  refresh(org.id);
+  return { ok: true, message: publish ? (org.status === "APPROVED" ? "Published — the listing is public." : "Published. It becomes public once approved.") : "Unpublished — the listing is hidden from the public." };
+}
+
+export async function markOrgChecked(_p: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireStaff();
+  const org = await db.organization.findUnique({ where: { id: str(fd, "orgId") }, select: { id: true, name: true } });
+  if (!org) return { error: "Organization not found." };
+  await db.organization.update({ where: { id: org.id }, data: { infoCheckedAt: new Date() } });
+  await audit(user.id, "organization.info_checked", "Organization", org.id, { name: org.name });
+  refresh(org.id);
+  return { ok: true, message: "Marked as checked today." };
 }
 
 const STATUS_ACTIONS = ["APPROVED", "REJECTED", "SUSPENDED", "ARCHIVED", "PENDING"] as const;
@@ -115,31 +180,34 @@ export async function trashOrg(_p: ActionState, fd: FormData): Promise<ActionSta
   return { ok: true, message: restore ? "Organization restored." : "Organization deleted." };
 }
 
-export async function adminAddOrgMember(_p: ActionState, fd: FormData): Promise<ActionState> {
+/**
+ * Assign an EXISTING user as an organization manager. Never creates accounts —
+ * people without one create a free account (/register/) or submit a claim.
+ */
+export async function adminAssignManager(_p: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireStaff();
   const org = await db.organization.findUnique({ where: { id: str(fd, "orgId") }, select: { id: true, name: true } });
   if (!org) return { error: "Organization not found." };
-  const email = z.email().safeParse(str(fd, "email").toLowerCase());
-  if (!email.success) return { error: "Enter a valid email address." };
+  const userId = String(fd.getAll("user")[0] ?? "").slice(0, 40);
+  if (!userId) return { error: "Search for and choose an existing account. If they don't have one, ask them to create a free account at /register/ or submit a claim from the listing page." };
   const role = str(fd, "role") as OrgRoleValue;
   if (!(ORG_ROLES as readonly string[]).includes(role)) return { error: "Choose a role." };
-  let target = await db.user.findUnique({ where: { email: email.data } });
-  let created = false;
-  if (!target) {
-    target = await db.user.create({ data: { email: email.data, role: "MEMBER" } });
-    created = true;
-  }
+  const target = await db.user.findUnique({ where: { id: userId }, select: { id: true, email: true, name: true, status: true } });
+  if (!target) return { error: "That account no longer exists." };
+  if (target.status !== "ACTIVE") return { error: "That account isn't active." };
+  const existing = await db.organizationMember.findUnique({ where: { userId_organizationId: { userId: target.id, organizationId: org.id } } });
   await db.organizationMember.upsert({
     where: { userId_organizationId: { userId: target.id, organizationId: org.id } },
     create: { userId: target.id, organizationId: org.id, role },
     update: { role },
   });
-  await audit(user.id, "organization.member_add", "Organization", org.id, { email: email.data, role, createdUser: created, by: "staff" });
-  if (fd.get("notify") === "on") {
-    await sendEmail(email.data, `You can now manage ${org.name} on T-County Gives`, `You've been added to ${org.name} on T-County Gives.\n\n${created ? `Set your password here: ${absoluteUrl("/forgot-password/")}\n\n` : ""}Manage your organization: ${absoluteUrl(`/organization/${org.id}/`)}`);
+  const ownership = await recomputeOwnership(org.id);
+  await audit(user.id, existing ? "organization.member_role" : "organization.member_add", "Organization", org.id, { email: target.email, role, from: existing?.role ?? null, by: "staff", ownership });
+  if (fd.get("notify") === "on" && !existing) {
+    await sendEmail(target.email, `You can now manage ${org.name} on T-County Gives`, `Hi${target.name ? ` ${target.name}` : ""},\n\nThe TCountySpotlight team gave your account ${ORG_ROLE_LABEL[role].toLowerCase()} access to ${org.name} on T-County Gives.\n\nSign in to manage the listing, needs, volunteer opportunities and updates:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT-County Gives is always free for nonprofits, churches and community groups.`);
   }
   refresh(org.id);
-  return { ok: true, message: created ? `Created an account for ${email.data} (no password — they must use “Forgot password”).` : `${email.data} added as ${role.toLowerCase()}.` };
+  return { ok: true, message: existing ? `${target.email} is now ${role.toLowerCase()}.` : `${target.email} added as ${role.toLowerCase()}.` };
 }
 
 export async function adminRemoveOrgMember(_p: ActionState, fd: FormData): Promise<ActionState> {
@@ -149,9 +217,10 @@ export async function adminRemoveOrgMember(_p: ActionState, fd: FormData): Promi
   const link = await db.organizationMember.findUnique({ where: { userId_organizationId: { userId, organizationId: orgId } }, include: { user: { select: { email: true } } } });
   if (!link) return { error: "Member not found." };
   await db.organizationMember.delete({ where: { userId_organizationId: { userId, organizationId: orgId } } });
-  await audit(user.id, "organization.member_remove", "Organization", orgId, { email: link.user.email, by: "staff" });
+  const ownership = await recomputeOwnership(orgId);
+  await audit(user.id, "organization.member_remove", "Organization", orgId, { email: link.user.email, by: "staff", ownership });
   refresh(orgId);
-  return { ok: true, message: `Removed ${link.user.email}.` };
+  return { ok: true, message: `Removed ${link.user.email}.${ownership === "UNCLAIMED" ? " The listing is now unclaimed." : ""}` };
 }
 
 // ───────── Moderation of needs and opportunities ─────────

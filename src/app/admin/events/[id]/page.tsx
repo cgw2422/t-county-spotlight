@@ -18,7 +18,7 @@ export default async function EditEventPage({ params, searchParams }: { params: 
   await requireStaff();
   const { id } = await params;
   const { created } = await searchParams;
-  const e = await db.event.findUnique({ where: { id }, include: { business: { select: { id: true, name: true, city: true } }, submittedBy: { select: { email: true, name: true } } } });
+  const e = await db.event.findUnique({ where: { id }, include: { business: { select: { id: true, name: true, city: true } }, organization: { select: { id: true, name: true, city: true } }, submittedBy: { select: { email: true, name: true } } } });
   if (!e || e.deletedAt) notFound();
   const categories = await db.eventCategory.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
   const rec = describeRecurrence(e.recurrence);
@@ -48,7 +48,7 @@ export default async function EditEventPage({ params, searchParams }: { params: 
         <div className="mb-4"><Notice title="Community submission">Submitted by {e.submittedBy?.name || e.submitterEmail || e.submittedBy?.email} on {formatDateTime(e.createdAt)}. Approving or rejecting emails the submitter.</Notice></div>
       )}
       {e.status === "REJECTED" && e.rejectionReason && <div className="mb-4"><Notice tone="danger" title="Rejected">{e.rejectionReason}</Notice></div>}
-      <EventForm e={e} categories={categories} business={e.business ? { id: e.business.id, label: e.business.name, sub: e.business.city } : null} />
+      <EventForm e={e} categories={categories} business={e.business ? { id: e.business.id, label: e.business.name, sub: e.business.city } : null} organization={e.organization ? { id: e.organization.id, label: e.organization.name, sub: e.organization.city } : null} />
       <div className="mt-8 flex justify-end">
         <ConfirmButton action={trashEvent} fields={{ id: e.id }} title="Delete this event?" body="It will be removed from the calendar and admin lists (soft delete, recoverable from the database)." confirmLabel="Delete event"><Trash2 className="h-4 w-4" /> Delete event</ConfirmButton>
       </div>

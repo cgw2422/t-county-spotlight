@@ -1,6 +1,6 @@
 import { AlertTriangle, BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { KIND_LABEL, ORG_STATUS_LABEL, URGENCY_BADGE, URGENCY_LABEL } from "@/lib/gives/constants";
+import { KIND_LABEL, ORG_STATUS_LABEL, OWNERSHIP_BADGE, OWNERSHIP_LABEL, URGENCY_BADGE, URGENCY_LABEL } from "@/lib/gives/constants";
 
 const ORG_STATUS_TONE: Record<string, string> = { PENDING: "badge-amber", APPROVED: "badge-green", REJECTED: "badge-red", SUSPENDED: "badge-red", ARCHIVED: "badge-gray" };
 
@@ -48,4 +48,13 @@ export function NeedProgress({ received, needed, unit, pledged, compact }: { rec
       {!!pledged && <p className="mt-1 text-xs text-slate-500">{pledged.toLocaleString()} pledged so far</p>}
     </div>
   );
+}
+
+/** Admin-facing ownership badge (Unclaimed / Claim pending / Claimed). */
+export function OwnershipBadge({ status, className }: { status: string; className?: string }) {
+  return <span className={cn(OWNERSHIP_BADGE[status] ?? "badge-gray", "whitespace-nowrap", className)}>{OWNERSHIP_LABEL[status] ?? status}</span>;
+}
+
+export function PublishBadge({ published, className }: { published: boolean; className?: string }) {
+  return <span className={cn(published ? "badge-blue" : "badge-gray", "whitespace-nowrap", className)}>{published ? "Published" : "Draft"}</span>;
 }

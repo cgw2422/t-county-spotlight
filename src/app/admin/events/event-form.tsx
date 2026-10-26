@@ -15,7 +15,13 @@ export const EVENT_STATUS_OPTIONS = [
   { value: "UNPUBLISHED", label: "Unpublished" }, { value: "REJECTED", label: "Rejected" }, { value: "ARCHIVED", label: "Archived" },
 ];
 
-export function EventForm({ e, categories, business }: { e: Event | null; categories: { id: string; name: string }[]; business?: { id: string; label: string; sub?: string | null } | null }) {
+type PickItem = { id: string; label: string; sub?: string | null };
+
+export function EventForm({ e, categories, business, organization, defaults }: {
+  e: Event | null; categories: { id: string; name: string }[]; business?: PickItem | null; organization?: PickItem | null;
+  /** Prefill for new events (e.g. "Add event for this organization"). */
+  defaults?: { organizer?: string | null; locationName?: string | null; address?: string | null; city?: string | null };
+}) {
   const rec = (e?.recurrence ?? null) as Recurrence | null;
   return (
     <ActionForm action={saveEvent} warnUnsaved className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -47,10 +53,10 @@ export function EventForm({ e, categories, business }: { e: Event | null; catego
         </Card>
         <Card title="Location">
           <FormGrid>
-            <TextField name="locationName" label="Venue" defaultValue={e?.locationName ?? ""} placeholder="Tuscora Park" />
-            <TextField name="address" label="Address" defaultValue={e?.address ?? ""} />
-            <CitySelect defaultValue={e?.city} />
-            <TextField name="organizer" label="Organizer" defaultValue={e?.organizer ?? ""} />
+            <TextField name="locationName" label="Venue" defaultValue={e?.locationName ?? defaults?.locationName ?? ""} placeholder="Tuscora Park" />
+            <TextField name="address" label="Address" defaultValue={e?.address ?? defaults?.address ?? ""} />
+            <CitySelect defaultValue={e ? e.city : defaults?.city} />
+            <TextField name="organizer" label="Organizer" defaultValue={e?.organizer ?? defaults?.organizer ?? ""} />
           </FormGrid>
         </Card>
         <Card title="Tickets">
@@ -79,6 +85,7 @@ export function EventForm({ e, categories, business }: { e: Event | null; catego
           <div className="space-y-4">
             <SelectField name="categoryId" label="Category" defaultValue={e?.categoryId ?? ""} placeholder="No category" options={categories.map((c) => ({ value: c.id, label: c.name }))} />
             <SearchSelect name="business" type="business" multiple={false} label="Hosting business" initial={business ? [business] : []} placeholder="Search businesses…" />
+            <SearchSelect name="organization" type="organization" multiple={false} label="Organization (nonprofit or church)" initial={organization ? [organization] : []} placeholder="Search organizations…" help="Shows the event on the organization's page and an “Organized by” card." />
           </div>
         </Card>
         <Card title="Image"><MediaField name="imageUrl" defaultValue={e?.imageUrl} /></Card>

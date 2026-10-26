@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isOrgPublic } from "@/lib/gives/queries";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, CalendarPlus, Clock, Download, MapPin, Repeat, Ticket, UserRound } from "lucide-react";
@@ -190,7 +191,7 @@ export default async function EventPage({ params }: Props) {
               <BusinessCard b={business} />
             </section>
           )}
-          {e.organization && e.organization.status === "APPROVED" && !e.organization.deletedAt && (
+          {e.organization && isOrgPublic(e.organization) && (
             <section aria-labelledby="org-host-title">
               <h2 id="org-host-title" className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Organized by</h2>
               <OrgCard o={e.organization} />

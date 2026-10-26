@@ -4,6 +4,7 @@ import { getUpcomingOccurrences, publishedArticleWhere, articleCardSelect } from
 import { activePromotionWhere } from "@/lib/promotions";
 import { articleHref, eventHref, specialHref } from "@/lib/links";
 import { orgHref, needHref } from "@/lib/gives/constants";
+import { publicOrgWhere } from "@/lib/gives/queries";
 import { formatDate, formatTime, stripHtml, truncate } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { SECTION_DEFAULTS, type NLItem, type NLSectionKey, type NewsletterContent } from "./content";
@@ -51,8 +52,8 @@ function orgItem(o: OrgRow): NLItem {
   return { id: `organization-${o.id}`, refType: "organization", refId: o.id, title: o.name, url: orgHref(o), imageUrl: o.coverUrl || o.logoUrl || undefined, imageAlt: o.name, meta: [o.orgType, o.city].filter(Boolean).join(" · ") || undefined, text: o.tagline || short(o.mission) };
 }
 
-const openNeedWhere = (): Prisma.CommunityNeedWhereInput => ({ status: { in: ["OPEN", "PARTIALLY_FULFILLED"] }, deletedAt: null, organization: { status: "APPROVED", deletedAt: null }, OR: [{ deadline: null }, { deadline: { gte: new Date() } }] });
-const approvedOrgWhere = (): Prisma.OrganizationWhereInput => ({ status: "APPROVED", deletedAt: null });
+const openNeedWhere = (): Prisma.CommunityNeedWhereInput => ({ status: { in: ["OPEN", "PARTIALLY_FULFILLED"] }, deletedAt: null, organization: publicOrgWhere(), OR: [{ deadline: null }, { deadline: { gte: new Date() } }] });
+const approvedOrgWhere = (): Prisma.OrganizationWhereInput => publicOrgWhere();
 
 /** Fills each section with current site content. Everything stays editable afterwards. */
 export async function autoPopulate(current: NewsletterContent): Promise<NewsletterContent> {

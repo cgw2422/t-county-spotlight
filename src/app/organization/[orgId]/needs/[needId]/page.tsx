@@ -4,6 +4,7 @@ import { CheckCircle2, ChevronLeft, ExternalLink, Mail, Phone, Trash2, Undo2, XC
 import { db } from "@/lib/db";
 import { formatDateTime, toDateInput } from "@/lib/utils";
 import { requireOrgAccess } from "@/lib/gives/access";
+import { isOrgPublic } from "@/lib/gives/queries";
 import { PLEDGE_STATUS_LABEL, needHref } from "@/lib/gives/constants";
 import { NeedProgress } from "@/components/gives/badges";
 import { NeedForm } from "@/components/gives/dashboard-forms";
@@ -34,9 +35,9 @@ export default async function NeedDetailPage({ params, searchParams }: { params:
       <Link href={`/organization/${org.id}/needs/`} className="mb-2 inline-flex min-h-9 items-center gap-1 text-sm font-medium text-slate-500 hover:text-brand-700"><ChevronLeft className="h-4 w-4" aria-hidden /> Needs</Link>
       <PageHeader
         title={need.title}
-        description={org.status === "APPROVED" && need.status !== "DRAFT" ? <Link href={needHref(need)} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline">View public page <ExternalLink className="h-3.5 w-3.5" aria-hidden /></Link> : "Not public yet."}
+        description={isOrgPublic(org) && need.status !== "DRAFT" ? <Link href={needHref(need)} className="inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline">View public page <ExternalLink className="h-3.5 w-3.5" aria-hidden /></Link> : "Not public yet."}
       />
-      {created && <p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your need is posted.{org.status !== "APPROVED" && " It will appear publicly once your organization is approved."}</p>}
+      {created && <p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your need is posted.{!isOrgPublic(org) && " It will appear publicly once your organization is approved and published."}</p>}
 
       <section className="card mb-6 p-5 sm:p-6" aria-labelledby="pledges-title">
         <div className="flex flex-wrap items-center justify-between gap-2">

@@ -5,7 +5,7 @@ import { destroySession, requireStaff } from "@/lib/auth";
 import { sanitizeRichText } from "@/lib/sanitize";
 import type { Prisma } from "@/generated/prisma/client";
 
-export type LookupType = "business" | "article" | "event" | "promotion" | "user" | "page";
+export type LookupType = "business" | "article" | "event" | "promotion" | "user" | "page" | "organization";
 export type LookupItem = { id: string; label: string; sub?: string | null };
 
 /** Typeahead search used by SearchSelect. Staff only. */
@@ -39,6 +39,11 @@ export async function lookupRecords(type: LookupType, q: string, opts: { publish
       const where: Prisma.UserWhereInput = query ? { OR: [{ email: contains }, { name: contains }] } : {};
       const rows = await db.user.findMany({ where, take, orderBy: { createdAt: "desc" }, select: { id: true, email: true, name: true } });
       return rows.map((r) => ({ id: r.id, label: r.name || r.email, sub: r.email }));
+    }
+    case "organization": {
+      const where: Prisma.OrganizationWhereInput = { deletedAt: null, ...(query ? { name: contains } : {}), ...(opts.publishedOnly ? { status: "APPROVED", isPublished: true } : {}) };
+      const rows = await db.organization.findMany({ where, take, orderBy: { name: "asc" }, select: { id: true, name: true, city: true, kind: true, status: true, isPublished: true } });
+      return rows.map((r) => ({ id: r.id, label: r.name, sub: [r.kind === "CHURCH" ? "Church" : r.kind === "COMMUNITY_GROUP" ? "Community group" : "Nonprofit", r.city, r.status !== "APPROVED" ? r.status.toLowerCase() : !r.isPublished ? "draft" : null].filter(Boolean).join(" · ") }));
     }
     case "page": {
       const where: Prisma.PageWhereInput = { deletedAt: null, ...(query ? { title: contains } : {}), ...(opts.publishedOnly ? { status: "PUBLISHED" } : {}) };
