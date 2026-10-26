@@ -57,6 +57,7 @@ model User {
   applications      BusinessApplication[] @relation("ApplicationSubmitter")
   submittedEvents   Event[]             @relation("EventSubmitter")
   organizations     OrganizationMember[]
+  organizationClaims OrganizationClaim[]
   pledges           NeedPledge[]
   volunteerSignups  VolunteerSignup[]
   newsletterSubscriber NewsletterSubscriber?
@@ -795,6 +796,13 @@ enum OrgStatus {
   ARCHIVED
 }
 
+/// Who manages the listing — independent of publication/moderation status.
+enum OrgOwnership {
+  UNCLAIMED      // created by an administrator or import; no verified manager
+  CLAIM_PENDING  // someone has requested management access
+  CLAIMED        // at least one verified representative manages it
+}
+
 enum OrgMemberRole {
   OWNER
   ADMIN
@@ -836,6 +844,15 @@ model Organization {
   planYourVisit    String?   // HTML
   // Moderation / verification
   status           OrgStatus @default(PENDING)
+  // Publication is separate from moderation status and ownership:
+  // public = status APPROVED && isPublished && not deleted.
+  isPublished      Boolean   @default(true)
+  publishedAt      DateTime?
+  ownershipStatus  OrgOwnership @default(UNCLAIMED)
+  source           String    @default("self_registered") // self_registered | admin | import
+  importBatchId    String?
+  createdById      String?
+  internalNotes    String?
   verifiedAt       DateTime?
   verifiedById     String?
   verificationNote String?
@@ -852,8 +869,64 @@ model Organization {
   needs         CommunityNeed[]
   opportunities VolunteerOpportunity[]
   events        Event[]
+  claims        OrganizationClaim[]
 
   @@index([kind, status, deletedAt])
+  @@index([ownershipStatus])
+  @@index([importBatchId])
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+/// A request from a signed-in person to manage an existing organization listing.
+/// Contains personal information — visible only to the claimant and staff.
+model OrganizationClaim {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicantName      String
+  email              String       // organization email the applicant controls (verified by link)
+  phone              String?
+  role               String       // e.g. Pastor, Executive Director, Board member
+  verificationMethod String?      // how staff can confirm: official email, phone callback, document, etc.
+  evidence           String?      // free text: links, notes
+  message            String?
+  emailDomainMatches Boolean      @default(false) // email domain matches the listing website
+  emailVerifiedAt    DateTime?
+  verifyTokenHash    String?      @unique
+  verifyExpiresAt    DateTime?
+  status             ClaimStatus  @default(PENDING)
+  reviewNote         String?
+  reviewedById       String?
+  reviewedAt         DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([status, createdAt])
+}
+
+/// A bulk CSV import of organization listings (staged → mapped → imported).
+model OrganizationImport {
+  id          String    @id @default(cuid())
+  filename    String
+  status      String    @default("uploaded") // uploaded | mapped | imported | failed
+  headers     String[]  @default([])
+  rows        Json      // raw parsed rows (array of string arrays)
+  mapping     Json?     // { csvColumnIndex: fieldName }
+  defaults    Json?     // { kind, isPublished }
+  results     Json?     // per-row outcome: created | skipped_duplicate | skipped_claimed | error
+  summary     Json?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
 }
 
 model OrganizationMember {
