@@ -853,6 +853,10 @@ model Organization {
   importBatchId    String?
   createdById      String?
   internalNotes    String?
+  // Content accuracy for staff-seeded listings
+  sourceUrls       String[]  @default([]) // public sources the information came from
+  infoCheckedAt    DateTime?              // when the public information was last checked
+  imageRights      String?                // basis for using logo/cover (provided by org, licensed, own photo, ...)
   verifiedAt       DateTime?
   verifiedById     String?
   verificationNote String?
