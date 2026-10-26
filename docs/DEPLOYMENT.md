@@ -7,7 +7,7 @@
 4. In the web service → **Variables**, set (see `.env.example` for all):
    | Variable | Value |
    |---|---|
-   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+   | `DATABASE_URL` | exactly `${{Postgres.DATABASE_URL}}` (a reference, not a copied URL; the Postgres service must be in the same project) |
    | `APP_URL` | the Railway URL, e.g. `https://tcountyspotlight-staging.up.railway.app` |
    | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | your first admin login (created once) |
    | `WP_BASE_URL` | `https://tcountyspotlight.com` |

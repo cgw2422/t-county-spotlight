@@ -7,6 +7,14 @@ function getClient() {
   if (!globalForPrisma.prisma) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) throw new Error("DATABASE_URL is not set");
+    try {
+      const host = new URL(connectionString).hostname;
+      if (host === "host") {
+        console.error('[db] DATABASE_URL still contains the placeholder host "host". On Railway set DATABASE_URL to ${{Postgres.DATABASE_URL}}.');
+      }
+    } catch {
+      console.error("[db] DATABASE_URL is not a valid connection URL.");
+    }
     globalForPrisma.prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   }
   return globalForPrisma.prisma;
