@@ -8,6 +8,7 @@ import { LogoutButton } from "@/components/account/logout-button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { OhioMark } from "@/components/site/logo";
 import { resendVerificationAction } from "./actions";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export const metadata: Metadata = { title: "My account", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -37,6 +38,9 @@ function SignedOut() {
           <Link href="/login/?next=%2Faccount%2F" className="btn-secondary w-full">Sign in</Link>
         </div>
         <p className="mt-6 text-sm text-slate-600">Own a local business? <Link href="/list-your-business/" className="font-semibold text-brand-700 hover:underline">List it for free</Link></p>
+      </div>
+      <div className="container-page max-w-3xl pb-12">
+        <NewsletterSignup source="account" variant="card" />
       </div>
     </div>
   );

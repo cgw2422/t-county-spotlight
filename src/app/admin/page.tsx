@@ -12,6 +12,7 @@ import { PageHeader, Card } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
 import { publishDueScheduled } from "./_lib/scheduling";
 import { describeAudit } from "./audit/describe";
+import { GivesAdminStats } from "@/components/gives/admin-stats";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "Dashboard · Admin" } };
@@ -87,6 +88,7 @@ export default async function AdminDashboard() {
         <StatCard label="Registered users" value={users} icon={Users} href={user.role === "ADMIN" ? "/admin/users/" : undefined} tone="navy" />
         <StatCard label="Active paid memberships" value={paidSubs} icon={CreditCard} href={user.role === "ADMIN" ? "/admin/memberships/?tab=subscriptions" : undefined} tone="green" hint={compSubs ? `+ ${compSubs} complimentary` : undefined} />
       </div>
+      <GivesAdminStats />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3" title="Recent activity" description="Latest changes recorded in the audit log" actions={user.role === "ADMIN" ? <Link href="/admin/audit/" className="text-sm font-semibold text-brand-700 hover:underline">View all</Link> : undefined} bodyClassName="p-0">

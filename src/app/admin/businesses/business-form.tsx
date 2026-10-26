@@ -6,6 +6,7 @@ import { HoursEditor } from "@/components/admin/hours-editor";
 import { CitySelect } from "@/components/admin/city-select";
 import { ContentEditor } from "@/components/editor/content-editor";
 import type { Business } from "@/generated/prisma/client";
+import { GoogleListingAdminCard } from "@/components/business/google-listing-admin-card";
 import { saveBusiness } from "./actions";
 
 const SOCIALS = [
@@ -72,6 +73,7 @@ export function BusinessForm({ b, categories, selectedCategoryIds = [] }: {
         <Card title="Hours">
           <HoursEditor name="hours" defaultValue={Array.isArray(b?.hours) ? (b!.hours as { day: string; open: string; close: string; closed: boolean }[]) : null} />
         </Card>
+        <GoogleListingAdminCard b={b} />
         <Card title="SEO">
           <div className="space-y-4">
             <TextField name="seoTitle" label="SEO title" defaultValue={b?.seoTitle ?? ""} maxLength={200} placeholder="Defaults to the business name" />

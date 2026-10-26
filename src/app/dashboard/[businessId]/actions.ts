@@ -8,6 +8,7 @@ import { requireBusinessAccess } from "@/lib/auth";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { getSettings } from "@/lib/settings";
 import { audit } from "@/lib/audit";
+import { googleListingFromForm } from "@/lib/google-places";
 import { fromDateInput, slugify } from "@/lib/utils";
 import { getOrCreateCustomer, getStripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
@@ -88,6 +89,9 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
   const hasHours = hours.some((h) => h.closed || h.open || h.close);
   for (const h of hours) if (!h.closed && !!h.open !== !!h.close) fieldErrors.hours = `Please give both an opening and closing time for ${h.day} (or mark it closed).`;
 
+  const google = await googleListingFromForm(fd, business);
+  if (!google.skip && google.fieldErrors) Object.assign(fieldErrors, google.fieldErrors);
+
   if (Object.keys(fieldErrors).length) return { values: echoValues(fd), error: "Please fix the highlighted fields.", fieldErrors };
 
   const categoryIds = fd.getAll("categoryIds").map(String).slice(0, 5);
@@ -108,6 +112,7 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
     socials,
     hours: hasHours ? hours : [],
     categories: { set: validCats },
+    ...(!google.skip && !google.fieldErrors ? google.data : {}),
   };
   // Only rewrite the description when the owner actually changed the text (keeps imported formatting otherwise).
   const norm = (v: FormDataEntryValue | null) => String(v ?? "").replace(/\r\n/g, "\n").trim();
@@ -116,9 +121,10 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
 
   await db.business.update({ where: { id: business.id }, data });
   await audit(user.id, "business.owner_update", "Business", business.id, { fields: Object.keys(data) });
+  if (!google.skip && !google.fieldErrors && google.changes) await audit(user.id, "business.google_listing", "Business", business.id, google.changes as Prisma.InputJsonValue);
   revalidatePath(`/dashboard/${business.id}/`, "layout");
   revalidatePath(`/business/${business.slug}/`);
-  return { message: "Saved! Your changes are live on your listing." };
+  return { message: `Saved! Your changes are live on your listing.${!google.skip && !google.fieldErrors && google.note ? ` ${google.note}` : ""}` };
 }
 
 // ───────────── Photos ─────────────

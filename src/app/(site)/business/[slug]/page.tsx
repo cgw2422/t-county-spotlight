@@ -23,6 +23,7 @@ import { TrackView, TrackedLink } from "@/components/public/track";
 import { buildMetadata } from "@/components/public/seo";
 import { followRedirectIfAny, isFollowing, isSaved } from "@/components/public/server";
 import { DAY_NAMES, format12, nyNow, openStatus, openingHoursSpec, parseHours } from "@/components/public/hours";
+import { GoogleReviews } from "@/components/public/google-reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -223,6 +224,8 @@ export default async function BusinessPage({ params }: Props) {
                 <div className="mt-4"><PhotoGallery photos={b.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt, caption: p.caption }))} name={b.name} /></div>
               </section>
             )}
+
+            <GoogleReviews business={b} />
 
             {articles.length > 0 && (
               <section aria-labelledby="stories-title">

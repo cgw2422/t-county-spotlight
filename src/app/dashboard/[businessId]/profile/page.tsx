@@ -5,6 +5,7 @@ import { TUSCARAWAS_CITIES } from "@/lib/utils";
 import { Hint, PageHeader } from "@/components/dashboard/shell";
 import { ProfileForm } from "@/components/dashboard/profile-form";
 import { htmlToText, readHours } from "@/components/dashboard/text";
+import { getGooglePlacesSettings, isPlacesApiActive } from "@/lib/google-places";
 
 export const metadata: Metadata = { title: "Edit profile" };
 export const dynamic = "force-dynamic";
@@ -12,9 +13,10 @@ export const dynamic = "force-dynamic";
 export default async function EditProfilePage({ params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
   const { business } = await requireBusinessAccess(businessId);
-  const [b, categories] = await Promise.all([
+  const [b, categories, googleSettings] = await Promise.all([
     db.business.findUnique({ where: { id: business.id }, include: { categories: { select: { id: true } } } }),
     db.businessCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
+    getGooglePlacesSettings(),
   ]);
   const socials = (b!.socials ?? {}) as Record<string, string>;
   return (
@@ -25,6 +27,11 @@ export default async function EditProfilePage({ params }: { params: Promise<{ bu
         businessId={b!.id}
         categories={categories}
         cities={TUSCARAWAS_CITIES}
+        google={{
+          placeId: b!.googlePlaceId ?? "", mapsUrl: b!.googleMapsUrl ?? "", reviewsEnabled: b!.googleReviewsEnabled,
+          verifiedAt: b!.googlePlaceVerifiedAt?.toISOString() ?? null, searchAvailable: isPlacesApiActive(googleSettings),
+          defaultQuery: [b!.name, b!.address, b!.city, "OH"].filter(Boolean).join(", "),
+        }}
         values={{
           name: b!.name, tagline: b!.tagline ?? "", description: htmlToText(b!.description), logoUrl: b!.logoUrl ?? "", coverUrl: b!.coverUrl ?? "",
           categoryIds: b!.categories.map((c) => c.id), address: b!.address ?? "", city: b!.city ?? "", zip: b!.zip ?? "", phone: b!.phone ?? "",

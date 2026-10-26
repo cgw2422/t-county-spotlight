@@ -6,6 +6,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { updateProfileAction } from "@/app/dashboard/[businessId]/actions";
 import { Checkbox, FormSection, TextArea, TextField, echoed, echoedChecked } from "./fields";
 import { DAY_NAMES, type HoursRow } from "./text";
+import { GoogleListingFields, type GoogleListingValues } from "@/components/business/google-listing-fields";
 
 export type ProfileValues = {
   name: string; tagline: string; description: string; logoUrl: string; coverUrl: string; categoryIds: string[];
@@ -17,7 +18,7 @@ const SOCIALS = [
   ["facebook", "Facebook page"], ["instagram", "Instagram"], ["x", "X (Twitter)"], ["tiktok", "TikTok"], ["youtube", "YouTube"], ["linkedin", "LinkedIn"],
 ] as const;
 
-export function ProfileForm({ businessId, values, categories, cities }: { businessId: string; values: ProfileValues; categories: { id: string; name: string }[]; cities: string[] }) {
+export function ProfileForm({ businessId, values, categories, cities, google }: { businessId: string; values: ProfileValues; categories: { id: string; name: string }[]; cities: string[]; google?: GoogleListingValues & { searchAvailable: boolean; defaultQuery: string } }) {
   const [state, action] = useActionState(updateProfileAction, null);
   const fe = state?.fieldErrors ?? {};
   const ev = state?.values;
@@ -76,6 +77,24 @@ export function ProfileForm({ businessId, values, categories, cities }: { busine
           ))}
         </div>
       </FormSection>
+
+      {google && (
+        <FormSection id="google" title="Google listing" description="Link your Google Maps listing so visitors can read your Google reviews.">
+          <GoogleListingFields
+            key={ev ? JSON.stringify([ev.googlePlaceId, ev.googleMapsUrl, ev.googleReviewsEnabled]) : `${google.placeId}|${google.mapsUrl}|${google.verifiedAt ?? ""}`}
+            businessId={businessId}
+            searchAvailable={google.searchAvailable}
+            defaultQuery={google.defaultQuery}
+            errors={{ googlePlaceId: fe.googlePlaceId, googleMapsUrl: fe.googleMapsUrl }}
+            initial={{
+              placeId: echoed(ev, "googlePlaceId", google.placeId),
+              mapsUrl: echoed(ev, "googleMapsUrl", google.mapsUrl),
+              reviewsEnabled: echoedChecked(ev, "googleReviewsEnabled", google.reviewsEnabled),
+              verifiedAt: google.verifiedAt,
+            }}
+          />
+        </FormSection>
+      )}
 
       <FormSection id="hours" title="Opening hours" description="Leave a day blank if your hours vary. Tick “Closed” for days you're closed.">
         {fe.hours && <p className="text-sm text-red-600">{fe.hours}</p>}

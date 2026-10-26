@@ -14,6 +14,7 @@ import { ShareButtons } from "./share-buttons";
 import { SaveButton } from "./save-button";
 import { TrackView } from "./track";
 import { KIND_SECTIONS, type ArticleForView } from "./article-data";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 function readingMinutes(html: string) {
   const words = stripHtml(html).split(/\s+/).filter(Boolean).length;
@@ -105,6 +106,8 @@ export async function ArticleView({ article: a, related, saved }: { article: Art
               </ul>
             </aside>
           )}
+
+          <NewsletterSignup source="article" variant="inline" className="mt-10" />
         </div>
       </div>
 

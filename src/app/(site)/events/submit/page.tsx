@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/public/page-header";
 import { buildMetadata } from "@/components/public/seo";
 import { nyDateKey } from "@/components/public/dates";
 import { EventSubmitForm } from "./form";
+import { getUserOrganizations } from "@/lib/gives/access";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function SubmitEventPage() {
     db.eventCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     user ? (isStaff(user) ? Promise.resolve([]) : getOwnedBusinesses(user.id)) : Promise.resolve([]),
   ]);
+  const organizations = user ? (await getUserOrganizations(user.id)).filter((o) => o.status === "APPROVED") : [];
   return (
     <>
       <PageHeader
@@ -43,6 +45,7 @@ export default async function SubmitEventPage() {
             categories={categories}
             cities={TUSCARAWAS_CITIES}
             businesses={businesses.map((b) => ({ id: b.id, name: b.name }))}
+            organizations={organizations.map((o) => ({ id: o.id, name: o.name }))}
             signedInEmail={user?.email ?? null}
             canUpload={!!user && (isStaff(user) || businesses.length > 0)}
             today={nyDateKey(new Date())}

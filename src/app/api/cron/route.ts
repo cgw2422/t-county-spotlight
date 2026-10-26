@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { processDueNewsletters } from "@/lib/newsletter/send";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ function authorized(req: Request) {
  *   curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/
  * - publishes SCHEDULED articles whose publishedAt has passed
  * - removes expired sessions and expired/used verification tokens
+ * - starts due scheduled newsletters and continues sending ones (batched)
  */
 async function run(req: Request) {
   if (!process.env.CRON_SECRET) return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 503 });
@@ -39,12 +41,21 @@ async function run(req: Request) {
     where: { OR: [{ expiresAt: { lt: now } }, { usedAt: { lt: new Date(now.getTime() - 7 * 86400_000) } }] },
   });
 
+  let newsletters: Awaited<ReturnType<typeof processDueNewsletters>> | { error: string };
+  try {
+    newsletters = await processDueNewsletters();
+  } catch (e) {
+    console.error("[cron] newsletter processing failed", e);
+    newsletters = { error: (e as Error).message };
+  }
+
   return NextResponse.json({
     ok: true,
     time: now.toISOString(),
     publishedArticles: due.length,
     deletedSessions: sessions.count,
     deletedTokens: tokens.count,
+    newsletters,
   });
 }
 

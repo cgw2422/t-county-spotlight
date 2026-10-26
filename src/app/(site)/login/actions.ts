@@ -7,6 +7,7 @@ import { clientIp, createSession, destroySession, getPending2faSession, verifyPa
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTotp } from "@/lib/totp";
 import { homeForRole, safeNext } from "@/lib/tokens";
+import { postLoginHome } from "@/lib/gives/access";
 import type { ActionState } from "@/components/ui/form-message";
 import type { FormState } from "@/components/dashboard/fields";
 
@@ -42,7 +43,7 @@ export async function loginAction(_prev: FormState, fd: FormData): Promise<FormS
   }
   await createSession(user.id);
   await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  redirect(target ?? homeForRole(user.role));
+  redirect(target ?? (await postLoginHome(user, homeForRole(user.role))));
 }
 
 export async function verify2faAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -58,7 +59,7 @@ export async function verify2faAction(_prev: ActionState, fd: FormData): Promise
   }
   await db.session.update({ where: { id: session.id }, data: { needs2fa: false } });
   await db.user.update({ where: { id: session.userId }, data: { lastLoginAt: new Date() } });
-  redirect(safeNext(String(fd.get("next") ?? "")) ?? homeForRole(session.user.role));
+  redirect(safeNext(String(fd.get("next") ?? "")) ?? (await postLoginHome(session.user, homeForRole(session.user.role))));
 }
 
 export async function cancel2faAction() {

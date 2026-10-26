@@ -15,6 +15,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SearchBox } from "@/components/public/search-box";
 import { buildMetadata, param, qs, type SearchParams } from "@/components/public/seo";
 import { EXPLORE_ITEMS } from "@/components/home/explore-grid";
+import { OrgCard } from "@/components/gives/cards";
+import { searchOrganizations } from "@/lib/gives/search";
 
 export const dynamic = "force-dynamic";
 const LIMIT = 8;
@@ -50,9 +52,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     return { bizCount, businesses, artCount, articles, events, spCount, specials, pages };
   })() : null;
 
-  const total = results ? results.bizCount + results.artCount + results.events.length + results.spCount + results.pages.length : 0;
+  const orgs = results ? await searchOrganizations(q, LIMIT) : null;
+  const total = results ? (orgs?.count ?? 0) + results.bizCount + results.artCount + results.events.length + results.spCount + results.pages.length : 0;
   const groups = results ? [
     { id: "businesses", label: "Businesses", count: results.bizCount },
+    { id: "organizations", label: "Nonprofits & churches", count: orgs?.count ?? 0 },
     { id: "events", label: "Events", count: results.events.length },
     { id: "specials", label: "Specials", count: results.spCount },
     { id: "articles", label: "Stories", count: results.artCount },
@@ -98,6 +102,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             <section id="businesses" aria-labelledby="r-biz" className="scroll-mt-24">
               <GroupHeader id="r-biz" title="Businesses" count={results.bizCount} more={results.bizCount > LIMIT ? `/businesses/${qs({ q })}` : undefined} />
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">{results.businesses.map((b) => <BusinessCard key={b.id} b={b} />)}</div>
+            </section>
+          )}
+          {orgs && orgs.rows.length > 0 && (
+            <section id="organizations" aria-labelledby="r-org" className="scroll-mt-24">
+              <GroupHeader id="r-org" title="Nonprofits & churches" count={orgs.count} more={orgs.count > LIMIT ? `/gives/organizations/${qs({ q })}` : undefined} />
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">{orgs.rows.map((o) => <OrgCard key={o.id} o={o} />)}</div>
             </section>
           )}
           {results.events.length > 0 && (

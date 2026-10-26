@@ -8,7 +8,7 @@ const PRECACHE_URLS = ["/icons/icon-192.png", "/icons/icon-512.png", "/icons/ico
 const RUNTIME_MAX_ENTRIES = 150;
 
 // Private / dynamic areas are never cached.
-const NEVER_CACHE = [/^\/admin(\/|$)/, /^\/dashboard(\/|$)/, /^\/account(\/|$)/, /^\/api(\/|$)/, /^\/login(\/|$)/, /^\/register(\/|$)/, /^\/reset-password(\/|$)/, /^\/verify-email(\/|$)/];
+const NEVER_CACHE = [/^\/admin(\/|$)/, /^\/newsletter\/(confirm|unsubscribe|preferences)(\/|$)/, /^\/dashboard(\/|$)/, /^\/organization(\/|$)/, /^\/account(\/|$)/, /^\/api(\/|$)/, /^\/login(\/|$)/, /^\/register(\/|$)/, /^\/reset-password(\/|$)/, /^\/verify-email(\/|$)/];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {

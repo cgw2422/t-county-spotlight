@@ -13,6 +13,8 @@ import { BusinessCard } from "@/components/cards/business-card";
 import { ArticleCard } from "@/components/cards/article-card";
 import { SpecialCard } from "@/components/cards/special-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { GivesHomeSection } from "@/components/gives/home-section";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +125,14 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
         </section>
       );
     }
+    case "newsletter":
+      return (
+        <section key={s.id} id="newsletter" aria-label="T-County Weekly newsletter" className="container-page scroll-mt-24 py-12">
+          <NewsletterSignup source="homepage" variant="card" title={s.title} subtitle={s.subtitle} />
+        </section>
+      );
+    case "gives":
+      return <GivesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} />;
     case "cta":
       return (
         <section key={s.id} className="container-page py-12">

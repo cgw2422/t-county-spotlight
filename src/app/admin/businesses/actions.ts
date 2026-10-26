@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { absoluteUrl, fromDateInput, slugify } from "@/lib/utils";
 import type { ActionState } from "@/components/ui/form-message";
 import { Prisma } from "@/generated/prisma/client";
+import { googleListingFromForm } from "@/lib/google-places";
 import { getAll, isUniqueError, jsonField, parseForm, uniqueSlug, zBool, zEmailOpt, zOpt, zReq, zSlugOpt, zUrlOpt } from "../_lib/form";
 
 const STATUSES = ["DRAFT", "PENDING", "PUBLISHED", "SUSPENDED", "ARCHIVED"] as const;
@@ -72,8 +73,11 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
   if (!slug) slug = await uniqueSlug(slugify(d.name), async (s) => !!(await db.business.findFirst({ where: { slug: s, NOT: { id: d.id ?? "" } }, select: { id: true } })));
   else if (await db.business.findFirst({ where: { slug, NOT: { id: d.id ?? "" } }, select: { id: true } })) return { error: `The slug “${slug}” is already used by another business.` };
 
+  const google = await googleListingFromForm(fd, existing);
+  if (!google.skip && google.fieldErrors) return { error: Object.values(google.fieldErrors).join(" "), fieldErrors: google.fieldErrors };
   const categoryIds = getAll(fd, "categories");
   const data = {
+    ...(!google.skip ? google.data : {}),
     name: d.name, slug, tagline: d.tagline, description: d.description, story: d.story, logoUrl: d.logoUrl, coverUrl: d.coverUrl,
     address: d.address, city: d.city === "__other" ? d.cityOther : d.city, zip: d.zip, phone: d.phone, email: d.email, emailPublic: d.emailPublic,
     website: d.website, status: d.status, isFeatured: d.isFeatured, isSpotlighted: d.isSpotlighted, seoTitle: d.seoTitle, seoDescription: d.seoDescription,
@@ -100,8 +104,9 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
   });
   revalidatePath("/admin/businesses");
   revalidatePath("/", "layout");
+  if (!google.skip && google.changes) await audit(user.id, "business.google_listing", "Business", id, google.changes as Prisma.InputJsonValue);
   if (!existing) redirect(`/admin/businesses/${id}/?created=1`);
-  return { ok: true, message: "Business saved." };
+  return { ok: true, message: !google.skip && google.note ? `Business saved. ${google.note}` : "Business saved." };
 }
 
 export async function savePhotos(_: ActionState, fd: FormData): Promise<ActionState> {

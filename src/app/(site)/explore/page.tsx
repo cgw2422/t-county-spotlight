@@ -6,6 +6,7 @@ import { publicBusinessWhere } from "@/lib/queries";
 import { ExploreGrid } from "@/components/home/explore-grid";
 import { SearchBox } from "@/components/public/search-box";
 import { buildMetadata } from "@/components/public/seo";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,10 @@ export default async function ExplorePage() {
       </section>
 
       <ExploreGrid title="Explore by topic" />
+
+      <section aria-label="T-County Weekly newsletter" className="container-page pb-10">
+        <NewsletterSignup source="pwa" variant="card" />
+      </section>
 
       <section aria-labelledby="cats-title" className="container-page pb-6">
         <h2 id="cats-title" className="section-title">Business categories</h2>

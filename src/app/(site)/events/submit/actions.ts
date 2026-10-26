@@ -33,6 +33,7 @@ const schema = z.object({
   price: z.string().trim().max(80).optional(),
   imageUrl: z.string().trim().max(500).optional(),
   businessId: z.string().max(40).optional(),
+  organizationId: z.string().max(40).optional(),
   email: z.string().trim().max(200).optional(),
 });
 
@@ -61,7 +62,7 @@ export async function submitEvent(_prev: ActionState, fd: FormData): Promise<Act
     locationName: get("locationName") || undefined, address: get("address") || undefined, city: get("city"),
     categoryId: get("categoryId") || undefined, organizer: get("organizer") || undefined,
     ticketUrl: get("ticketUrl") || undefined, isFree: fd.get("isFree") === "on", price: get("price") || undefined,
-    imageUrl: get("imageUrl") || undefined, businessId: get("businessId") || undefined, email: get("email") || undefined,
+    imageUrl: get("imageUrl") || undefined, businessId: get("businessId") || undefined, organizationId: get("organizationId") || undefined, email: get("email") || undefined,
   });
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -91,6 +92,12 @@ export async function submitEvent(_prev: ActionState, fd: FormData): Promise<Act
     const ok = isStaff(user) || (await db.businessOwner.findUnique({ where: { userId_businessId: { userId: user.id, businessId: d.businessId } } }));
     if (ok) businessId = d.businessId;
   }
+  // Only members (or staff) may link an event to an approved organization.
+  let organizationId: string | null = null;
+  if (d.organizationId && user) {
+    const org = await db.organization.findFirst({ where: { id: d.organizationId, status: "APPROVED", deletedAt: null, ...(isStaff(user) ? {} : { members: { some: { userId: user.id } } }) }, select: { id: true } });
+    if (org) organizationId = org.id;
+  }
   const categoryId = d.categoryId ? (await db.eventCategory.findUnique({ where: { id: d.categoryId }, select: { id: true } }))?.id ?? null : null;
   const imageUrl = d.imageUrl && (d.imageUrl.startsWith("/media/") || /^https:\/\//.test(d.imageUrl)) && user && (isStaff(user) || businessId) ? d.imageUrl : null;
 
@@ -117,7 +124,7 @@ export async function submitEvent(_prev: ActionState, fd: FormData): Promise<Act
         ticketUrl: d.ticketUrl ?? null,
         isFree: d.isFree,
         price: d.isFree ? null : sanitizePlain(d.price, 80) || null,
-        imageUrl, businessId, categoryId,
+        imageUrl, businessId, organizationId, categoryId,
         status: publish ? "PUBLISHED" : "PENDING",
         submittedById: user?.id ?? null,
         submitterEmail: email ?? null,

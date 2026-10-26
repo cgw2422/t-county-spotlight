@@ -86,8 +86,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         )}
         {tab === "email" && (
           <SettingsForm group={tab}>
-            <Notice tone={emailConfigured() ? "success" : "warn"} title={emailConfigured() ? "SMTP is configured" : "SMTP is not configured"}>
-              {emailConfigured() ? "Emails are delivered through your SMTP server." : "Emails are only written to the server log. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASSWORD environment variables to send real email."}
+            <Notice tone={emailConfigured() ? "success" : "warn"} title={emailConfigured() ? (process.env.RESEND_API_KEY ? "Email provider (Resend) is configured" : "SMTP is configured") : "No email provider configured"}>
+              {emailConfigured() ? (process.env.RESEND_API_KEY ? "Emails are delivered through Resend." : "Emails are delivered through your SMTP server.") : "Emails are only written to the server log. Set RESEND_API_KEY (recommended) or the SMTP_* environment variables to send real email."}
             </Notice>
             <FormGrid>
               <TextField name="emailFromName" label="From name" defaultValue={s.emailFromName} />

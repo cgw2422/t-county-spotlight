@@ -12,6 +12,7 @@ import { absoluteUrl, formatDate, formatTime, stripHtml } from "@/lib/utils";
 import { SmartImage } from "@/components/ui/smart-image";
 import { ImagePlaceholder } from "@/components/ui/placeholder";
 import { BusinessCard } from "@/components/cards/business-card";
+import { OrgCard } from "@/components/gives/cards";
 import { EventCard, DateBadge } from "@/components/cards/event-card";
 import { Breadcrumbs } from "@/components/public/breadcrumbs";
 import { JsonLd } from "@/components/public/json-ld";
@@ -21,6 +22,7 @@ import { TrackView, TrackedLink } from "@/components/public/track";
 import { buildMetadata } from "@/components/public/seo";
 import { followRedirectIfAny, isSaved } from "@/components/public/server";
 import { loadEvent } from "./data";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +125,7 @@ export default async function EventPage({ params }: Props) {
           )}
 
           <ShareButtons url={url} title={e.title} className="mt-10 border-t border-slate-200 pt-6" />
+          <NewsletterSignup source="event" variant="inline" className="mt-10" />
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start" aria-label="Event details">
@@ -185,6 +188,12 @@ export default async function EventPage({ params }: Props) {
             <section aria-labelledby="host-title">
               <h2 id="host-title" className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Hosted by</h2>
               <BusinessCard b={business} />
+            </section>
+          )}
+          {e.organization && e.organization.status === "APPROVED" && !e.organization.deletedAt && (
+            <section aria-labelledby="org-host-title">
+              <h2 id="org-host-title" className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Organized by</h2>
+              <OrgCard o={e.organization} />
             </section>
           )}
         </aside>

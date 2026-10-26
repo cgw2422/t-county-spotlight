@@ -11,6 +11,7 @@ type Props = {
   categories: { id: string; name: string }[];
   cities: string[];
   businesses: { id: string; name: string }[];
+  organizations?: { id: string; name: string }[];
   signedInEmail: string | null;
   canUpload: boolean;
   today: string;
@@ -21,7 +22,7 @@ function Err({ state, name }: { state: ActionState; name: string }) {
   return m ? <p id={`${name}-err`} className="mt-1 text-sm text-red-600">{m}</p> : null;
 }
 
-export function EventSubmitForm({ categories, cities, businesses, signedInEmail, canUpload, today }: Props) {
+export function EventSubmitForm({ categories, cities, businesses, organizations = [], signedInEmail, canUpload, today }: Props) {
   const [state, action] = useActionState(submitEvent, null);
   const [allDay, setAllDay] = useState(false);
   const [isFree, setIsFree] = useState(true);
@@ -82,6 +83,16 @@ export function EventSubmitForm({ categories, cities, businesses, signedInEmail,
               {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
             <p className="help">The event will appear on your business profile.</p>
+          </div>
+        )}
+        {organizations.length > 0 && (
+          <div>
+            <label htmlFor="organizationId" className="label">Organized by one of your organizations</label>
+            <select id="organizationId" name="organizationId" className="input" defaultValue={organizations[0]?.id ?? ""}>
+              <option value="">Not affiliated with my organization</option>
+              {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+            <p className="help">The event will appear on your organization&apos;s page.</p>
           </div>
         )}
         {canUpload && (businessId || businesses.length === 0) && (

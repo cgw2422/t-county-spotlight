@@ -2,12 +2,18 @@ import Link from "next/link";
 import { getSettings } from "@/lib/settings";
 import { Logo } from "./logo";
 import { getMenu } from "./nav-data";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export async function SiteFooter() {
   const [s, footer, header] = await Promise.all([getSettings(), getMenu("FOOTER"), getMenu("HEADER")]);
   const socials = Object.entries(s.socials || {}).filter(([, v]) => v);
   return (
     <footer className="mt-16 bg-navy-950 pb-24 text-slate-300 lg:pb-0">
+      <div className="border-b border-white/10">
+        <div className="container-page max-w-3xl py-10">
+          <NewsletterSignup source="footer" variant="compact" tone="dark" />
+        </div>
+      </div>
       <div className="container-page grid gap-10 py-12 md:grid-cols-4">
         <div className="md:col-span-2">
           <Logo logoUrl={s.logoDarkUrl || s.logoUrl} siteName={s.siteName} invert />

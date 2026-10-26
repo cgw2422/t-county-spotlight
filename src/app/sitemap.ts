@@ -5,6 +5,7 @@ import { upcomingEventWhere } from "@/lib/events";
 import { publicBusinessWhere, publishedArticleWhere } from "@/lib/queries";
 import { articleHref, businessHref, eventHref, jobHref, pageHref, specialHref } from "@/lib/links";
 import { absoluteUrl } from "@/lib/utils";
+import { givesSitemapEntries } from "@/lib/gives/sitemap";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...events.map((e) => ({ url: absoluteUrl(eventHref(e)), lastModified: e.updatedAt, changeFrequency: "weekly" as const, priority: 0.6 })),
       ...specials.map((p) => ({ url: absoluteUrl(specialHref(p)), lastModified: p.updatedAt, changeFrequency: "weekly" as const, priority: 0.5 })),
       ...jobs.map((j) => ({ url: absoluteUrl(jobHref(j)), lastModified: j.updatedAt, changeFrequency: "weekly" as const, priority: 0.4 })),
+      ...(await givesSitemapEntries()),
     ];
   } catch (e) {
     console.error("[sitemap]", e);
