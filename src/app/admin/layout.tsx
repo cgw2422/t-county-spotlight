@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: { default: "Admin", template: "%s · 
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
-  const [settings, applications, events, specials, updates, articles, jobs] = await Promise.all([
+  const [settings, applications, events, specials, updates, articles, jobs, organizations] = await Promise.all([
     getSettings(),
     db.businessApplication.count({ where: { status: "PENDING" } }),
     db.event.count({ where: { status: "PENDING", deletedAt: null } }),
@@ -18,6 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     db.businessUpdate.count({ where: { status: "PENDING" } }),
     db.article.count({ where: { status: "PENDING", deletedAt: null } }),
     db.job.count({ where: { status: "PENDING", deletedAt: null } }),
+    db.organization.count({ where: { status: "PENDING", deletedAt: null } }),
   ]);
   return (
     <AdminShell
@@ -26,7 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       siteName={settings.siteName}
       logoUrl={settings.logoDarkUrl || settings.logoUrl || null}
       logoOnDark={!!settings.logoDarkUrl}
-      counts={{ applications, events, specials, updates, articles, jobs }}
+      counts={{ applications, events, specials, updates, articles, jobs, organizations }}
     >
       {children}
       <Toaster />

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
   CalendarDays, CalendarCog, BadgePercent, Home, Sparkles, Menu as MenuIcon, ArrowRightLeft, Users, CreditCard,
-  Settings, ScrollText, DatabaseZap, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
+  Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { OhioMark } from "@/components/site/logo";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { signOutAction } from "@/app/admin/_actions/common";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; badge?: keyof Counts };
-type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number };
+type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number };
 
 const NAV: { title: string; items: NavItem[] }[] = [
   { title: "Overview", items: [{ href: "/admin/", label: "Dashboard", icon: LayoutDashboard }] },
@@ -44,6 +44,20 @@ const NAV: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "T-County Gives",
+    items: [
+      { href: "/admin/organizations/", label: "Nonprofits & churches", icon: HeartHandshake, badge: "organizations" },
+      { href: "/admin/needs/", label: "Community needs", icon: HandHelping },
+      { href: "/admin/volunteer/", label: "Volunteer opportunities", icon: Church },
+    ],
+  },
+  {
+    title: "T-County Weekly",
+    items: [
+      { href: "/admin/newsletter/", label: "Newsletter", icon: Mail, adminOnly: true },
+    ],
+  },
+  {
     title: "Site",
     items: [
       { href: "/admin/homepage/", label: "Homepage", icon: Home },
@@ -58,6 +72,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { href: "/admin/users/", label: "Users", icon: Users, adminOnly: true },
       { href: "/admin/memberships/", label: "Memberships", icon: CreditCard, adminOnly: true },
       { href: "/admin/settings/", label: "Settings", icon: Settings, adminOnly: true },
+      { href: "/admin/settings/google/", label: "Google reviews", icon: Star, adminOnly: true },
       { href: "/admin/audit/", label: "Audit log", icon: ScrollText, adminOnly: true },
       { href: "/admin/migration/", label: "WordPress Import", icon: DatabaseZap, adminOnly: true },
     ],

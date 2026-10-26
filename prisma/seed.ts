@@ -43,16 +43,18 @@ const HOMEPAGE_SECTIONS = [
   { key: "specials", type: "specials", title: "Local Specials", subtitle: "Deals from participating businesses", limit: 4 },
   { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
   { key: "announcements", type: "announcements", title: "Community Announcements", subtitle: null, limit: 4 },
+  { key: "gives", type: "gives", title: "T-County Gives", subtitle: "Find a Cause. Meet a Need. Make a Difference.", limit: 3 },
+  { key: "newsletter", type: "newsletter", title: "Love Local. Stay in the Loop.", subtitle: null, limit: 0 },
   { key: "cta", type: "cta", title: "Own a local business?", subtitle: "Get listed in the Tuscarawas County business directory — free.", limit: 0 },
 ];
 
 const MENU = [
   ["Home", "/"], ["Businesses", "/businesses/"], ["Events", "/events/"], ["Specials", "/specials/"],
-  ["Things to Do", "/things-to-do/"], ["Jobs", "/jobs/"], ["Articles", "/articles/"],
+  ["Things to Do", "/things-to-do/"], ["T-County Gives", "/gives/"], ["Churches", "/churches/"], ["Jobs", "/jobs/"], ["Articles", "/articles/"],
 ];
 const FOOTER = [
   ["List Your Business", "/list-your-business/"], ["Memberships", "/memberships/"], ["Submit an Event", "/events/submit/"],
-  ["Business Spotlights", "/spotlights/"], ["Search", "/search/"],
+  ["Business Spotlights", "/spotlights/"], ["T-County Weekly newsletter", "/newsletter/"], ["Search", "/search/"],
 ];
 
 async function main() {
@@ -62,10 +64,29 @@ async function main() {
   for (const [i, [name, slug]] of EVENT_CATEGORIES.entries()) {
     await db.eventCategory.upsert({ where: { slug }, create: { name, slug, sortOrder: i }, update: {} });
   }
+  const hadSections = (await db.homepageSection.count()) > 0;
   for (const [i, s] of HOMEPAGE_SECTIONS.entries()) {
-    await db.homepageSection.upsert({ where: { key: s.key }, create: { ...s, sortOrder: i }, update: {} });
+    if (await db.homepageSection.findUnique({ where: { key: s.key } })) continue;
+    // Sections added after launch go to the end of the admin's existing order.
+    const max = hadSections ? (await db.homepageSection.aggregate({ _max: { sortOrder: true } }))._max.sortOrder ?? 0 : -1;
+    await db.homepageSection.create({ data: { ...s, sortOrder: hadSections ? max + 1 : i } });
   }
-  if ((await db.menuItem.count()) === 0) {
+  const isNewInstall = (await db.menuItem.count()) === 0;
+  // New sections added after launch: add their menu links once, only if missing.
+  if (!isNewInstall) {
+    for (const [label, href] of [["T-County Gives", "/gives/"], ["Churches", "/churches/"]]) {
+      for (const location of ["HEADER", "MOBILE"] as const) {
+        if (!(await db.menuItem.findFirst({ where: { location, href } }))) {
+          const last = await db.menuItem.aggregate({ where: { location }, _max: { sortOrder: true } });
+          await db.menuItem.create({ data: { location, label, href, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
+        }
+      }
+    }
+    if (!(await db.menuItem.findFirst({ where: { location: "FOOTER", href: "/newsletter/" } }))) {
+      await db.menuItem.create({ data: { location: "FOOTER", label: "T-County Weekly newsletter", href: "/newsletter/", sortOrder: 99 } });
+    }
+  }
+  if (isNewInstall) {
     await db.menuItem.createMany({ data: MENU.map(([label, href], i) => ({ location: "HEADER" as const, label, href, sortOrder: i })) });
     await db.menuItem.createMany({ data: MENU.map(([label, href], i) => ({ location: "MOBILE" as const, label, href, sortOrder: i })) });
     await db.menuItem.createMany({ data: FOOTER.map(([label, href], i) => ({ location: "FOOTER" as const, label, href, sortOrder: i })) });

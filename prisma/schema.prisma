@@ -56,6 +56,10 @@ model User {
   media             Media[]
   applications      BusinessApplication[] @relation("ApplicationSubmitter")
   submittedEvents   Event[]             @relation("EventSubmitter")
+  organizations     OrganizationMember[]
+  pledges           NeedPledge[]
+  volunteerSignups  VolunteerSignup[]
+  newsletterSubscriber NewsletterSubscriber?
 }
 
 model Session {
@@ -140,6 +144,11 @@ model Business {
   seoDescription String?
   legacyPath     String?       @unique
   wpMeta         Json?
+  // Google Business listing (Place ID may be stored indefinitely per Google terms)
+  googlePlaceId         String?
+  googleMapsUrl         String?
+  googleReviewsEnabled  Boolean   @default(true)
+  googlePlaceVerifiedAt DateTime?
   publishedAt    DateTime?
   deletedAt      DateTime?
   createdAt      DateTime      @default(now())
@@ -398,6 +407,8 @@ model Event {
   organizer       String?
   businessId      String?
   business        Business?      @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  organizationId  String?
+  organization    Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   categoryId      String?
   category        EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   ticketUrl       String?
@@ -416,6 +427,7 @@ model Event {
   updatedAt       DateTime       @updatedAt
 
   @@index([status, startAt])
+  @@index([organizationId])
 }
 
 // ───────────────────────────── Promotions ─────────────────────────────
@@ -763,4 +775,363 @@ model WpRecord {
   updatedAt  DateTime @updatedAt
 
   @@unique([wpType, wpId])
+}
+
+// ───────────────────────────── T-County Gives (nonprofits & churches) ─────────────────────────────
+// Nonprofits and churches are always free: no plans, subscriptions or
+// entitlements are ever attached to an Organization.
+
+enum OrgKind {
+  NONPROFIT
+  CHURCH
+  COMMUNITY_GROUP
+}
+
+enum OrgStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum OrgMemberRole {
+  OWNER
+  ADMIN
+  EDITOR
+}
+
+model Organization {
+  id               String    @id @default(cuid())
+  slug             String    @unique
+  name             String
+  kind             OrgKind   @default(NONPROFIT)
+  orgType          String?   // e.g. "Food pantry", "Animal rescue", "501(c)(3)"
+  tagline          String?
+  description      String?   // HTML
+  mission          String?
+  impact           String?   // HTML — community impact
+  logoUrl          String?
+  coverUrl         String?
+  email            String?
+  emailPublic      Boolean   @default(true)
+  phone            String?
+  website          String?
+  socials          Json?
+  address          String?
+  city             String?
+  state            String?   @default("OH")
+  zip              String?
+  serviceArea      String?
+  donationUrl      String?
+  wishlistUrl      String?
+  ein              String?   // never shown publicly unless verified
+  // Church-specific (kind = CHURCH)
+  denomination     String?
+  leadership       Json?     // [{ name, role }]
+  serviceTimes     Json?     // [{ day, time, label }]
+  ministries       String[]  @default([])
+  livestreamUrl    String?
+  accessibility    String?
+  planYourVisit    String?   // HTML
+  // Moderation / verification
+  status           OrgStatus @default(PENDING)
+  verifiedAt       DateTime?
+  verifiedById     String?
+  verificationNote String?
+  reviewNote       String?
+  isFeatured       Boolean   @default(false)
+  seoTitle         String?
+  seoDescription   String?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  members       OrganizationMember[]
+  updates       OrganizationUpdate[]
+  needs         CommunityNeed[]
+  opportunities VolunteerOpportunity[]
+  events        Event[]
+
+  @@index([kind, status, deletedAt])
+}
+
+model OrganizationMember {
+  userId         String
+  organizationId String
+  role           OrgMemberRole @default(OWNER)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  @@id([userId, organizationId])
+}
+
+model OrganizationUpdate {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  body           String
+  imageUrl       String?
+  status         PublishStatus @default(PUBLISHED)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+enum NeedCategory {
+  VOLUNTEERS
+  SUPPLIES
+  FOOD
+  CLOTHING
+  EQUIPMENT
+  HYGIENE
+  SCHOOL
+  OTHER
+}
+
+enum NeedUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NeedStatus {
+  DRAFT
+  OPEN
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CLOSED
+}
+
+model CommunityNeed {
+  id               String       @id @default(cuid())
+  slug             String       @unique
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  category         NeedCategory @default(SUPPLIES)
+  quantityNeeded   Int?
+  unit             String?
+  quantityReceived Int          @default(0) // confirmed by the organization only
+  deadline         DateTime?
+  urgency          NeedUrgency  @default(MEDIUM)
+  instructions     String?
+  dropoffLocation  String?
+  status           NeedStatus   @default(OPEN)
+  isWishList       Boolean      @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  pledges NeedPledge[]
+
+  @@index([status, deadline])
+}
+
+enum PledgeStatus {
+  PLEDGED
+  RECEIVED
+  PARTIALLY_RECEIVED
+  CANCELLED
+}
+
+/// Contains personal information — visible only to the organization's team and staff.
+model NeedPledge {
+  id               String       @id @default(cuid())
+  needId           String
+  need             CommunityNeed @relation(fields: [needId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name             String
+  email            String
+  phone            String?
+  quantity         Int          @default(1)
+  message          String?
+  status           PledgeStatus @default(PLEDGED)
+  receivedQuantity Int?
+  confirmedAt      DateTime?
+  createdAt        DateTime     @default(now())
+
+  @@index([needId, status])
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  CANCELLED
+}
+
+model VolunteerOpportunity {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  organizationId   String
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  startAt          DateTime?
+  endAt            DateTime?
+  isOngoing        Boolean           @default(false)
+  locationName     String?
+  address          String?
+  city             String?
+  minAge           Int?
+  ageNotes         String?
+  spots            Int?
+  requirements     String?
+  registrationOpen Boolean           @default(true)
+  externalSignupUrl String?
+  status           OpportunityStatus @default(PUBLISHED)
+  deletedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  signups VolunteerSignup[]
+
+  @@index([status, startAt])
+}
+
+enum SignupStatus {
+  REGISTERED
+  WAITLISTED
+  CONFIRMED
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
+/// Contains personal information — visible only to the organization's team and staff.
+model VolunteerSignup {
+  id            String               @id @default(cuid())
+  opportunityId String
+  opportunity   VolunteerOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name          String
+  email         String
+  phone         String?
+  isAdult       Boolean              @default(true)
+  notes         String?
+  status        SignupStatus         @default(REGISTERED)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@unique([opportunityId, email])
+}
+
+// ───────────────────────────── T-County Weekly (newsletter) ─────────────────────────────
+
+enum SubscriberStatus {
+  PENDING
+  ACTIVE
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+}
+
+model NewsletterSubscriber {
+  id                 String           @id @default(cuid())
+  email              String           @unique // normalized (trimmed, lowercased)
+  firstName          String?
+  status             SubscriberStatus @default(PENDING)
+  source             String           // homepage, footer, article, event, pwa, account, newsletter_page, admin_import
+  consentAt          DateTime?
+  consentText        String?
+  consentVersion     String?
+  confirmTokenHash   String?          @unique
+  confirmExpiresAt   DateTime?
+  confirmedAt        DateTime?
+  unsubscribeToken   String           @unique // random capability token used in every email
+  unsubscribedAt     DateTime?
+  unsubscribeReason  String?
+  preferences        Json?            // { events, stories, spotlights, specials, gives }
+  userId             String?          @unique
+  user               User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  events SubscriberEvent[]
+  sends  NewsletterSend[]
+
+  @@index([status, source])
+}
+
+/// Permanent do-not-email list. Survives subscriber deletion so people are never re-imported.
+model EmailSuppression {
+  email     String   @id
+  reason    String   // unsubscribed, bounced, complained, manual
+  createdAt DateTime @default(now())
+}
+
+model SubscriberEvent {
+  id           String               @id @default(cuid())
+  subscriberId String
+  subscriber   NewsletterSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  type         String               // signup, confirm_sent, confirmed, welcome_sent, unsubscribed, resubscribed, preferences, sent, delivered, bounced, complained, opened, clicked
+  data         Json?
+  createdAt    DateTime             @default(now())
+
+  @@index([subscriberId, createdAt])
+}
+
+enum NewsletterStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELED
+  FAILED
+}
+
+model Newsletter {
+  id           String           @id @default(cuid())
+  subject      String
+  preheader    String?
+  content      Json             // { intro, sections: [{ type, title, items: [...] }], outro }
+  status       NewsletterStatus @default(DRAFT)
+  scheduledFor DateTime?
+  approvedById String?
+  approvedAt   DateTime?
+  sendStartedAt DateTime?
+  sentAt       DateTime?
+  createdById  String?
+  recipientCount Int            @default(0)
+  stats        Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  sends NewsletterSend[]
+}
+
+enum SendStatus {
+  QUEUED
+  SENT
+  FAILED
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  SKIPPED
+}
+
+model NewsletterSend {
+  id                String               @id @default(cuid())
+  newsletterId      String
+  newsletter        Newsletter           @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  subscriberId      String
+  subscriber        NewsletterSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  status            SendStatus           @default(QUEUED)
+  providerMessageId String?              @unique
+  error             String?
+  sentAt            DateTime?
+  openedAt          DateTime?
+  clickedAt         DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@unique([newsletterId, subscriberId]) // duplicate-send prevention
+  @@index([newsletterId, status])
 }
