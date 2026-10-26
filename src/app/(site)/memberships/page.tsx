@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, Check, Newspaper, Scale } from "lucide-react";
+import { BadgeCheck, Check, Church, HeartHandshake, Newspaper, Scale } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
@@ -24,7 +24,7 @@ export default async function MembershipsPage() {
       <section className="bg-gradient-to-b from-navy-900 to-navy-800 text-white">
         <div className="container-page py-14 text-center sm:py-20">
           <p className="eyebrow text-sunset-400">For local businesses</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Memberships</h1>
+          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Business Memberships</h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-200">{settings.membershipIntro}</p>
           <p className="mx-auto mt-2 max-w-2xl text-slate-300">Every business gets a free listing. Memberships are optional and add extra tools.</p>
         </div>
@@ -62,6 +62,49 @@ export default async function MembershipsPage() {
             })}
           </div>
         )}
+        <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-slate-600">
+          Are you a nonprofit organization or church?{" "}
+          <a href="#giving-back" className="font-semibold text-brand-700 hover:underline">Your listing and community tools are always free.</a>
+        </p>
+      </section>
+
+      <section id="giving-back" aria-labelledby="giving-back-title" className="mt-12 scroll-mt-24 border-y border-brand-100 bg-brand-50/60">
+        <div className="container-page py-14 sm:py-16">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="eyebrow">T-County Gives</p>
+            <h2 id="giving-back-title" className="mt-2 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Giving Back to T-County</h2>
+            <p className="mt-3 text-lg text-slate-600">Supporting the organizations that make our community stronger.</p>
+          </div>
+          <div className="mx-auto mt-10 grid max-w-4xl gap-5 md:grid-cols-2">
+            {[
+              {
+                icon: HeartHandshake,
+                title: "Nonprofit Organizations",
+                text: "Share your mission, events, volunteer opportunities, wish lists, and community needs with neighbors across Tuscarawas County.",
+                href: "/gives/register/?kind=nonprofit",
+                cta: "List Your Nonprofit",
+              },
+              {
+                icon: Church,
+                title: "Local Churches",
+                text: "Share your worship times, ministries, upcoming events, and community outreach opportunities with people looking for a church home.",
+                href: "/gives/register/?kind=church",
+                cta: "List Your Church",
+              },
+            ].map(({ icon: Icon, title, text, href, cta }) => (
+              <article key={title} className="flex flex-col rounded-2xl border border-brand-100 bg-white p-6 shadow-sm sm:p-7">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-navy-800 text-white"><Icon className="h-6 w-6" aria-hidden /></span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">Always Free</span>
+                </div>
+                <h3 className="mt-5 text-xl font-semibold text-navy-900">{title}</h3>
+                <p className="mt-2 flex-1 text-slate-600">{text}</p>
+                <Link href={href} className="btn-primary mt-6 w-full sm:w-auto sm:self-start">{cta}</Link>
+              </article>
+            ))}
+          </div>
+          <p className="mt-8 text-center font-medium text-navy-900">No subscriptions. No setup fees. No paid upgrades required.</p>
+        </div>
       </section>
 
       <section className="container-page py-12">
