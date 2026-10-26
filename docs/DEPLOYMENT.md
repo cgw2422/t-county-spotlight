@@ -19,8 +19,7 @@
 
 `railway.json` already configures:
 - build `npm run build` (`prisma generate && next build`)
-- pre-deploy `npm run release` (`prisma migrate deploy && prisma db seed`). `migrate deploy` only applies new migrations and never resets or wipes data. The seed only inserts missing configuration rows.
-- start `npm run start`
+- start `npm run start` = `prisma migrate deploy && prisma db seed && next start`. On every start, `migrate deploy` applies only new migrations (it never resets or wipes data), and the seed only inserts missing configuration rows.
 - health check `/api/health/`
 
 ## 2. Import WordPress content
