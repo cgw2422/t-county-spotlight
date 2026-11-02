@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSettings } from "@/lib/settings";
-import { BRAND_ASSETS, brandAssetUrl, brandVersion, renderBrandAsset, type BrandAssetName } from "@/lib/brand-assets";
+import { BRAND_ASSETS, brandAssetUrl, effectiveBrandLogoUrl, brandVersion, renderBrandAsset, type BrandAssetName } from "@/lib/brand-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request, ctx: { params: Promise<{ asset: string }> }) {
   const { asset } = await ctx.params;
   if (!(asset in BRAND_ASSETS)) return new NextResponse("Not found", { status: 404 });
-  const s = await getSettings();
+  const settings = await getSettings();
+  const s = { ...settings, brandLogoUrl: effectiveBrandLogoUrl(settings) };
   if (!s.brandLogoUrl) {
     // Until the official artwork is uploaded, icons fall back to neutral static files.
     const fallback = brandAssetUrl(asset as BrandAssetName, null);

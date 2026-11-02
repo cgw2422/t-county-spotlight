@@ -18,6 +18,8 @@ This was a branding update to the existing platform. No records were deleted or 
 - **Fonts:** Montserrat 700/800 for headings, navigation, buttons and labels, and Open Sans 400/600/700 for body text. Both are self-hosted through `@fontsource`.
 
 ## Logo pipeline (no redrawing)
+The official artwork is committed **unchanged** at `public/brand-source/t-county-connect-logo.png` (2170×725 PNG, sha256 `88ef86da…020d`) and is used by default. An admin upload in Settings only replaces it.
+
 Upload the original artwork in **Admin → Settings → General → Official logo (original artwork)** (`brandLogoUrl`). The route `/brand/<asset>` generates the following from it, using cropping, trimming and resizing only:
 - `logo.png`, `logo-sm.png`: the trimmed horizontal logo for the header, footer (on a white plate over navy), emails and structured data
 - `mark.png`: the county-outline mark, cropped from the left of the logo. The orange divider and the wordmark are left out.
@@ -58,7 +60,7 @@ An optional **Icon mark** upload (`brandIconUrl`) takes priority over the automa
 | Imported article content and `originalContent` | **Kept** verbatim (historical editorial content) |
 
 ## Manual configuration
-1. **Upload the official logo** in Admin → Settings → General, and the optional icon mark. Check the generated previews on that page.
+1. ~~Upload the official logo~~ — done: the original artwork is built in. Admin → Settings → General shows previews of every generated asset; an optional separate icon mark can still be uploaded there.
 2. **Admin → Settings:** review the site name, tagline, SEO and footer if they were customized before (customized values are not changed automatically).
 3. **Admin → Newsletter → Settings:** confirm the From name ("T County Connect Weekly"). Don't change the From *address* until the new domain is verified with your provider (SPF/DKIM/DMARC).
 4. **Stripe:** product names and descriptions live in your Stripe dashboard. Rename them there to "T County Connect …" (renaming doesn't affect existing subscriptions). Don't create new prices; the existing Price IDs keep working.

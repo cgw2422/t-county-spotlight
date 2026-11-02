@@ -1,3 +1,4 @@
+import { DEFAULT_BRAND_LOGO_URL } from "@/lib/brand";
 import { BrandAssetPreview } from "./brand-preview";
 import Link from "next/link";
 import { CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
@@ -63,7 +64,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <MediaField name="brandIconUrl" label="Icon mark (optional)" defaultValue={s.brandIconUrl} aspect="aspect-square"
                   help="Only if your brand guide includes a separate square icon. Otherwise the county mark is cropped from the logo automatically." />
               </div>
-              {s.brandLogoUrl && <BrandAssetPreview brandLogoUrl={s.brandLogoUrl} brandIconUrl={s.brandIconUrl} />}
+              {!s.brandLogoUrl && <p className="help mt-3">Using the official T County Connect logo built into the site. Upload a file above only to replace it.</p>}
+              <BrandAssetPreview brandLogoUrl={s.brandLogoUrl || DEFAULT_BRAND_LOGO_URL} brandIconUrl={s.brandIconUrl} />
             </div>
             <details className="rounded-xl border border-slate-200 p-4">
               <summary className="cursor-pointer text-sm font-semibold text-slate-700">Advanced: legacy logo overrides</summary>

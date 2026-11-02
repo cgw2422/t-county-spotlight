@@ -20,6 +20,9 @@ export const BRAND = {
   },
 } as const;
 
+/** The official logo artwork shipped with the site (byte-for-byte original). Used unless an admin uploads a replacement. */
+export const DEFAULT_BRAND_LOGO_URL = "/brand-source/t-county-connect-logo.png";
+
 /** Old brand strings — used only to migrate untouched default settings. */
 export const LEGACY_BRAND_VALUES = [
   "TCountySpotlight",

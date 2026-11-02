@@ -3,7 +3,9 @@ import crypto from "node:crypto";
 import sharp from "sharp";
 import { db } from "./db";
 import { getSettings } from "./settings";
-import { BRAND } from "./brand";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { BRAND, DEFAULT_BRAND_LOGO_URL } from "./brand";
 
 /**
  * Brand assets generated from the OFFICIAL logo artwork uploaded in
@@ -45,8 +47,14 @@ export function brandAssetUrl(asset: BrandAssetName, brandLogoUrl: string | null
   return `/brand/${asset}?v=${brandVersion(brandLogoUrl, brandIconUrl)}`;
 }
 
+/** Official logo source: an admin-uploaded replacement, or the original artwork shipped with the site. */
+export function effectiveBrandLogoUrl(s: { brandLogoUrl?: string | null }) {
+  return s.brandLogoUrl || DEFAULT_BRAND_LOGO_URL;
+}
+
 export async function getBrandAssetUrls() {
-  const s = await getSettings();
+  const settings = await getSettings();
+  const s = { ...settings, brandLogoUrl: effectiveBrandLogoUrl(settings) };
   const u = (a: BrandAssetName) => brandAssetUrl(a, s.brandLogoUrl, s.brandIconUrl);
   return {
     hasOfficialLogo: !!s.brandLogoUrl,
@@ -66,6 +74,10 @@ export async function getBrandAssetUrls() {
 // ───────────────────────── generation ─────────────────────────
 
 async function loadSource(url: string): Promise<Buffer> {
+  if (url.startsWith("/brand-source/")) {
+    // Bundled original artwork in /public/brand-source (basename only — no path traversal).
+    return fs.readFile(path.join(process.cwd(), "public", "brand-source", path.basename(url)));
+  }
   if (url.startsWith("/media/")) {
     const blob = await db.mediaBlob.findUnique({ where: { key: url.slice("/media/".length) } });
     if (blob) return Buffer.from(blob.data);
@@ -189,10 +201,16 @@ function findDividerPixels(data: Buffer, w: number, h: number) {
   return out;
 }
 
-async function squareIcon(mark: Buffer, size: number, pad: number) {
+/** The artwork's own background color (corner pixel), so canvases blend seamlessly with it. */
+async function backgroundOf(img: Buffer) {
+  const px = await sharp(img).flatten({ background: "#ffffff" }).extract({ left: 0, top: 0, width: 1, height: 1 }).raw().toBuffer();
+  return { r: px[0], g: px[1], b: px[2], alpha: 1 };
+}
+
+async function squareIcon(mark: Buffer, size: number, pad: number, bg = WHITE) {
   const inner = Math.max(1, Math.round(size * (1 - 2 * pad)));
-  const resized = await sharp(mark).resize(inner, inner, { fit: "inside", background: WHITE }).png().toBuffer();
-  return sharp({ create: { width: size, height: size, channels: 4, background: WHITE } })
+  const resized = await sharp(mark).resize(inner, inner, { fit: "inside", background: bg }).png().toBuffer();
+  return sharp({ create: { width: size, height: size, channels: 4, background: bg } })
     .composite([{ input: resized, gravity: "center" }]).png().toBuffer();
 }
 
@@ -211,11 +229,12 @@ export async function renderBrandAsset(name: BrandAssetName, sourceUrl: string, 
         ? await sharp(await loadSource(iconUrl)).flatten({ background: "#ffffff" }).trim({ background: "#ffffff", threshold: 20 }).png().toBuffer()
         : await extractMark(src);
       if (spec.kind === "mark") return sharp(mark).resize(spec.size, spec.size, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
-      if (spec.kind === "icon") return squareIcon(mark, spec.size, spec.pad);
+      const bg = await backgroundOf(trimmed);
+      if (spec.kind === "icon") return squareIcon(mark, spec.size, spec.pad, bg);
       // og: official logo centered on white with brand color bands (logo untouched)
       const logo = await sharp(trimmed).resize({ width: 960, height: 380, fit: "inside", withoutEnlargement: true }).png().toBuffer();
       const band = (color: string, height: number) => sharp({ create: { width: 1200, height, channels: 4, background: color } }).png().toBuffer();
-      return sharp({ create: { width: 1200, height: 630, channels: 4, background: WHITE } })
+      return sharp({ create: { width: 1200, height: 630, channels: 4, background: bg } })
         .composite([
           { input: logo, gravity: "center" },
           { input: await band(BRAND.colors.navy, 18), top: 612, left: 0 },
@@ -228,5 +247,5 @@ export async function renderBrandAsset(name: BrandAssetName, sourceUrl: string, 
 
 /** Logo for emails: the official logo (trimmed) when uploaded, else the legacy setting. */
 export function emailLogo(s: { brandLogoUrl?: string | null; brandIconUrl?: string | null; logoUrl?: string | null }) {
-  return s.brandLogoUrl ? brandAssetUrl("logo-sm.png", s.brandLogoUrl, s.brandIconUrl) : s.logoUrl ?? null;
+  return brandAssetUrl("logo-sm.png", effectiveBrandLogoUrl(s), s.brandIconUrl);
 }
