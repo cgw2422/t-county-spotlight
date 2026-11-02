@@ -54,7 +54,7 @@ function startOfToday() {
 // ───────── Card selects ─────────
 
 export const orgCardSelect = {
-  id: true, slug: true, name: true, kind: true, orgType: true, tagline: true, mission: true, city: true, logoUrl: true, coverUrl: true,
+  id: true, slug: true, name: true, kind: true, orgType: true, tagline: true, mission: true, city: true, logoUrl: true, coverUrl: true, coverFocusX: true, coverFocusY: true,
   verifiedAt: true, isFeatured: true, denomination: true, serviceTimes: true, livestreamUrl: true,
 } satisfies Prisma.OrganizationSelect;
 

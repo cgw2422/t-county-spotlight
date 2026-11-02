@@ -42,7 +42,7 @@ export const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   "application/pdf": "pdf",
 };
 
-export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 /** Detect real image type from magic bytes (never trust client mime types). */
 export function sniffImageType(buf: Buffer): string | null {
@@ -118,7 +118,7 @@ export function imageSize(buf: Buffer): { width: number; height: number } | null
 
 /** Store an uploaded image and create its Media library record. */
 export async function saveImageUpload(buf: Buffer, filename: string, uploadedById?: string | null, extra: { alt?: string; sourceUrl?: string; wpId?: number; title?: string; caption?: string } = {}) {
-  if (buf.length > MAX_UPLOAD_BYTES) throw new Error("File is too large (15 MB max).");
+  if (buf.length > MAX_UPLOAD_BYTES) throw new Error("File is too large (25 MB max).");
   const mime = sniffImageType(buf);
   if (!mime) throw new Error("Unsupported file type. Upload JPG, PNG, WebP, GIF, AVIF or SVG images.");
   if (mime === "image/svg+xml" && /<script|on\w+\s*=|javascript:/i.test(buf.toString("utf8"))) {

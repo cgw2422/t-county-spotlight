@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Add organization" };
 
 const blank = (kind: string): OrgFormValues => ({
-  id: "", name: "", kind, orgType: null, tagline: null, mission: null, description: null, impact: null, logoUrl: null, coverUrl: null, email: null,
+  id: "", name: "", kind, orgType: null, tagline: null, mission: null, description: null, impact: null, logoUrl: null, coverUrl: null, coverFocusX: 50, coverFocusY: 50, email: null,
   emailPublic: true, phone: null, website: null, socials: null, address: null, city: null, zip: null, serviceArea: null, donationUrl: null,
   wishlistUrl: null, ein: null, denomination: null, leadership: null, serviceTimes: null, ministries: [], livestreamUrl: null, accessibility: null, planYourVisit: null,
 });

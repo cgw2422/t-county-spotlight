@@ -33,7 +33,7 @@ export default async function EditProfilePage({ params }: { params: Promise<{ bu
           defaultQuery: [b!.name, b!.address, b!.city, "OH"].filter(Boolean).join(", "),
         }}
         values={{
-          name: b!.name, tagline: b!.tagline ?? "", description: htmlToText(b!.description), logoUrl: b!.logoUrl ?? "", coverUrl: b!.coverUrl ?? "",
+          name: b!.name, tagline: b!.tagline ?? "", description: htmlToText(b!.description), logoUrl: b!.logoUrl ?? "", coverUrl: b!.coverUrl ?? "", coverFocusX: b!.coverFocusX, coverFocusY: b!.coverFocusY,
           categoryIds: b!.categories.map((c) => c.id), address: b!.address ?? "", city: b!.city ?? "", zip: b!.zip ?? "", phone: b!.phone ?? "",
           email: b!.email ?? "", emailPublic: b!.emailPublic, website: b!.website ?? "", socials, hours: readHours(b!.hours),
         }}

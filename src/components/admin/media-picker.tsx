@@ -158,8 +158,8 @@ function MediaLibraryDialogInner({ open, onClose, onSelect, title = "Choose an i
   );
 }
 
-export function MediaField({ name, defaultValue, label, help, altName, defaultAlt, aspect = "aspect-video", className }: {
-  name: string; defaultValue?: string | null; label?: string; help?: string; altName?: string; defaultAlt?: string | null; aspect?: string; className?: string;
+export function MediaField({ name, defaultValue, label, help, altName, defaultAlt, aspect = "aspect-video", className, onChange }: {
+  name: string; defaultValue?: string | null; label?: string; help?: string; altName?: string; defaultAlt?: string | null; aspect?: string; className?: string; onChange?: (url: string) => void;
 }) {
   const [url, setUrl] = useState(defaultValue ?? "");
   const [alt, setAlt] = useState(defaultAlt ?? "");
@@ -168,9 +168,12 @@ export function MediaField({ name, defaultValue, label, help, altName, defaultAl
   const changed = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastUrl = useRef(url);
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
   useEffect(() => {
     if (!changed.current || lastUrl.current === url) return;
     lastUrl.current = url;
+    onChangeRef.current?.(url);
     // bubble a change so ActionForm marks the form dirty
     inputRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
   }, [url]);

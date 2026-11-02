@@ -6,11 +6,12 @@ import { TokenInput } from "@/components/admin/token-input";
 import { htmlToText } from "@/components/dashboard/text";
 import { KIND_LABEL, ORG_KINDS, SERVICE_DAYS, SERVICE_DAY_NAMES, SOCIAL_KEYS, readLeaders, readServiceTimes } from "@/lib/gives/constants";
 import { OrgImageUpload } from "./org-image-upload";
+import { OrgCoverField } from "@/components/ui/cover-photo-field";
 import { RowsEditor } from "./rows-editor";
 
 export type OrgFormValues = {
   id: string; name: string; kind: string; orgType: string | null; tagline: string | null; mission: string | null; description: string | null;
-  impact: string | null; logoUrl: string | null; coverUrl: string | null; email: string | null; emailPublic: boolean; phone: string | null;
+  impact: string | null; logoUrl: string | null; coverUrl: string | null; coverFocusX: number; coverFocusY: number; email: string | null; emailPublic: boolean; phone: string | null;
   website: string | null; socials: unknown; address: string | null; city: string | null; zip: string | null; serviceArea: string | null;
   donationUrl: string | null; wishlistUrl: string | null; ein: string | null; denomination: string | null; leadership: unknown;
   serviceTimes: unknown; ministries: string[]; livestreamUrl: string | null; accessibility: string | null; planYourVisit: string | null;
@@ -76,7 +77,7 @@ export function OrgProfileForm({ org, action, allowKind, extra, submitLabel = "S
       <Section title="Logo & cover photo">
         <div className="grid gap-5 sm:grid-cols-[180px_1fr]">
           <OrgImageUpload name="logoUrl" orgId={org.id} defaultValue={org.logoUrl} label="Logo" aspect="aspect-square" />
-          <OrgImageUpload name="coverUrl" orgId={org.id} defaultValue={org.coverUrl} label="Cover photo" aspect="aspect-[16/9]" help="A wide photo works best (at least 1600 pixels across)." />
+          <OrgCoverField orgId={org.id} defaultValue={org.coverUrl} focusX={org.coverFocusX} focusY={org.coverFocusY} />
         </div>
       </Section>
 

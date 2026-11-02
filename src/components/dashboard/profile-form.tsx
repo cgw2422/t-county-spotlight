@@ -3,13 +3,14 @@ import { useActionState } from "react";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { BusinessCoverField } from "@/components/ui/cover-photo-field";
 import { updateProfileAction } from "@/app/dashboard/[businessId]/actions";
 import { Checkbox, FormSection, TextArea, TextField, echoed, echoedChecked } from "./fields";
 import { DAY_NAMES, type HoursRow } from "./text";
 import { GoogleListingFields, type GoogleListingValues } from "@/components/business/google-listing-fields";
 
 export type ProfileValues = {
-  name: string; tagline: string; description: string; logoUrl: string; coverUrl: string; categoryIds: string[];
+  name: string; tagline: string; description: string; logoUrl: string; coverUrl: string; coverFocusX: number; coverFocusY: number; categoryIds: string[];
   address: string; city: string; zip: string; phone: string; email: string; emailPublic: boolean; website: string;
   socials: Record<string, string>; hours: HoursRow[];
 };
@@ -49,7 +50,7 @@ export function ProfileForm({ businessId, values, categories, cities, google }: 
       <FormSection id="images" title="Logo & cover photo" description="Square logos look best. Cover photos should be wide (landscape).">
         <div className="grid gap-6 sm:grid-cols-[200px_1fr]">
           <div className="max-w-[200px]"><ImageUpload name="logoUrl" label="Logo" defaultValue={values.logoUrl} businessId={businessId} aspect="aspect-square" /></div>
-          <ImageUpload name="coverUrl" label="Cover photo" defaultValue={values.coverUrl} businessId={businessId} aspect="aspect-video" />
+          <BusinessCoverField businessId={businessId} defaultValue={values.coverUrl} focusX={values.coverFocusX} focusY={values.coverFocusY} />
         </div>
       </FormSection>
 

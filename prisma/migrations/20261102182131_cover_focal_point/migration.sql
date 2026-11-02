@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Business" ADD COLUMN     "coverFocusX" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "coverFocusY" INTEGER NOT NULL DEFAULT 50;
+
+-- AlterTable
+ALTER TABLE "Organization" ADD COLUMN     "coverFocusX" INTEGER NOT NULL DEFAULT 50,
+ADD COLUMN     "coverFocusY" INTEGER NOT NULL DEFAULT 50;

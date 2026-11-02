@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExternalLink, Gift, Globe, HeartHandshake, Info, Mail, MapPin, Megaphone, Navigation, Phone } from "lucide-react";
+import { ProfileCover } from "@/components/ui/profile-cover";
 import { SmartImage } from "@/components/ui/smart-image";
 import { EventCard } from "@/components/cards/event-card";
 import { formatDate } from "@/lib/utils";
@@ -11,7 +12,7 @@ import { NeedCard, OpportunityCard } from "./cards";
 import { VerifiedBadge, KindBadge } from "./badges";
 
 type Org = {
-  id: string; slug: string; name: string; kind: OrgKindValue | string; orgType: string | null; tagline: string | null; logoUrl: string | null; coverUrl: string | null;
+  id: string; slug: string; name: string; kind: OrgKindValue | string; orgType: string | null; tagline: string | null; logoUrl: string | null; coverUrl: string | null; coverFocusX?: number | null; coverFocusY?: number | null;
   verifiedAt: Date | null; email: string | null; emailPublic: boolean; phone: string | null; website: string | null; socials: unknown;
   address: string | null; city: string | null; state: string | null; zip: string | null; serviceArea: string | null; donationUrl: string | null; wishlistUrl: string | null;
   denomination?: string | null; ein?: string | null;
@@ -40,14 +41,7 @@ export function UnclaimedNotice({ o }: { o: { slug: string; ownershipStatus: str
 export function ProfileHeader({ o, crumbs, children }: { o: Org; crumbs: React.ReactNode; children?: React.ReactNode }) {
   return (
     <>
-      <div className="relative h-44 bg-navy-900 sm:h-60 lg:h-72">
-        {o.coverUrl ? (
-          <SmartImage src={o.coverUrl} alt="" fill priority sizes="100vw" className="object-cover" />
-        ) : (
-          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(247,162,75,0.5),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(47,123,240,0.45),transparent_60%),linear-gradient(135deg,#0b1a33,#16325c_55%,#1e4277)]" />
-        )}
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-navy-950/70 via-navy-950/10 to-transparent" />
-      </div>
+      <ProfileCover src={o.coverUrl} focusX={o.coverFocusX} focusY={o.coverFocusY} />
       <div className="container-page">
         <header className="relative">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">

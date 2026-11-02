@@ -40,3 +40,9 @@ Touch targets ≥ 44px (`min-h-11`). Every page must work at 360px wide and on d
 - Sponsored items are always labeled (`badge-sponsored`, `settings.sponsoredLabel`). Payment never implies editorial spotlight (`isSpotlighted` is editorial only).
 - Soft-delete editorial records (`deletedAt`), and write `audit()` entries for publish/approve/permission/membership/settings changes.
 - Imported WordPress HTML is preserved verbatim in `Article.originalContent`; edits create an `ArticleRevision` and set `localEditedAt`.
+
+## Cover photos (businesses, nonprofits, churches)
+- Standard: 1920 × 600 px (3.2:1); uploads up to 25 MB. The original is stored untouched; `next/image` serves resized WebP variants.
+- Render profile banners with `<ProfileCover>` (`src/components/ui/profile-cover.tsx`): `object-fit: cover`, focal point from `coverFocusX`/`coverFocusY` (0–100, default 50/50), fixed heights on phones/tablets and 3.2:1 (max 520 px) on large screens.
+- Edit with `BusinessCoverField` / `AdminCoverField` / `OrgCoverField` (`src/components/ui/cover-photo-field.tsx`), which include the size note and focal-point picker; save with `focusFromForm(fd)` from `src/lib/cover.ts`.
+- Logos stay separate (`logoUrl`, square, `object-contain`).

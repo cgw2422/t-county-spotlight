@@ -22,7 +22,7 @@ export async function SiteHeader() {
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 pt-safe backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="container-page flex h-16 items-center gap-4 lg:h-[72px]">
           <Logo logoUrl={settings.logoUrl} siteName={settings.siteName} />
-          <nav aria-label="Main" className="ml-6 hidden flex-1 lg:block">
+          <nav aria-label="Main" className="ml-6 hidden flex-1 xl:block">
             <NavLinks items={items} />
           </nav>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">

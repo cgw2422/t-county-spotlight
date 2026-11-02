@@ -10,6 +10,7 @@ import { articleCardSelect, eventCardSelect, publishedArticleWhere } from "@/lib
 import { expandOccurrences, upcomingEventWhere } from "@/lib/events";
 import { businessHref } from "@/lib/links";
 import { absoluteUrl, cn, formatDate, stripHtml } from "@/lib/utils";
+import { ProfileCover } from "@/components/ui/profile-cover";
 import { SmartImage } from "@/components/ui/smart-image";
 import { EventCard } from "@/components/cards/event-card";
 import { ArticleCard } from "@/components/cards/article-card";
@@ -122,14 +123,7 @@ export default async function BusinessPage({ params }: Props) {
     <article>
       <TrackView {...track("view_business")} />
       {/* Cover */}
-      <div className="relative h-48 bg-navy-900 sm:h-64 lg:h-80">
-        {cover ? (
-          <SmartImage src={cover} alt="" fill priority sizes="100vw" className="object-cover" />
-        ) : (
-          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(247,162,75,0.5),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(47,123,240,0.45),transparent_60%),linear-gradient(135deg,#0b1a33,#16325c_55%,#1e4277)]" />
-        )}
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-navy-950/70 via-navy-950/10 to-transparent" />
-      </div>
+      <ProfileCover src={cover} focusX={b.coverUrl ? b.coverFocusX : 50} focusY={b.coverUrl ? b.coverFocusY : 50} />
 
       <div className="container-page">
         <header className="relative">

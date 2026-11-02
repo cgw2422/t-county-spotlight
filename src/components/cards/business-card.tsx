@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin } from "lucide-react";
+import { coverPosition } from "@/lib/cover";
 import { SmartImage } from "@/components/ui/smart-image";
 import { ImagePlaceholder } from "@/components/ui/placeholder";
 import { businessHref } from "@/lib/links";
@@ -7,7 +8,7 @@ import { stripHtml, truncate } from "@/lib/utils";
 
 export type BusinessCardData = {
   id: string; slug: string; name: string; tagline?: string | null; description?: string | null; city?: string | null;
-  coverUrl?: string | null; logoUrl?: string | null; isSpotlighted?: boolean;
+  coverUrl?: string | null; coverFocusX?: number | null; coverFocusY?: number | null; logoUrl?: string | null; isSpotlighted?: boolean;
   categories?: { name: string }[];
 };
 
@@ -17,7 +18,7 @@ export function BusinessCard({ b, sponsored, sponsoredLabel = "Sponsored" }: { b
     <Link href={businessHref(b)} className="card card-hover group flex flex-col overflow-hidden">
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
         {img ? (
-          <SmartImage src={img} alt="" fill sizes="(min-width:1024px) 25vw, (min-width:640px) 50vw, 100vw" className="object-cover transition duration-500 group-hover:scale-105" />
+          <SmartImage src={img} alt="" fill sizes="(min-width:1024px) 25vw, (min-width:640px) 50vw, 100vw" className="object-cover transition duration-500 group-hover:scale-105" style={b.coverUrl ? { objectPosition: coverPosition(b.coverFocusX, b.coverFocusY) } : undefined} />
         ) : (
           <ImagePlaceholder label={b.name} />
         )}

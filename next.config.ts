@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
   experimental: {
-    serverActions: { bodySizeLimit: "16mb" },
+    serverActions: { bodySizeLimit: "26mb" },
   },
   turbopack: {
     rules: {

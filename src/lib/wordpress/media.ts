@@ -141,7 +141,7 @@ export class MediaManager {
           const len = Number(r.headers.get("content-length") ?? 0);
           if (len > MAX_UPLOAD_BYTES) { lastReason = `file too large (${Math.round(len / 1e6)} MB)`; break; }
           const buf = Buffer.from(await r.arrayBuffer());
-          if (buf.length > MAX_UPLOAD_BYTES) { lastReason = "file too large (>15 MB)"; break; }
+          if (buf.length > MAX_UPLOAD_BYTES) { lastReason = "file too large (>25 MB)"; break; }
           const filename = decodeURIComponent(new URL(url).pathname.split("/").pop() || "file");
           const wpId = attachment?.id ?? info.wpId;
           const wpIdFree = wpId ? !(await db.media.findUnique({ where: { wpId }, select: { id: true } })) : false;

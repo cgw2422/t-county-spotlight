@@ -1,4 +1,5 @@
 "use server";
+import { focusFromForm } from "@/lib/cover";
 import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -102,6 +103,7 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
     tagline: opt(fd, "tagline", 160),
     logoUrl: imageUrl(opt(fd, "logoUrl", 500), business.logoUrl),
     coverUrl: imageUrl(opt(fd, "coverUrl", 500), business.coverUrl),
+    ...focusFromForm(fd),
     address: opt(fd, "address", 200),
     city: opt(fd, "city", 80),
     zip,

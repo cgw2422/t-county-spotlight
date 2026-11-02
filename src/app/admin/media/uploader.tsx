@@ -36,7 +36,7 @@ export function MediaUploader() {
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
         {busy ? `Uploading ${busy.done + 1} of ${busy.total}…` : "Upload images"}
       </button>
-      <p className="text-sm text-slate-500">or drag and drop · JPG, PNG, WebP, GIF, AVIF, SVG · up to 15 MB each</p>
+      <p className="text-sm text-slate-500">or drag and drop · JPG, PNG, WebP, GIF, AVIF, SVG · up to 25 MB each</p>
       <input ref={input} type="file" accept="image/*" multiple className="sr-only" tabIndex={-1} aria-label="Upload images" onChange={(e) => { upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
     </div>
   );

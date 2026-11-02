@@ -1,4 +1,5 @@
 "use server";
+import { focusFromForm } from "@/lib/cover";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -78,7 +79,7 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
   const categoryIds = getAll(fd, "categories");
   const data = {
     ...(!google.skip ? google.data : {}),
-    name: d.name, slug, tagline: d.tagline, description: d.description, story: d.story, logoUrl: d.logoUrl, coverUrl: d.coverUrl,
+    name: d.name, slug, tagline: d.tagline, description: d.description, story: d.story, logoUrl: d.logoUrl, coverUrl: d.coverUrl, ...focusFromForm(fd),
     address: d.address, city: d.city === "__other" ? d.cityOther : d.city, zip: d.zip, phone: d.phone, email: d.email, emailPublic: d.emailPublic,
     website: d.website, status: d.status, isFeatured: d.isFeatured, isSpotlighted: d.isSpotlighted, seoTitle: d.seoTitle, seoDescription: d.seoDescription,
     socials: (parseSocials(fd) as Prisma.InputJsonValue | null) ?? Prisma.DbNull,

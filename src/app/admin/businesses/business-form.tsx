@@ -2,6 +2,7 @@ import { ActionForm, DirtyIndicator, Submit } from "@/components/admin/action-fo
 import { Card } from "@/components/admin/page-header";
 import { Checkbox, FormGrid, SelectField, TextArea, TextField } from "@/components/admin/form-field";
 import { MediaField } from "@/components/admin/media-picker";
+import { AdminCoverField } from "@/components/ui/cover-photo-field";
 import { HoursEditor } from "@/components/admin/hours-editor";
 import { CitySelect } from "@/components/admin/city-select";
 import { ContentEditor } from "@/components/editor/content-editor";
@@ -43,7 +44,7 @@ export function BusinessForm({ b, categories, selectedCategoryIds = [] }: {
         <Card title="Logo & cover">
           <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
             <MediaField name="logoUrl" label="Logo" defaultValue={b?.logoUrl} aspect="aspect-square" />
-            <MediaField name="coverUrl" label="Cover photo" defaultValue={b?.coverUrl} aspect="aspect-[16/9]" />
+            <AdminCoverField defaultValue={b?.coverUrl} focusX={b?.coverFocusX} focusY={b?.coverFocusY} />
           </div>
         </Card>
         <Card title="Description" description="Shown on the business page.">

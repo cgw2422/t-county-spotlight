@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarClock, Clock, MapPin, MonitorPlay, UsersRound } from "lucide-react";
+import { coverPosition } from "@/lib/cover";
 import { SmartImage } from "@/components/ui/smart-image";
 import { formatDate, formatTime, stripHtml, truncate } from "@/lib/utils";
 import { NEED_CATEGORY_LABEL, needHref, nextService, opportunityHref, orgHref, readServiceTimes } from "@/lib/gives/constants";
@@ -7,7 +8,7 @@ import { KindBadge, NeedProgress, UrgencyBadge, VerifiedBadge } from "./badges";
 
 export type OrgCardData = {
   id: string; slug: string; name: string; kind: string; orgType?: string | null; tagline?: string | null; mission?: string | null; city?: string | null;
-  logoUrl?: string | null; coverUrl?: string | null; verifiedAt?: Date | null; denomination?: string | null; serviceTimes?: unknown; livestreamUrl?: string | null;
+  logoUrl?: string | null; coverUrl?: string | null; coverFocusX?: number | null; coverFocusY?: number | null; verifiedAt?: Date | null; denomination?: string | null; serviceTimes?: unknown; livestreamUrl?: string | null;
 };
 
 function OrgLogo({ o, size = "h-14 w-14" }: { o: { name: string; logoUrl?: string | null }; size?: string }) {
@@ -28,7 +29,7 @@ export function OrgCard({ o }: { o: OrgCardData }) {
     <Link href={orgHref(o)} className="card card-hover group flex h-full flex-col overflow-hidden">
       <div className="relative aspect-[16/7] overflow-hidden bg-slate-100">
         {o.coverUrl ? (
-          <SmartImage src={o.coverUrl} alt="" fill sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw" className="object-cover transition duration-500 group-hover:scale-105" />
+          <SmartImage src={o.coverUrl} alt="" fill sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw" className="object-cover transition duration-500 group-hover:scale-105" style={{ objectPosition: coverPosition(o.coverFocusX, o.coverFocusY) }} />
         ) : (
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(247,162,75,0.45),transparent_55%),linear-gradient(135deg,#10264a,#1e4277)]" />
         )}

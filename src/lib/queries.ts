@@ -22,7 +22,7 @@ const articleCardSelect = {
 } satisfies Prisma.ArticleSelect;
 
 const businessCardSelect = {
-  id: true, slug: true, name: true, tagline: true, description: true, city: true, coverUrl: true, logoUrl: true,
+  id: true, slug: true, name: true, tagline: true, description: true, city: true, coverUrl: true, coverFocusX: true, coverFocusY: true, logoUrl: true,
   isSpotlighted: true, categories: { select: { name: true } },
 } satisfies Prisma.BusinessSelect;
 

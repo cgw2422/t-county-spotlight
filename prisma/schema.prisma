@@ -126,6 +126,8 @@ model Business {
   story          String?       // HTML
   logoUrl        String?
   coverUrl       String?
+  coverFocusX    Int           @default(50) // cover focal point, % from left (0–100)
+  coverFocusY    Int           @default(50) // cover focal point, % from top (0–100)
   address        String?
   city           String?
   state          String?       @default("OH")
@@ -821,6 +823,8 @@ model Organization {
   impact           String?   // HTML — community impact
   logoUrl          String?
   coverUrl         String?
+  coverFocusX      Int       @default(50) // cover focal point, % from left (0–100)
+  coverFocusY      Int       @default(50) // cover focal point, % from top (0–100)
   email            String?
   emailPublic      Boolean   @default(true)
   phone            String?

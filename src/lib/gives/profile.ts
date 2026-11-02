@@ -5,6 +5,7 @@ import { normalizeUrl, textToHtml } from "@/components/dashboard/text";
 import { Prisma, type Organization } from "@/generated/prisma/client";
 import { IMAGE_RIGHTS_LABEL, SERVICE_DAYS, SOCIAL_KEYS, ORG_KINDS, readLeaders, readServiceTimes } from "./constants";
 import { ownImageUrl } from "./queries";
+import { focusFromForm } from "@/lib/cover";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const opt = (fd: FormData, k: string, max = 300) => sanitizePlain(str(fd, k), max) || null;
@@ -73,6 +74,7 @@ export function parseOrgProfile(fd: FormData, existing: Pick<Organization, "logo
     impact: text("impact", 4000),
     logoUrl: ownImageUrl(str(fd, "logoUrl"), existing.logoUrl),
     coverUrl: ownImageUrl(str(fd, "coverUrl"), existing.coverUrl),
+    ...focusFromForm(fd),
     email: email && email.success ? email.data : null,
     emailPublic: fd.get("emailPublic") === "on",
     phone,

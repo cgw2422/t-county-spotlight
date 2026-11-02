@@ -18,12 +18,12 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       <button type="button" className="btn-ghost px-3" aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => { setOpenPath(path); setOpen(!open); }}>
         {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </button>
       {open && (
-        <div id="mobile-menu" className="fixed inset-x-0 bottom-0 top-[calc(4rem+var(--safe-top))] z-40 overflow-y-auto bg-white pb-safe">
+        <div id="mobile-menu" className="fixed inset-x-0 bottom-0 top-[calc(4rem+var(--safe-top))] lg:top-[calc(72px+var(--safe-top))] z-40 overflow-y-auto bg-white pb-safe">
           <nav aria-label="Mobile" className="container-page py-4">
             <ul className="divide-y divide-slate-100">
               {items.map((i) => (

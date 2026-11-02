@@ -6,8 +6,8 @@ import { ImagePlus, Loader2, X } from "lucide-react";
  * Image picker for organization forms. Uploads to /api/gives/upload/ (checks
  * organization membership) and stores the URL in a hidden input named `name`.
  */
-export function OrgImageUpload({ name, orgId, defaultValue, label, aspect = "aspect-video", help }: {
-  name: string; orgId: string; defaultValue?: string | null; label?: string; aspect?: string; help?: string;
+export function OrgImageUpload({ name, orgId, defaultValue, label, aspect = "aspect-video", help, onChange }: {
+  name: string; orgId: string; defaultValue?: string | null; label?: string; aspect?: string; help?: string; onChange?: (url: string) => void;
 }) {
   const [url, setUrl] = useState(defaultValue || "");
   const [busy, setBusy] = useState(false);
@@ -17,6 +17,7 @@ export function OrgImageUpload({ name, orgId, defaultValue, label, aspect = "asp
 
   function change(v: string) {
     setUrl(v);
+    onChange?.(v);
     // let surrounding forms notice the change (unsaved-changes indicators)
     queueMicrotask(() => hidden.current?.dispatchEvent(new Event("input", { bubbles: true })));
   }
