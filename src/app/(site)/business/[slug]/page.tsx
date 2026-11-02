@@ -115,6 +115,7 @@ export default async function BusinessPage({ params }: Props) {
   const addressLine2 = [b.city, [b.state, b.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const url = absoluteUrl(businessHref(b));
   const cover = b.coverUrl || b.photos[0]?.url;
+  const importSource = (b.wpMeta as { import?: { source?: string } } | null)?.import?.source;
   const track = (type: string) => ({ type, businessId: b.id, targetType: "BUSINESS", targetId: b.id });
   const description = sanitizeRichText(b.description);
   const story = sanitizeRichText(b.story);
@@ -290,6 +291,13 @@ export default async function BusinessPage({ params }: Props) {
               <p className="mt-1">Claim your listing to update details, post specials and share announcements.</p>
               <Link href={`/list-your-business/?claim=${encodeURIComponent(b.slug)}`} className="mt-3 inline-flex font-semibold text-brand-700 hover:underline">Claim this listing →</Link>
             </div>
+            {importSource === "OpenStreetMap" && (
+              <p className="px-1 text-xs text-slate-500">
+                Basic listing information from{" "}
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-700">© OpenStreetMap contributors</a>{" "}
+                (ODbL). It may be out of date until the business claims this listing.
+              </p>
+            )}
           </aside>
         </div>
       </div>

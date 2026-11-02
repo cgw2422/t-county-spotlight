@@ -13,7 +13,9 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "migrate:wp": "tsx --conditions=react-server scripts/migrate-wordpress.ts",
-    "release": "prisma migrate deploy && prisma db seed"
+    "release": "prisma migrate deploy && prisma db seed",
+    "businesses:fetch": "tsx scripts/business-import/fetch-osm.ts",
+    "businesses:import": "tsx scripts/business-import/import.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1148.0",
