@@ -51,7 +51,7 @@ export async function approveApplication(_: ActionState, fd: FormData): Promise<
     await sendEmail(
       app.email,
       `Your listing for ${app.businessName} was approved`,
-      `Good news! ${app.businessName} has been approved for TCountySpotlight.\n\n` +
+      `Good news! ${app.businessName} has been approved for T County Connect.\n\n` +
         (p.data.status === "PUBLISHED" ? `Your listing is live: ${absoluteUrl(`/business/${slug}/`)}\n\n` : "Our team will finish setting up your listing and publish it shortly.\n\n") +
         (p.data.linkOwner ? (createdUser ? `An account was created for ${app.email}. Set your password here: ${absoluteUrl("/forgot-password/")}\n` : `Sign in to manage your listing: ${absoluteUrl("/dashboard/")}\n`) : "") +
         (p.data.note ? `\nNote from our team: ${p.data.note}\n` : ""),
@@ -71,7 +71,7 @@ export async function rejectApplication(_: ActionState, fd: FormData): Promise<A
   await db.businessApplication.update({ where: { id: app.id }, data: { status: "REJECTED", reviewNote: p.data.note, reviewedById: user.id, reviewedAt: new Date() } });
   await audit(user.id, "application.reject", "BusinessApplication", app.id, { name: app.businessName, note: p.data.note });
   if (fd.get("notify") !== "false") {
-    await sendEmail(app.email, `About your TCountySpotlight listing request`, `Thank you for applying to list ${app.businessName} on TCountySpotlight.\n\nUnfortunately we can't approve this request right now.\n\nReason: ${p.data.note}\n\nReply to this email if you have questions.`);
+    await sendEmail(app.email, `About your T County Connect listing request`, `Thank you for applying to list ${app.businessName} on T County Connect.\n\nUnfortunately we can't approve this request right now.\n\nReason: ${p.data.note}\n\nReply to this email if you have questions.`);
   }
   revalidatePath("/admin/applications");
   return { ok: true, message: "Application rejected and applicant notified." };

@@ -1,3 +1,4 @@
+import { BrandAssetPreview } from "./brand-preview";
 import Link from "next/link";
 import { CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
@@ -55,11 +56,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <TextField name="siteName" label="Site name" defaultValue={s.siteName} required />
             <TextField name="tagline" label="Tagline" defaultValue={s.tagline} />
             <TextArea name="description" label="Site description" defaultValue={s.description} rows={3} />
-            <div className="grid gap-4 sm:grid-cols-3">
-              <MediaField name="logoUrl" label="Logo" defaultValue={s.logoUrl} aspect="aspect-[3/1]" help="For light backgrounds." />
-              <MediaField name="logoDarkUrl" label="Logo (dark backgrounds)" defaultValue={s.logoDarkUrl} aspect="aspect-[3/1]" help="Used in the footer & admin sidebar." />
-              <MediaField name="faviconUrl" label="Favicon" defaultValue={s.faviconUrl} aspect="aspect-square" help="Square PNG/SVG/ICO." />
+            <div className="rounded-xl border border-hillside-200 bg-hillside-50/60 p-4">
+              <MediaField name="brandLogoUrl" label="Official logo (original artwork)" defaultValue={s.brandLogoUrl} aspect="aspect-[3/1]"
+                help="Upload the original T County Connect horizontal logo (PNG, as large as possible, white or transparent background). The header and footer logo, email logo, favicon, PWA app icons, Apple touch icon and social-sharing image are generated from it automatically — cropped and resized only, never redrawn." />
+              <div className="mt-4 max-w-[220px]">
+                <MediaField name="brandIconUrl" label="Icon mark (optional)" defaultValue={s.brandIconUrl} aspect="aspect-square"
+                  help="Only if your brand guide includes a separate square icon. Otherwise the county mark is cropped from the logo automatically." />
+              </div>
+              {s.brandLogoUrl && <BrandAssetPreview brandLogoUrl={s.brandLogoUrl} brandIconUrl={s.brandIconUrl} />}
             </div>
+            <details className="rounded-xl border border-slate-200 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-slate-700">Advanced: legacy logo overrides</summary>
+              <p className="help mt-2">Only used when no official logo is uploaded above. Logos imported from the old TCountySpotlight WordPress site were cleared during the rebrand.</p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <MediaField name="logoUrl" label="Logo" defaultValue={s.logoUrl} aspect="aspect-[3/1]" help="For light backgrounds." />
+                <MediaField name="logoDarkUrl" label="Logo (dark backgrounds)" defaultValue={s.logoDarkUrl} aspect="aspect-[3/1]" help="Used in the admin sidebar." />
+                <MediaField name="faviconUrl" label="Favicon" defaultValue={s.faviconUrl} aspect="aspect-square" help="Square PNG/SVG/ICO." />
+              </div>
+            </details>
           </SettingsForm>
         )}
         {tab === "contact" && (

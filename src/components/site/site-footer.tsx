@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getSettings } from "@/lib/settings";
 import { Logo } from "./logo";
+import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { getMenu } from "./nav-data";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export async function SiteFooter() {
-  const [s, footer, header] = await Promise.all([getSettings(), getMenu("FOOTER"), getMenu("HEADER")]);
+  const [s, footer, header, brand] = await Promise.all([getSettings(), getMenu("FOOTER"), getMenu("HEADER"), getBrandAssetUrls()]);
   const socials = Object.entries(s.socials || {}).filter(([, v]) => v);
   return (
     <footer className="mt-16 bg-navy-950 pb-24 text-slate-300 lg:pb-0">
@@ -16,7 +17,7 @@ export async function SiteFooter() {
       </div>
       <div className="container-page grid gap-10 py-12 md:grid-cols-4">
         <div className="md:col-span-2">
-          <Logo logoUrl={s.logoDarkUrl || s.logoUrl} siteName={s.siteName} invert />
+          <Logo src={brand.logo} onDark size="lg" />
           <p className="mt-4 max-w-md text-sm leading-relaxed">{s.footerText}</p>
           {socials.length > 0 && (
             <ul className="mt-4 flex flex-wrap gap-3 text-sm">
@@ -33,7 +34,7 @@ export async function SiteFooter() {
           </ul>
         </div>
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-white">TCountySpotlight</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-white">T County Connect</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {footer.map((i) => <li key={i.href}><Link href={i.href} className="hover:text-white">{i.label}</Link></li>)}
           </ul>

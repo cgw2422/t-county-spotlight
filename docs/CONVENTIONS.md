@@ -1,4 +1,4 @@
-# TCountySpotlight — code conventions
+# T County Connect — code conventions
 
 **Stack:** Next.js 16 (App Router, Turbopack, `trailingSlash: true`), React 19, TypeScript, Tailwind CSS v4, Prisma 7 (`@prisma/adapter-pg`), PostgreSQL.
 
@@ -29,6 +29,7 @@ Read `node_modules/next/dist/docs/` before using an unfamiliar Next API. Next 16
 | `src/components/site/*` | public header, footer, bottom nav, logo, install prompt |
 
 ## Styling
+Brand: County Navy `#0B2340` (navy/brand tokens), Hillside Green `#387D14` (`hillside-*`), Sunrise Orange `#FF8508` (`sunset-*`, sparingly), Off White `#F7F8F5` (`cream`). Headings/nav/buttons Montserrat Bold (`font-display`), body Open Sans. Name is always exactly "T County Connect" (`BRAND` in `src/lib/brand.ts`). Logos come from `getBrandAssetUrls()` / `<Logo>` / `<BrandMark>` — never hardcode a logo file.
 Tailwind v4 with custom utilities in `src/app/globals.css`: `container-page`, `font-display`, `btn-primary|secondary|ghost|danger|accent`, `btn-sm`, `card`, `card-hover`, `label`, `input`, `help`, `badge-gray|blue|green|amber|red|orange|sponsored`, `section-title`, `eyebrow`, `table-base`. Colors: `navy-*`, `brand-*`, `sunset-*`. Headlines use `font-display` (Fraunces), body Inter.
 Touch targets ≥ 44px (`min-h-11`). Every page must work at 360px wide and on desktop.
 

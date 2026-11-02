@@ -88,7 +88,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams: 
           <TextField name="email" type="email" label="Email" required maxLength={254} />
           <TextField name="firstName" label="First name (optional)" maxLength={80} />
           <Submit pendingText="Sending…">Send invitation</Submit>
-          <div className="sm:col-span-3"><Checkbox name="confirmPermission" label="This person asked to receive the T-County Weekly" help="Never invite imported business contacts or people who haven't asked." /></div>
+          <div className="sm:col-span-3"><Checkbox name="confirmPermission" label="This person asked to receive the T County Connect Weekly" help="Never invite imported business contacts or people who haven't asked." /></div>
         </ActionForm>
       </Card>
     </>

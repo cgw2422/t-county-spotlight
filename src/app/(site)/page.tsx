@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/public/json-ld";
+import { getBrandAssetUrls } from "@/lib/brand-assets";
+import { absoluteUrl } from "@/lib/utils";
 import { permanentRedirect } from "next/navigation";
 import { CalendarDays, Store } from "lucide-react";
 import { db } from "@/lib/db";
@@ -127,7 +130,7 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
     }
     case "newsletter":
       return (
-        <section key={s.id} id="newsletter" aria-label="T-County Weekly newsletter" className="container-page scroll-mt-24 py-12">
+        <section key={s.id} id="newsletter" aria-label="T County Connect Weekly newsletter" className="container-page scroll-mt-24 py-12">
           <NewsletterSignup source="homepage" variant="card" title={s.title} subtitle={s.subtitle} />
         </section>
       );
@@ -169,5 +172,32 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     db.homepageSection.findMany({ where: { isEnabled: true }, orderBy: { sortOrder: "asc" } }),
   ]);
   const rendered = await Promise.all(sections.map((s) => renderSection(s, settings)));
-  return <>{rendered}</>;
+  const brand = await getBrandAssetUrls();
+  const socials = Object.values(settings.socials || {}).filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
+  return (
+    <>
+      {rendered}
+      <JsonLd
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: settings.siteName,
+            alternateName: "TCountySpotlight",
+            url: absoluteUrl("/"),
+            ...(brand.logo ? { logo: absoluteUrl(brand.logo) } : {}),
+            areaServed: { "@type": "AdministrativeArea", name: "Tuscarawas County, Ohio" },
+            ...(socials.length ? { sameAs: socials } : {}),
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: settings.siteName,
+            url: absoluteUrl("/"),
+            potentialAction: { "@type": "SearchAction", target: `${absoluteUrl("/search/")}?q={search_term_string}`, "query-input": "required name=search_term_string" },
+          },
+        ]}
+      />
+    </>
+  );
 }

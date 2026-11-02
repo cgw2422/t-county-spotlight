@@ -79,7 +79,7 @@ export async function setPromotionStatus(_: ActionState, fd: FormData): Promise<
   if (pr.status === "PENDING" && (status === "APPROVED" || status === "REJECTED")) {
     for (const o of pr.business.owners) {
       await sendEmail(o.user.email, status === "APPROVED" ? `Your special “${pr.title}” was approved` : `Your special “${pr.title}” needs changes`,
-        status === "APPROVED" ? `Your special for ${pr.business.name} is approved and will show on TCountySpotlight during its scheduled dates.` : `We couldn't approve your special “${pr.title}”.\n\nReason: ${reason}\n\nYou can edit and resubmit it from your business dashboard.`);
+        status === "APPROVED" ? `Your special for ${pr.business.name} is approved and will show on T County Connect during its scheduled dates.` : `We couldn't approve your special “${pr.title}”.\n\nReason: ${reason}\n\nYou can edit and resubmit it from your business dashboard.`);
     }
   }
   revalidatePath("/admin/specials");

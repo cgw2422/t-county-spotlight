@@ -52,7 +52,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "T-County Weekly",
+    title: "T County Connect Weekly",
     items: [
       { href: "/admin/newsletter/", label: "Newsletter", icon: Mail, adminOnly: true },
     ],
@@ -161,13 +161,11 @@ function Brand({ logoUrl, logoOnDark, siteName, collapsed }: { logoUrl: string |
         </span>
       ) : (
         <>
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/10">
-            <OhioMark className="h-6 w-6 text-white" />
-          </span>
+          <OhioMark className="h-9 w-9" />
           {!collapsed && (
             <span className="min-w-0 leading-tight">
-              <span className="block truncate text-[15px] font-extrabold tracking-tight text-white">
-                TCounty<span className="text-sunset-400">Spotlight</span>
+              <span className="block truncate font-display text-[15px] font-extrabold tracking-tight text-white">
+                T County Connect
               </span>
               <span className="block text-[11px] font-medium uppercase tracking-wider text-slate-400">Admin</span>
             </span>
@@ -289,7 +287,7 @@ export function AdminShell({ children, user, isAdmin, siteName, logoUrl, logoOnD
               <Menu className="h-6 w-6" />
             </button>
             <Link href="/admin/" className="flex items-center gap-2 lg:hidden" aria-label="Admin home">
-              <OhioMark className="h-7 w-7 text-navy-800" />
+              <OhioMark className="h-8 w-8" tile={false} />
               <span className="text-[15px] font-extrabold tracking-tight text-navy-900">Admin</span>
             </Link>
             <div className="flex-1" />

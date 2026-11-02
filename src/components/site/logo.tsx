@@ -1,31 +1,54 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
 
-/** Fallback brand mark (Ohio outline) used until the WordPress logo is imported or uploaded in Settings. */
-export function OhioMark({ className }: { className?: string }) {
+/**
+ * Small square brand mark — the county-outline icon cropped from the official
+ * T County Connect artwork (served by /brand/mark.png). It sits on a white
+ * tile so the original navy/green/orange artwork stays legible on any
+ * background. Until the official logo is uploaded, the route falls back to a
+ * neutral placeholder icon.
+ */
+export function BrandMark({ className, tile = true }: { className?: string; tile?: boolean }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  const img = (size: string) => <img src="/brand/mark.png" alt="" aria-hidden className={cn(size, "object-contain")} />;
+  if (!tile) return <span className={cn("inline-flex shrink-0", className)}>{img("h-full w-full")}</span>;
+  // Inner image sized as a share of the tile (percentage padding would follow the parent's width).
+  return <span className={cn("inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm", className)}>{img("h-[78%] w-[78%]")}</span>;
+}
+
+/** Legacy export name kept for existing imports. */
+export const OhioMark = BrandMark;
+
+/** The brand name set in Montserrat — used only when the logo image is unavailable. */
+export function BrandWordmark({ onDark = false, className }: { onDark?: boolean; className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" className={className} fill="none">
-      <path
-        d="M5 4.5 11.5 6l4-1.6 3.4 1.4L26.5 3l.6 13.4-1.4 2.8-2.2 3.4-2.6 2.1-.6 3.4-4.2 1.3-3.3-1.9-3.4.7-3.5-1.4z"
-        stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round"
-      />
-    </svg>
+    <span className={cn("font-display font-extrabold uppercase leading-[0.95] tracking-tight", className)}>
+      <span className={cn("block", onDark ? "text-white" : "text-navy-900")}>T County</span>
+      <span className={cn("block", onDark ? "text-white" : "text-hillside-600")}>Connect</span>
+    </span>
   );
 }
 
-export function Logo({ logoUrl, siteName, className, invert = false }: { logoUrl?: string | null; siteName: string; className?: string; invert?: boolean }) {
+/**
+ * Horizontal T County Connect logo. `src` is the trimmed official logo
+ * generated from the uploaded artwork; on dark backgrounds it is placed on a
+ * white plate so the original colors are preserved exactly.
+ */
+export function Logo({ src, className, onDark = false, size = "md" }: { src?: string | null; className?: string; onDark?: boolean; size?: "sm" | "md" | "lg" }) {
+  const h = size === "sm" ? "h-8" : size === "lg" ? "h-12 sm:h-14" : "h-10 sm:h-12";
   return (
-    <Link href="/" className={cn("flex items-center gap-2 shrink-0", className)} aria-label={`${siteName} home`}>
-      {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl} alt={siteName} className="h-9 w-auto max-w-[220px] object-contain sm:h-10" />
+    <Link href="/" className={cn("flex shrink-0 items-center", className)} aria-label={`${BRAND.name} home`}>
+      {src ? (
+        <span className={cn(onDark && "rounded-xl bg-white px-3 py-2 shadow-sm")}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={BRAND.name} className={cn(h, "w-auto max-w-[240px] object-contain")} />
+        </span>
       ) : (
-        <>
-          <OhioMark className={cn("h-8 w-8 sm:h-9 sm:w-9", invert ? "text-white" : "text-navy-800")} />
-          <span className={cn("text-lg font-extrabold tracking-tight sm:text-xl", invert ? "text-white" : "text-navy-900")}>
-            TCounty<span className={invert ? "text-sunset-400" : "text-brand-600"}>Spotlight</span>
-          </span>
-        </>
+        <span className="flex items-center gap-2">
+          <BrandMark className={size === "sm" ? "h-8 w-8" : "h-10 w-10"} />
+          <BrandWordmark onDark={onDark} className={size === "sm" ? "text-[13px]" : "text-[15px] sm:text-base"} />
+        </span>
       )}
     </Link>
   );

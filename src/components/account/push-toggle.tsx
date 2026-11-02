@@ -87,7 +87,7 @@ export function PushToggle() {
       <h2 className="flex items-center gap-2 font-semibold text-navy-900"><BellRing className="h-5 w-5 text-brand-600" aria-hidden /> Push notifications on this device</h2>
       {mode === "ios-install" && (
         <p className="mt-2 text-sm text-slate-600">
-          On iPhone and iPad, notifications work once the app is on your home screen (iOS 16.4 or newer). Tap <Share className="inline h-4 w-4" aria-label="Share" /> then <strong>Add to Home Screen</strong>, open TCountySpotlight from your home screen, and come back here.
+          On iPhone and iPad, notifications work once the app is on your home screen (iOS 16.4 or newer). Tap <Share className="inline h-4 w-4" aria-label="Share" /> then <strong>Add to Home Screen</strong>, open T County Connect from your home screen, and come back here.
         </p>
       )}
       {mode === "unsupported" && <p className="mt-2 text-sm text-slate-600">This browser doesn&apos;t support push notifications. You can still get updates by email.</p>}

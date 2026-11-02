@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 function Brand({ sub }: { sub?: string }) {
   return (
     <Link href="/dashboard/" className="flex items-center gap-2.5 text-white">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><OhioMark className="h-6 w-6" /></span>
+      <OhioMark className="h-9 w-9 rounded-xl" />
       <span className="leading-tight">
-        <span className="block text-[15px] font-extrabold tracking-tight">TCounty<span className="text-sunset-400">Spotlight</span></span>
+        <span className="block font-display text-[15px] font-extrabold tracking-tight">T County Connect</span>
         <span className="block text-xs text-slate-300">{sub ?? "Business dashboard"}</span>
       </span>
     </Link>

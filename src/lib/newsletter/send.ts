@@ -1,3 +1,4 @@
+import { emailLogo } from "@/lib/brand-assets";
 import "server-only";
 import crypto from "node:crypto";
 import { db } from "@/lib/db";
@@ -26,7 +27,7 @@ export async function renderCampaign(nl: { subject: string; preheader: string | 
   const s = await newsletterSender();
   return renderNewsletter(
     { subject: nl.subject, preheader: nl.preheader, content: normalizeContent(nl.content) },
-    { siteName: s.site.siteName, logoUrl: s.site.logoUrl, postalAddress: s.settings.postalAddress || "Postal address not set", sponsoredLabel: s.site.sponsoredLabel },
+    { siteName: s.site.siteName, logoUrl: emailLogo(s.site), postalAddress: s.settings.postalAddress || "Postal address not set", sponsoredLabel: s.site.sponsoredLabel },
   );
 }
 

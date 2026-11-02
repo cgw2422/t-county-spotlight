@@ -64,7 +64,7 @@ export async function sendPasswordReset(_: ActionState, fd: FormData): Promise<A
   await db.verificationToken.create({ data: { userId: u.id, type: "PASSWORD_RESET", tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 2 * 3600_000) } });
   const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const link = `${base}/reset-password/?token=${encodeURIComponent(token)}`;
-  const r = await sendEmail(u.email, "Reset your TCountySpotlight password", `An administrator sent you a link to set a new password:\n\n${link}\n\nThis link expires in 2 hours. If you didn't expect this, you can ignore it.`);
+  const r = await sendEmail(u.email, "Reset your T County Connect password", `An administrator sent you a link to set a new password:\n\n${link}\n\nThis link expires in 2 hours. If you didn't expect this, you can ignore it.`);
   await audit(me.id, "user.password_reset", "User", u.id, { email: u.email, delivered: r.delivered });
   return { ok: true, message: r.delivered ? `Reset link emailed to ${u.email}.` : `Email isn't configured, so the reset link was logged on the server (expires in 2 hours).` };
 }

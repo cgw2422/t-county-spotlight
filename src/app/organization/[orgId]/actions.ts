@@ -362,7 +362,7 @@ export async function addMemberAction(_p: ActionState, fd: FormData): Promise<Ac
   const target = await db.user.findUnique({ where: { email: email.data } });
   if (!target || target.status !== "ACTIVE") {
     return {
-      error: `No TCountySpotlight account uses ${email.data} yet. Ask them to create a free account at ${absoluteUrl("/register/")} with that email, then add them here.`,
+      error: `No T County Connect account uses ${email.data} yet. Ask them to create a free account at ${absoluteUrl("/register/")} with that email, then add them here.`,
       fieldErrors: { email: "No account with this email" },
     };
   }

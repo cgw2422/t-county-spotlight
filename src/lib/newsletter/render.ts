@@ -41,10 +41,11 @@ function abs(url: string | null | undefined) {
   return "";
 }
 
-// ── Palette (matches the site: navy / brand / sunset) ──
-const C = { navy: "#10264a", brand: "#1d66db", sunset: "#d9711a", text: "#1e293b", muted: "#64748b", line: "#e2e8f0", bg: "#f1f5f9", card: "#ffffff", cream: "#faf7f2" };
-const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-const SERIF = "Georgia,'Times New Roman',serif";
+// ── Palette: T County Connect brand (County Navy / Hillside Green / Sunrise Orange / Off White) ──
+const C = { navy: "#0B2340", brand: "#0B2340", green: "#387D14", sunset: "#FF8508", text: "#1e293b", muted: "#5b6472", line: "#e2e8f0", bg: "#F7F8F5", card: "#ffffff", cream: "#F7F8F5" };
+// Brand fonts with email-safe fallbacks (most email clients use the fallback).
+const FONT = "'Open Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const SERIF = "Montserrat,'Segoe UI',Helvetica,Arial,sans-serif"; // headings
 
 /** Email-safe rich text: small tag allowlist, inline styles, absolute links/images. */
 export function emailRichText(html: string) {
@@ -127,9 +128,9 @@ export function renderNewsletter(nl: { subject: string; preheader?: string | nul
   img{-ms-interpolation-mode:bicubic}
   @media (max-width:620px){ .nl-pad{padding-left:18px!important;padding-right:18px!important} .nl-thumb{width:88px!important} .nl-thumb img{width:88px!important;height:66px!important} }
   @media (prefers-color-scheme:dark){
-    .nl-bg{background:#0b1a33!important} .nl-card{background:#10264a!important}
+    .nl-bg{background:#061527!important} .nl-card{background:#0B2340!important}
     .nl-card p,.nl-card li,.nl-card div,.nl-card td{color:#e2e8f0!important}
-    .nl-card a{color:#9cc3ff!important} .nl-card h2,.nl-card h3{color:#ffffff!important}
+    .nl-card a{color:#b9db9f!important} .nl-card h2,.nl-card h3{color:#ffffff!important}
   }
 </style>
 </head>
@@ -139,10 +140,10 @@ ${pre ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font
 <tr><td align="center" style="padding:24px 8px">
 <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" class="nl-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:${C.card};border-radius:14px;overflow:hidden" bgcolor="${C.card}">
-<tr><td style="background:${C.navy};padding:22px 28px" bgcolor="${C.navy}" class="nl-pad">
+<tr><td style="background:#ffffff;padding:20px 28px;border-bottom:4px solid ${C.green}" bgcolor="#ffffff" class="nl-pad">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-  <td style="font-family:${FONT}">${logo ? `<a href="${esc(site)}"><img src="${esc(logo)}" alt="${esc(ctx.siteName)}" height="40" style="display:block;height:40px;width:auto;border:0"></a>` : `<a href="${esc(site)}" style="font-family:${SERIF};font-size:22px;font-weight:700;color:#ffffff;text-decoration:none">${esc(ctx.siteName)}</a>`}</td>
-  <td align="right" style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f7a24b">${esc(NEWSLETTER_NAME)}</td>
+  <td style="font-family:${FONT}">${logo ? `<a href="${esc(site)}"><img src="${esc(logo)}" alt="${esc(ctx.siteName)}" height="48" style="display:block;height:48px;width:auto;border:0"></a>` : `<a href="${esc(site)}" style="font-family:${SERIF};font-size:22px;font-weight:800;color:${C.navy};text-decoration:none">${esc(ctx.siteName)}</a>`}</td>
+  <td align="right" style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${C.green}">${esc(NEWSLETTER_NAME)}</td>
   </tr></table>
 </td></tr>
 <tr><td class="nl-pad" style="padding:28px 32px 8px;font-family:${FONT}">
@@ -150,7 +151,7 @@ ${pre ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font
   ${intro}
 </td></tr>
 ${sections.map((s) => `<tr><td class="nl-pad" style="padding:8px 32px 6px;font-family:${FONT}">
-  <h2 style="margin:12px 0 14px;padding:0 0 8px;border-bottom:2px solid ${C.sunset};font-family:${SERIF};font-size:22px;color:${C.navy}">${esc(s.title)}</h2>
+  <h2 style="margin:12px 0 14px;padding:0 0 8px;border-bottom:2px solid ${C.green};font-family:${SERIF};font-size:22px;color:${C.navy}">${esc(s.title)}</h2>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${s.items.map((i) => itemBlock(i, sponsored)).join("\n")}</table>
 </td></tr>`).join("\n")}
 ${outro ? `<tr><td class="nl-pad" style="padding:8px 32px 8px;font-family:${FONT}">${outro}</td></tr>` : ""}
@@ -209,7 +210,7 @@ export function renderSimpleEmail(o: { siteName: string; logoUrl?: string | null
 <body style="margin:0;padding:0;background:${C.bg}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.bg}" bgcolor="${C.bg}"><tr><td align="center" style="padding:24px 8px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:14px" bgcolor="#ffffff">
-<tr><td style="background:${C.navy};padding:18px 28px;border-radius:14px 14px 0 0" bgcolor="${C.navy}">${logo ? `<img src="${esc(logo)}" alt="${esc(o.siteName)}" height="36" style="display:block;height:36px;width:auto;border:0">` : `<span style="font-family:${SERIF};font-size:20px;font-weight:700;color:#ffffff">${esc(o.siteName)}</span>`}</td></tr>
+<tr><td style="background:#ffffff;padding:18px 28px;border-radius:14px 14px 0 0;border-bottom:4px solid ${C.green}" bgcolor="#ffffff">${logo ? `<img src="${esc(logo)}" alt="${esc(o.siteName)}" height="44" style="display:block;height:44px;width:auto;border:0">` : `<span style="font-family:${SERIF};font-size:20px;font-weight:800;color:${C.navy}">${esc(o.siteName)}</span>`}</td></tr>
 <tr><td style="padding:28px;font-family:${FONT}">
 <h1 style="margin:0 0 14px;font-family:${SERIF};font-size:24px;line-height:1.25;color:${C.navy}">${esc(o.title)}</h1>
 ${o.paragraphs.map(p).join("")}

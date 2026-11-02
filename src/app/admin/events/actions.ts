@@ -103,7 +103,7 @@ export async function setEventStatus(_: ActionState, fd: FormData): Promise<Acti
       to,
       status === "PUBLISHED" ? `Your event “${e.title}” is live` : `About your event “${e.title}”`,
       status === "PUBLISHED"
-        ? `Thanks for sharing! Your event is now listed on TCountySpotlight: ${absoluteUrl(`/events/${e.slug}/`)}`
+        ? `Thanks for sharing! Your event is now listed on T County Connect: ${absoluteUrl(`/events/${e.slug}/`)}`
         : `Thanks for submitting “${e.title}”. We weren't able to publish it.\n\nReason: ${reason}\n\nYou're welcome to submit again with changes.`,
     );
   }

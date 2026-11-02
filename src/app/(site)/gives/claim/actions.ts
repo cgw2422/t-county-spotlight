@@ -48,8 +48,8 @@ async function sendClaimVerification(claimId: string, email: string, orgName: st
   });
   await sendEmail(
     email,
-    `Confirm your email to claim ${orgName} on TCountySpotlight`,
-    `Someone (hopefully you) asked to manage the ${orgName} listing on TCountySpotlight's T-County Gives and gave this address as their organization email.\n\nConfirm this address (link expires in ${VERIFY_HOURS} hours):\n${absoluteUrl(`/gives/claim/verify/?token=${token}`)}\n\nConfirming the email does not approve the claim by itself — our team reviews every request.\nIf this wasn't you, ignore this email.`,
+    `Confirm your email to claim ${orgName} on T County Connect`,
+    `Someone (hopefully you) asked to manage the ${orgName} listing on T County Connect's T-County Gives and gave this address as their organization email.\n\nConfirm this address (link expires in ${VERIFY_HOURS} hours):\n${absoluteUrl(`/gives/claim/verify/?token=${token}`)}\n\nConfirming the email does not approve the claim by itself — our team reviews every request.\nIf this wasn't you, ignore this email.`,
   );
 }
 

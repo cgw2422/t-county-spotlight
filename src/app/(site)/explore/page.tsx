@@ -52,7 +52,7 @@ export default async function ExplorePage() {
 
       <ExploreGrid title="Explore by topic" />
 
-      <section aria-label="T-County Weekly newsletter" className="container-page pb-10">
+      <section aria-label="T County Connect Weekly newsletter" className="container-page pb-10">
         <NewsletterSignup source="pwa" variant="card" />
       </section>
 

@@ -36,7 +36,7 @@ export default async function NewsletterOverview() {
   return (
     <>
       <PageHeader
-        title="T-County Weekly"
+        title="T County Connect Weekly"
         description="Permission-based email newsletter. Everyone on this list asked to subscribe and confirmed their address."
         actions={<form action={createCampaignAction}><button className="btn-primary"><Plus className="h-4 w-4" /> New campaign</button></form>}
       />

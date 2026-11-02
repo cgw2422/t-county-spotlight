@@ -8,7 +8,7 @@ import { formatPlanPrice } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Business memberships",
-  description: "Optional memberships that add tools to your free TCountySpotlight business listing.",
+  description: "Optional memberships that add tools to your free T County Connect business listing.",
 };
 export const dynamic = "force-dynamic";
 

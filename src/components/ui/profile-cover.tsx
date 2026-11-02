@@ -24,7 +24,7 @@ export function ProfileCover({ src, focusX, focusY }: { src?: string | null; foc
           style={{ objectPosition: coverPosition(focusX, focusY) }}
         />
       ) : (
-        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(247,162,75,0.5),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(47,123,240,0.45),transparent_60%),linear-gradient(135deg,#0b1a33,#16325c_55%,#1e4277)]" />
+        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,133,8,0.5),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(56,125,20,0.45),transparent_60%),linear-gradient(135deg,#061527,#0b2340_55%,#13305a)]" />
       )}
       <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-navy-950/70 via-navy-950/10 to-transparent" />
     </div>

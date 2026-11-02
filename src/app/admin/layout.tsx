@@ -1,3 +1,4 @@
+import { getBrandAssetUrls } from "@/lib/brand-assets";
 import type { Metadata } from "next";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -10,6 +11,7 @@ export const metadata: Metadata = { title: { default: "Admin", template: "%s · 
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff();
+  const brand = await getBrandAssetUrls();
   const [settings, applications, events, specials, updates, articles, jobs, organizations] = await Promise.all([
     getSettings(),
     db.businessApplication.count({ where: { status: "PENDING" } }),
@@ -25,8 +27,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       user={{ name: user.name, email: user.email, role: user.role }}
       isAdmin={user.role === "ADMIN"}
       siteName={settings.siteName}
-      logoUrl={settings.logoDarkUrl || settings.logoUrl || null}
-      logoOnDark={!!settings.logoDarkUrl}
+      logoUrl={brand.logoSmall || settings.logoDarkUrl || null}
+      logoOnDark={!brand.hasOfficialLogo && !!settings.logoDarkUrl}
       counts={{ applications, events, specials, updates, articles, jobs, organizations }}
     >
       {children}

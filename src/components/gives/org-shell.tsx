@@ -1,15 +1,16 @@
+import { BrandMark } from "@/components/site/logo";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, HeartHandshake } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { LogoutButton } from "@/components/account/logout-button";
 import { OrgMobileNav, OrgSidebarNav, OrgSwitcher, type OrgNavItem } from "./org-nav";
 
 function Brand() {
   return (
     <Link href="/organization/" className="flex items-center gap-2.5 text-white">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sunset-500"><HeartHandshake className="h-5 w-5" aria-hidden /></span>
+      <BrandMark className="h-9 w-9 rounded-xl" />
       <span className="leading-tight">
-        <span className="block text-[15px] font-extrabold tracking-tight">T-County <span className="text-sunset-400">Gives</span></span>
-        <span className="block text-xs text-slate-300">Organization dashboard</span>
+        <span className="block font-display text-[15px] font-extrabold tracking-tight">T-County <span className="text-hillside-200">Gives</span></span>
+        <span className="block text-xs text-slate-300">T County Connect · Organization dashboard</span>
       </span>
     </Link>
   );

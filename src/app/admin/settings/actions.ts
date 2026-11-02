@@ -9,11 +9,11 @@ import { parseForm, zBool, zUrlOpt } from "../_lib/form";
 
 const str = (max: number) => z.string().trim().max(max).default("");
 const email = z.string().trim().max(200).default("").refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Enter a valid email address");
-const color = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Colors must be hex like #16325c");
+const color = z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Colors must be hex like #0b2340");
 const social = z.string().trim().max(300).default("").refine((v) => !v || /^https?:\/\//.test(v), "Social links must start with https://");
 
 const GROUPS = {
-  general: z.object({ siteName: str(100).pipe(z.string().min(1, "Site name is required")), tagline: str(200), description: str(500), logoUrl: zUrlOpt, logoDarkUrl: zUrlOpt, faviconUrl: zUrlOpt }),
+  general: z.object({ siteName: str(100).pipe(z.string().min(1, "Site name is required")), tagline: str(200), description: str(500), brandLogoUrl: zUrlOpt, brandIconUrl: zUrlOpt, logoUrl: zUrlOpt, logoDarkUrl: zUrlOpt, faviconUrl: zUrlOpt }),
   contact: z.object({ contactEmail: email, contactPhone: str(40), address: str(300), facebook: social, instagram: social, x: social, youtube: social, tiktok: social, linkedin: social }),
   footer: z.object({ footerText: str(1000) }),
   seo: z.object({ seoDefaultTitle: str(200), seoDefaultDescription: str(400), seoDefaultImage: zUrlOpt }),

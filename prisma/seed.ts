@@ -8,6 +8,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { runBrandMigration } from "../src/lib/brand-migration";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
@@ -34,7 +35,7 @@ const EVENT_CATEGORIES = [
 ];
 
 const HOMEPAGE_SECTIONS = [
-  { key: "hero", type: "hero", title: "Discover Tuscarawas County", subtitle: null, limit: 0 },
+  { key: "hero", type: "hero", title: "Discover more of T County.", subtitle: null, limit: 0 },
   { key: "explore", type: "explore", title: "Explore T-County", subtitle: null, limit: 8 },
   { key: "weekend", type: "weekend", title: "What's Happening This Weekend", subtitle: "Events and activities across the county", limit: 4 },
   { key: "spotlights", type: "spotlights", title: "Latest Business Spotlights", subtitle: "Stories of the people behind T-County businesses", limit: 3 },
@@ -54,7 +55,7 @@ const MENU = [
 ];
 const FOOTER = [
   ["List Your Business", "/list-your-business/"], ["Memberships", "/memberships/"], ["Submit an Event", "/events/submit/"],
-  ["Business Spotlights", "/spotlights/"], ["T-County Weekly newsletter", "/newsletter/"], ["Search", "/search/"],
+  ["Business Spotlights", "/spotlights/"], ["T County Connect Weekly", "/newsletter/"], ["Search", "/search/"],
 ];
 
 async function main() {
@@ -83,7 +84,7 @@ async function main() {
       }
     }
     if (!(await db.menuItem.findFirst({ where: { location: "FOOTER", href: "/newsletter/" } }))) {
-      await db.menuItem.create({ data: { location: "FOOTER", label: "T-County Weekly newsletter", href: "/newsletter/", sortOrder: 99 } });
+      await db.menuItem.create({ data: { location: "FOOTER", label: "T County Connect Weekly", href: "/newsletter/", sortOrder: 99 } });
     }
   }
   if (isNewInstall) {
@@ -129,6 +130,7 @@ async function main() {
       console.log(`Created admin ${email}`);
     }
   }
+  await runBrandMigration(db);
   console.log("Seed complete.");
 }
 

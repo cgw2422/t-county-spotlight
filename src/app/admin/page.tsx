@@ -56,7 +56,7 @@ export default async function AdminDashboard() {
     <>
       <PageHeader
         title={`${greeting}${user.name ? `, ${user.name.split(" ")[0]}` : ""}`}
-        description="Here’s what’s happening across TCountySpotlight."
+        description="Here’s what’s happening across T County Connect."
         actions={
           <>
             <Link href="/admin/articles/new/" className="btn-primary btn-sm"><Plus className="h-4 w-4" /> New article</Link>

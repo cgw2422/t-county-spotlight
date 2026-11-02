@@ -2,24 +2,44 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  /* ── T County Connect brand tokens (single source of truth) ──
+     County Navy #0B2340 · Hillside Green #387D14 · Sunrise Orange #FF8508 · Off White #F7F8F5
+     Token names navy/brand/sunset/cream are kept so existing components recolor automatically. */
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; /* legacy alias */
+  --font-heading: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-navy-950: #0b1a33;
-  --color-navy-900: #10264a;
-  --color-navy-800: #16325c;
-  --color-navy-700: #1e4277;
-  --color-navy-600: #275394;
-  --color-brand-50: #eef5ff;
-  --color-brand-100: #d9e8ff;
-  --color-brand-200: #bcd6ff;
-  --color-brand-500: #2f7bf0;
-  --color-brand-600: #1d66db;
-  --color-brand-700: #1752b4;
-  --color-sunset-400: #f7a24b;
-  --color-sunset-500: #f08a2c;
-  --color-sunset-600: #d9711a;
-  --color-cream: #faf7f2;
+  /* County Navy — primary branding, headings, navigation, prominent backgrounds */
+  --color-navy-950: #061527;
+  --color-navy-900: #0b2340;
+  --color-navy-800: #13305a;
+  --color-navy-700: #1c3f72;
+  --color-navy-600: #2a5289;
+
+  /* Primary interactive (buttons, links, focus) — built on County Navy */
+  --color-brand-50: #eef2f8;
+  --color-brand-100: #dce4f0;
+  --color-brand-200: #b9c8de;
+  --color-brand-500: #2a5289;
+  --color-brand-600: #0b2340;
+  --color-brand-700: #061527;
+
+  /* Hillside Green — community accents, positive actions, highlights */
+  --color-hillside-50: #f0f7ea;
+  --color-hillside-100: #dcedcf;
+  --color-hillside-200: #b9db9f;
+  --color-hillside-500: #4a9a1e;
+  --color-hillside-600: #387d14;
+  --color-hillside-700: #2b6110;
+
+  /* Sunrise Orange — sparing emphasis and key calls to action */
+  --color-sunset-400: #ffa142;
+  --color-sunset-500: #ff8508;
+  --color-sunset-600: #b35a00; /* AA-contrast orange for text on light backgrounds */
+
+  /* Off White — soft backgrounds */
+  --color-cream: #f7f8f5;
+  --color-offwhite: #f7f8f5;
 }
 
 :root {
@@ -31,22 +51,25 @@
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   background: #ffffff;
-  color: #0f172a;
+  color: #0f172a; /* slate-900 body text */
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
+h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
+
 :focus-visible { outline: 3px solid var(--color-brand-500); outline-offset: 2px; border-radius: 4px; }
 
 @utility container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
-@utility font-display { font-family: var(--font-serif); font-optical-sizing: auto; letter-spacing: -0.01em; }
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 min-h-11 whitespace-nowrap; }
+@utility font-display { font-family: var(--font-heading); letter-spacing: -0.015em; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-display text-sm font-bold tracking-normal transition-colors disabled:cursor-not-allowed disabled:opacity-60 min-h-11 whitespace-nowrap; }
 @utility btn-sm { @apply min-h-9 px-3 py-1.5 text-sm; }
 @utility btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 shadow-sm; }
 @utility btn-secondary { @apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50; }
 @utility btn-ghost { @apply btn text-slate-700 hover:bg-slate-100; }
 @utility btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
-@utility btn-accent { @apply btn bg-sunset-500 text-white hover:bg-sunset-600; }
+@utility btn-accent { @apply btn bg-sunset-500 text-navy-900 hover:bg-sunset-400; }
+@utility btn-green { @apply btn bg-hillside-600 text-white hover:bg-hillside-700 shadow-sm; }
 @utility card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
 @utility card-hover { @apply transition hover:-translate-y-0.5 hover:shadow-md; }
 @utility label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
@@ -55,13 +78,13 @@ body {
 @utility badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold; }
 @utility badge-gray { @apply badge bg-slate-100 text-slate-700; }
 @utility badge-blue { @apply badge bg-brand-50 text-brand-700; }
-@utility badge-green { @apply badge bg-emerald-50 text-emerald-700; }
+@utility badge-green { @apply badge bg-hillside-50 text-hillside-700; }
 @utility badge-amber { @apply badge bg-amber-50 text-amber-800; }
 @utility badge-red { @apply badge bg-red-50 text-red-700; }
 @utility badge-orange { @apply badge bg-orange-50 text-orange-700; }
 @utility badge-sponsored { @apply badge bg-amber-100 text-amber-900 ring-1 ring-amber-300; }
 @utility section-title { @apply font-display text-2xl font-semibold text-navy-900 sm:text-3xl; }
-@utility eyebrow { @apply text-xs font-bold uppercase tracking-wider text-sunset-600; }
+@utility eyebrow { @apply font-display text-xs font-bold uppercase tracking-wider text-hillside-600; }
 @utility table-base { @apply w-full text-left text-sm; }
 
 @layer components {

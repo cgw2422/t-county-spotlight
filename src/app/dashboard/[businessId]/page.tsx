@@ -66,7 +66,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
     <div className="space-y-6">
       <PageHeader
         title={`Hi${user.name ? `, ${user.name.split(" ")[0]}` : ""}!`}
-        description={<>Here&apos;s how <strong>{b.name}</strong> is doing on TCountySpotlight.</>}
+        description={<>Here&apos;s how <strong>{b.name}</strong> is doing on T County Connect.</>}
         action={b.status === "PUBLISHED" ? <Link href={businessHref(b)} className="btn-secondary"><ExternalLink className="h-4 w-4" aria-hidden /> View my listing</Link> : undefined}
       />
 

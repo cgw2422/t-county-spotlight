@@ -3,6 +3,7 @@ import { CalendarDays, Clock, MapPin, Star, UserRound } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { ArticleCard } from "@/components/cards/article-card";
 import { getSettings } from "@/lib/settings";
+import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
 import { articleHref, businessHref } from "@/lib/links";
@@ -24,6 +25,7 @@ function readingMinutes(html: string) {
 /** Full article layout shared by /articles/[slug]/ and migrated WordPress URLs. */
 export async function ArticleView({ article: a, related, saved }: { article: ArticleForView; related: ArticleCardData[]; saved: boolean }) {
   const settings = await getSettings();
+  const publisherLogo = (await getBrandAssetUrls()).logo;
   const href = articleHref(a);
   const url = absoluteUrl(href);
   const title = stripHtml(a.title);
@@ -133,7 +135,7 @@ export async function ArticleView({ article: a, related, saved }: { article: Art
           publisher: {
             "@type": "Organization",
             name: settings.siteName,
-            ...(settings.logoUrl ? { logo: { "@type": "ImageObject", url: absoluteUrl(settings.logoUrl) } } : {}),
+            ...(publisherLogo ? { logo: { "@type": "ImageObject", url: absoluteUrl(publisherLogo) } } : {}),
           },
           mainEntityOfPage: { "@type": "WebPage", "@id": url },
           articleSection: a.categories[0]?.name,

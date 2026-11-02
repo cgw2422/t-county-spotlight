@@ -59,7 +59,7 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-8">
       <GivesAccountCard user={user} />
-      {sp.welcome && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Welcome to TCountySpotlight! Tap the bookmark on any business, event, special or story to save it here.</p>}
+      {sp.welcome && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Welcome to T County Connect! Tap the bookmark on any business, event, special or story to save it here.</p>}
       {sp.password && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your new password is saved and you&apos;re signed in.</p>}
       {total === 0 ? (
         <EmptyState icon={Bookmark} title="Nothing saved yet">

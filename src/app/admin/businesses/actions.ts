@@ -200,8 +200,8 @@ export async function addOwner(_: ActionState, fd: FormData): Promise<ActionStat
   if (notify) {
     await sendEmail(
       email,
-      `You now manage ${b.name} on TCountySpotlight`,
-      `You've been added as ${role === "OWNER" ? "an owner" : "a manager"} of ${b.name} on TCountySpotlight.\n\n` +
+      `You now manage ${b.name} on T County Connect`,
+      `You've been added as ${role === "OWNER" ? "an owner" : "a manager"} of ${b.name} on T County Connect.\n\n` +
         (created ? `An account was created for ${email}. Set your password here: ${absoluteUrl("/forgot-password/")}\n\n` : "") +
         `Sign in to manage your listing: ${absoluteUrl("/dashboard/")}`,
     );

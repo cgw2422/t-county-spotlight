@@ -204,7 +204,7 @@ export async function adminAssignManager(_p: ActionState, fd: FormData): Promise
   const ownership = await recomputeOwnership(org.id);
   await audit(user.id, existing ? "organization.member_role" : "organization.member_add", "Organization", org.id, { email: target.email, role, from: existing?.role ?? null, by: "staff", ownership });
   if (fd.get("notify") === "on" && !existing) {
-    await sendEmail(target.email, `You can now manage ${org.name} on T-County Gives`, `Hi${target.name ? ` ${target.name}` : ""},\n\nThe TCountySpotlight team gave your account ${ORG_ROLE_LABEL[role].toLowerCase()} access to ${org.name} on T-County Gives.\n\nSign in to manage the listing, needs, volunteer opportunities and updates:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT-County Gives is always free for nonprofits, churches and community groups.`);
+    await sendEmail(target.email, `You can now manage ${org.name} on T-County Gives`, `Hi${target.name ? ` ${target.name}` : ""},\n\nThe T County Connect team gave your account ${ORG_ROLE_LABEL[role].toLowerCase()} access to ${org.name} on T-County Gives.\n\nSign in to manage the listing, needs, volunteer opportunities and updates:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT-County Gives is always free for nonprofits, churches and community groups.`);
   }
   refresh(org.id);
   return { ok: true, message: existing ? `${target.email} is now ${role.toLowerCase()}.` : `${target.email} added as ${role.toLowerCase()}.` };

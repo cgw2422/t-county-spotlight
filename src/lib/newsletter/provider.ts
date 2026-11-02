@@ -70,7 +70,7 @@ async function resendFetch(path: string, body: unknown, idempotencyKey?: string)
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
-        "User-Agent": "TCountySpotlight-Newsletter/1.0",
+        "User-Agent": "T County Connect-Newsletter/1.0",
         ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey.slice(0, 256) } : {}),
       },
       body: JSON.stringify(body),

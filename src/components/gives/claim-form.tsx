@@ -77,7 +77,7 @@ export function ClaimForm({ slug, orgName, name, requestOnly }: { slug: string; 
       {fe.attest && <p className="-mt-3 text-sm text-red-600">{fe.attest}</p>}
       <FormMessage state={state?.error ? state : null} />
       <SubmitButton className="btn-primary min-h-12 w-full text-base sm:w-auto" pendingText="Sending…">{requestOnly ? "Send request to our team" : "Submit claim"}</SubmitButton>
-      <p className="text-xs text-slate-500">Your details are shared only with the TCountySpotlight team — never posted publicly. Managing a listing is always free.</p>
+      <p className="text-xs text-slate-500">Your details are shared only with the T County Connect team — never posted publicly. Managing a listing is always free.</p>
     </form>
   );
 }

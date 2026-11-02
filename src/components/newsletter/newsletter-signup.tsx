@@ -18,7 +18,7 @@ type Props = {
 };
 
 /**
- * T-County Weekly signup (double opt-in). Inline success/error, no reload.
+ * T County Connect Weekly signup (double opt-in). Inline success/error, no reload.
  * Variants: card (homepage, /explore/, /newsletter/), compact (footer), inline (articles, events).
  */
 export function NewsletterSignup({ source, variant = "card", tone = "light", title, subtitle, className }: Props) {
@@ -124,7 +124,7 @@ export function NewsletterSignup({ source, variant = "card", tone = "light", tit
     <div className={cn("overflow-hidden rounded-3xl bg-cream ring-1 ring-amber-200/70", className)}>
       <div className="grid gap-6 p-6 sm:p-10 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-10">
         <div>
-          <p className="eyebrow">The T-County Weekly</p>
+          <p className="eyebrow">The T County Connect Weekly</p>
           <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-navy-900 text-balance sm:text-4xl">{headline}</h2>
           <p className="mt-3 text-slate-700 sm:text-lg">{description}</p>
         </div>

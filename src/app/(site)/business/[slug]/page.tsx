@@ -224,7 +224,7 @@ export default async function BusinessPage({ params }: Props) {
             {articles.length > 0 && (
               <section aria-labelledby="stories-title">
                 <h2 id="stories-title" className="section-title">In the spotlight</h2>
-                <p className="mt-1 text-slate-600">Stories from TCountySpotlight featuring {b.name}.</p>
+                <p className="mt-1 text-slate-600">Stories from T County Connect featuring {b.name}.</p>
                 <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">{articles.map((a) => <ArticleCard key={a.id} a={a} />)}</div>
               </section>
             )}

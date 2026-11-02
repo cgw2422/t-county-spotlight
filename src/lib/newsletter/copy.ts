@@ -1,10 +1,11 @@
-// Client-safe constants for the T-County Weekly newsletter (no server imports).
+// Client-safe constants for the T County Connect Weekly newsletter (no server imports).
+// Renamed from "The T County Connect Weekly" in the T County Connect rebrand; subscribers, consent records and preferences are unchanged.
 
-export const NEWSLETTER_NAME = "T-County Weekly";
+export const NEWSLETTER_NAME = "T County Connect Weekly";
 export const SIGNUP_HEADLINE = "Love Local. Stay in the Loop.";
 export const SIGNUP_DESCRIPTION =
   "Get local events, community stories, business spotlights, and things to do around Tuscarawas County delivered to your inbox.";
-export const SIGNUP_BUTTON = "Get the T-County Weekly";
+export const SIGNUP_BUTTON = "Get the T County Connect Weekly";
 export const SIGNUP_DISCLAIMER = "Free to subscribe. Unsubscribe anytime.";
 export const PRIVACY_PATH = "/newsletter/#privacy";
 
@@ -45,4 +46,4 @@ export function readPreferences(v: unknown): Preferences {
   return Object.fromEntries(TOPICS.map((t) => [t.key, o[t.key] !== false])) as Preferences;
 }
 
-export const FREQUENCY_NOTE = "The T-County Weekly arrives about once a week, with an occasional special edition for big local happenings.";
+export const FREQUENCY_NOTE = "The T County Connect Weekly arrives about once a week, with an occasional special edition for big local happenings.";

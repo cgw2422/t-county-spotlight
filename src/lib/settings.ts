@@ -1,3 +1,4 @@
+import { BRAND } from "./brand";
 import { cache } from "react";
 import { db } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
@@ -7,6 +8,10 @@ export type SiteSettings = {
   tagline: string;
   description: string;
   logoUrl: string | null;
+  /** Official T County Connect logo, original artwork. Header logo, favicons, app icons and social images are generated from it. */
+  brandLogoUrl: string | null;
+  /** Optional official icon/mark artwork. When set, icons use it instead of the mark cropped from the logo. */
+  brandIconUrl: string | null;
   logoDarkUrl: string | null;
   faviconUrl: string | null;
   heroImageUrl: string | null;
@@ -40,31 +45,33 @@ export type SiteSettings = {
 };
 
 export const DEFAULT_SETTINGS: SiteSettings = {
-  siteName: "TCountySpotlight",
-  tagline: "Tuscarawas County Spotlight",
-  description: "Local businesses. Community events. Great food. Things to do. Stories that make T-County special.",
+  siteName: BRAND.name,
+  tagline: BRAND.headline,
+  description: BRAND.description,
   logoUrl: null,
+  brandLogoUrl: null,
+  brandIconUrl: null,
   logoDarkUrl: null,
   faviconUrl: null,
   heroImageUrl: null,
-  heroHeadline: "Discover Tuscarawas County",
-  heroSubheadline: "Local businesses. Community events. Great food. Things to do. Stories that make T-County special.",
+  heroHeadline: BRAND.headline,
+  heroSubheadline: BRAND.description,
   contactEmail: "",
   contactPhone: "",
   address: "Tuscarawas County, Ohio",
   socials: {},
-  footerText: "Celebrating the people, places, and businesses of Tuscarawas County, Ohio.",
-  seoDefaultTitle: "TCountySpotlight — Discover Tuscarawas County, Ohio",
-  seoDefaultDescription: "Local businesses, community events, food, specials, and business spotlights from across Tuscarawas County, Ohio.",
+  footerText: `${BRAND.purpose.replace(/\.$/, "")} across Tuscarawas County, Ohio.`,
+  seoDefaultTitle: `${BRAND.name} — ${BRAND.headline.replace(/\.$/, "")}`,
+  seoDefaultDescription: BRAND.description,
   seoDefaultImage: null,
   bannerEnabled: false,
   bannerText: "",
   bannerLink: "",
-  pwaName: "TCountySpotlight",
-  pwaShortName: "T-County",
-  pwaThemeColor: "#16325c",
-  pwaBackgroundColor: "#ffffff",
-  emailFromName: "TCountySpotlight",
+  pwaName: BRAND.name,
+  pwaShortName: BRAND.shortName,
+  pwaThemeColor: BRAND.colors.navy,
+  pwaBackgroundColor: BRAND.colors.offWhite,
+  emailFromName: BRAND.name,
   emailFromAddress: "",
   notifyAdminEmail: "",
   requireEventApproval: true,

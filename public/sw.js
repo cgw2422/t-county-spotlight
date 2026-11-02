@@ -1,10 +1,10 @@
-/* TCountySpotlight service worker.
+/* T County Connect service worker.
  * Bump VERSION to invalidate old caches on deploy. */
-const VERSION = "v1";
+const VERSION = "v2-tcc"; // v2: T County Connect rebrand — drops caches holding old branding
 const PRECACHE = `tcs-precache-${VERSION}`;
 const RUNTIME = `tcs-runtime-${VERSION}`;
 const OFFLINE_URL = "/offline/";
-const PRECACHE_URLS = ["/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon.svg"];
+const PRECACHE_URLS = ["/icons/icon-192.png", "/icons/icon-512.png"];
 const RUNTIME_MAX_ENTRIES = 150;
 
 // Private / dynamic areas are never cached.
@@ -96,11 +96,11 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }
-  const title = data.title || "TCountySpotlight";
+  const title = data.title || "T County Connect";
   const options = {
     body: data.body || "",
-    icon: data.icon || "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: data.icon || "/brand/icon-192.png",
+    badge: "/brand/icon-192.png",
     tag: data.tag,
     data: { url: data.url || "/" },
   };

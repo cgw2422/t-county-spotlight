@@ -1,6 +1,8 @@
-# TCountySpotlight
+# T County Connect
 
-Community platform for Tuscarawas County, Ohio. It covers local businesses, business spotlights, events, specials, jobs, and dashboards for admins and business owners. It replaces the WordPress site at tcountyspotlight.com.
+_Formerly TCountySpotlight. Discover more of T County._
+
+Community platform for Tuscarawas County, Ohio. It covers local businesses, business spotlights, events, specials, jobs, and dashboards for admins and business owners. It replaces the WordPress site at tcountyspotlight.com. See [docs/REBRAND_T_COUNTY_CONNECT.md](docs/REBRAND_T_COUNTY_CONNECT.md) for the brand system.
 
 ## Quick start (local)
 ```bash

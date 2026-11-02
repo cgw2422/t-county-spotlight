@@ -22,7 +22,7 @@ function SignedOut() {
   return (
     <div className="bg-gradient-to-b from-brand-50/70 to-white">
       <div className="container-page max-w-lg py-10 text-center sm:py-16">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-navy-800 text-white shadow"><OhioMark className="h-9 w-9" /></span>
+        <OhioMark className="mx-auto h-16 w-16 rounded-2xl ring-1 ring-slate-200" />
         <h1 className="mt-5 font-display text-3xl font-semibold text-navy-900">Your T-County, saved</h1>
         <p className="mt-2 text-slate-600">Create a free account to keep track of what you love around Tuscarawas County.</p>
         <ul className="mt-8 space-y-3 text-left">

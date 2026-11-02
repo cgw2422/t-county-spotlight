@@ -46,7 +46,7 @@ export default async function ClaimListingPage({ params, searchParams }: Props) 
     body = (
       <div className="card p-6 text-center sm:p-8">
         <h2 className="font-display text-2xl font-semibold text-navy-900">Sign in to claim this listing</h2>
-        <p className="mx-auto mt-2 max-w-md text-slate-600">Your own TCountySpotlight account is what will manage {o.name}&apos;s page — sign in or create a free account, then come back here to send your request.</p>
+        <p className="mx-auto mt-2 max-w-md text-slate-600">Your own T County Connect account is what will manage {o.name}&apos;s page — sign in or create a free account, then come back here to send your request.</p>
         <div className="mx-auto mt-6 grid max-w-sm gap-3">
           <Link href={`/register/?next=${next}`} className="btn-primary min-h-12 text-base">Create a free account</Link>
           <Link href={`/login/?next=${next}`} className="btn-secondary min-h-12 text-base">Sign in</Link>
@@ -105,7 +105,7 @@ export default async function ClaimListingPage({ params, searchParams }: Props) 
         {claimed && (
           <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <p className="font-semibold">This listing is already managed.</p>
-            <p className="mt-1">Contact the current managers through TCountySpotlight, or send a request to be added — our team reviews every request.</p>
+            <p className="mt-1">Contact the current managers through T County Connect, or send a request to be added — our team reviews every request.</p>
           </div>
         )}
         <ClaimForm slug={o.slug} orgName={o.name} name={user.name ?? ""} requestOnly={claimed} />

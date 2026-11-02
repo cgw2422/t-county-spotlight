@@ -16,7 +16,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
   if (user) redirect(next ?? homeForRole(user.role));
   return (
     <AuthShell
-      title="Join TCountySpotlight"
+      title="Join T County Connect"
       subtitle="Save places and events, follow local businesses, and get the best of Tuscarawas County."
       footer={<>Already have an account? <Link href={`/login/${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-brand-700 hover:underline">Sign in</Link></>}
     >

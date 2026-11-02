@@ -3,14 +3,12 @@ import { OhioMark } from "@/components/site/logo";
 /** Centered, app-like card used by sign-in / register / password pages. */
 export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode }) {
   return (
-    <div className="bg-gradient-to-b from-brand-50/70 to-white">
+    <div className="bg-gradient-to-b from-cream to-white">
       <div className="container-page flex justify-center py-8 sm:py-14">
         <div className="w-full max-w-md">
           <div className="card p-6 sm:p-8">
             <div className="mb-6 flex flex-col items-center text-center">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-navy-800 text-white shadow-sm">
-                <OhioMark className="h-8 w-8" />
-              </span>
+              <OhioMark className="h-16 w-16 rounded-2xl ring-1 ring-slate-200" />
               <h1 className="mt-4 font-display text-2xl font-semibold text-navy-900 sm:text-3xl">{title}</h1>
               {subtitle && <p className="mt-2 text-sm text-slate-600">{subtitle}</p>}
             </div>

@@ -3,12 +3,13 @@ import { Search, UserRound } from "lucide-react";
 import { getSettings } from "@/lib/settings";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { Logo } from "./logo";
+import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { getMenu } from "./nav-data";
 import { MobileMenu } from "./mobile-menu";
 import { NavLinks } from "./nav-links";
 
 export async function SiteHeader() {
-  const [settings, items, mobileItems, user] = await Promise.all([getSettings(), getMenu("HEADER"), getMenu("MOBILE"), getCurrentUser()]);
+  const [settings, items, mobileItems, user, brand] = await Promise.all([getSettings(), getMenu("HEADER"), getMenu("MOBILE"), getCurrentUser(), getBrandAssetUrls()]);
   const accountHref = !user ? "/login" : isStaff(user) ? "/admin" : user.role === "BUSINESS_OWNER" ? "/dashboard" : "/account";
   return (
     <>
@@ -21,7 +22,7 @@ export async function SiteHeader() {
       )}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 pt-safe backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="container-page flex h-16 items-center gap-4 lg:h-[72px]">
-          <Logo logoUrl={settings.logoUrl} siteName={settings.siteName} />
+          <Logo src={brand.logo} />
           <nav aria-label="Main" className="ml-6 hidden flex-1 xl:block">
             <NavLinks items={items} />
           </nav>

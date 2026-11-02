@@ -43,6 +43,6 @@ export function verifyTotp(secret: string, token: string, window = 1) {
   return false;
 }
 
-export function otpauthUrl(secret: string, account: string, issuer = "TCountySpotlight") {
+export function otpauthUrl(secret: string, account: string, issuer = "T County Connect") {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
 }

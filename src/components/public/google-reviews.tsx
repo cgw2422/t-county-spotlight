@@ -41,7 +41,7 @@ async function GoogleReviewsInner({ business }: { business: Listing }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="google-reviews-title" className="font-semibold text-navy-900">Google reviews</h2>
-          <p className="text-xs text-slate-500">Third-party reviews from Google. TCountySpotlight does not edit or select them.</p>
+          <p className="text-xs text-slate-500">Third-party reviews from Google. T County Connect does not edit or select them.</p>
         </div>
         <GoogleMapsAttribution />
       </div>

@@ -59,7 +59,7 @@ export async function approveClaim(_p: ActionState, fd: FormData): Promise<Actio
   await audit(user.id, "organization.member_add", "Organization", claim.organizationId, { email: claim.user.email, role: "OWNER", by: "claim", claimId: claim.id });
   await sendEmail(
     claim.user.email,
-    `You can now manage ${claim.organization.name} on TCountySpotlight`,
+    `You can now manage ${claim.organization.name} on T County Connect`,
     `Hi ${claim.applicantName},\n\nGood news — your request to manage ${claim.organization.name} was approved. Sign in to update the page, post needs and volunteer opportunities, and share news:\n${absoluteUrl("/organization/")}\n\nPublic page: ${absoluteUrl(orgHref(claim.organization))}\n\nT-County Gives is always free for nonprofits, churches and community groups.`,
   );
   refresh(claim.organizationId);
@@ -81,7 +81,7 @@ export async function rejectClaim(_p: ActionState, fd: FormData): Promise<Action
   await sendEmail(
     claim.user.email,
     `About your request to manage ${claim.organization.name}`,
-    `Hi ${claim.applicantName},\n\nThanks for your request to manage ${claim.organization.name} on TCountySpotlight. We weren't able to approve it.\n\nReason: ${reason}\n\nIf you have more information, reply to this email or send a new request from the listing page.`,
+    `Hi ${claim.applicantName},\n\nThanks for your request to manage ${claim.organization.name} on T County Connect. We weren't able to approve it.\n\nReason: ${reason}\n\nIf you have more information, reply to this email or send a new request from the listing page.`,
   );
   refresh(claim.organizationId);
   return { ok: true, message: "Claim rejected and the person was emailed." };

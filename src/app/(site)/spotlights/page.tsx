@@ -18,7 +18,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
   const page = pageParam(await searchParams);
   return buildMetadata({
     title: "Business Spotlights",
-    description: "The people and stories behind Tuscarawas County’s local businesses — in-depth spotlights from TCountySpotlight.",
+    description: "The people and stories behind Tuscarawas County’s local businesses — in-depth spotlights from T County Connect.",
     path: `/spotlights/${qs({ page: page > 1 ? page : undefined })}`,
   });
 }

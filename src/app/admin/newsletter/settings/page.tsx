@@ -26,12 +26,12 @@ export default async function NewsletterSettingsPage() {
   const [s, sender, ready] = await Promise.all([getNewsletterSettings(), newsletterSender(), broadcastReadiness()]);
   return (
     <>
-      <PageHeader title="Newsletter settings" description="Sender identity, legal footer and consent wording version for the T-County Weekly." />
+      <PageHeader title="Newsletter settings" description="Sender identity, legal footer and consent wording version for the T County Connect Weekly." />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card title="Sending & compliance">
           <ActionForm action={saveNewsletterSettingsAction} warnUnsaved className="space-y-5">
             <FormGrid>
-              <TextField name="fromName" label="From name" defaultValue={s.fromName} maxLength={80} help="Shown as the sender, e.g. “T-County Weekly”." />
+              <TextField name="fromName" label="From name" defaultValue={s.fromName} maxLength={80} help="Shown as the sender, e.g. “T County Connect Weekly”." />
               <TextField name="fromAddress" type="email" label="From address" defaultValue={s.fromAddress} maxLength={254} help={`Must be on a domain verified with your email provider.${process.env.NEWSLETTER_FROM ? " Overrides NEWSLETTER_FROM when set." : ""}`} />
               <TextField name="replyTo" type="email" label="Reply-to address" defaultValue={s.replyTo} maxLength={254} help="Where replies go. Optional." />
               <TextField name="consentVersion" label="Consent version" defaultValue={s.consentVersion} required maxLength={40} help="Stored with each signup. Change it whenever the signup wording changes." />

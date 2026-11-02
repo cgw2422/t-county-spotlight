@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "List Your Business",
-    description: "Add your Tuscarawas County business to the TCountySpotlight directory — free listing, events, specials and more.",
+    description: "Add your Tuscarawas County business to the T County Connect directory — free listing, events, specials and more.",
     path: "/list-your-business/",
   });
 }
@@ -46,7 +46,7 @@ export default async function ListYourBusinessPage({ searchParams }: { searchPar
             ) : (
               <>
                 <h2 className="section-title">Why list with us?</h2>
-                <p className="mt-3 text-slate-600">TCountySpotlight celebrates the people and businesses of Tuscarawas County. A listing helps neighbors discover you.</p>
+                <p className="mt-3 text-slate-600">T County Connect celebrates the people and businesses of Tuscarawas County. A listing helps neighbors discover you.</p>
               </>
             )}
             <ul className="mt-6 space-y-3">

@@ -29,7 +29,7 @@ export function UnclaimedNotice({ o }: { o: { slug: string; ownershipStatus: str
     <aside aria-label="About this listing" className="mt-6 flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 ring-1 ring-slate-200 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
       <Info className="hidden h-5 w-5 shrink-0 text-slate-400 sm:block" aria-hidden />
       <div className="min-w-0 flex-1">
-        <p>This organization has not yet claimed its TCountySpotlight profile. Information may need confirmation.</p>
+        <p>This organization has not yet claimed its T County Connect profile. Information may need confirmation.</p>
         {o.infoCheckedAt && <p className="mt-1 text-xs text-slate-500">Information last checked {formatDate(o.infoCheckedAt, { month: "short", year: "numeric" })}</p>}
       </div>
       <Link href={claimHref(o)} className="btn-secondary btn-sm shrink-0 justify-center" rel="nofollow">Manage This Organization? Claim Listing</Link>
@@ -93,7 +93,7 @@ export function DonateCard({ o }: { o: Org }) {
           </a>
         )}
       </div>
-      {donate && <p className="mt-2 text-xs text-white/80">You&apos;ll leave TCountySpotlight for {donate.hostname.replace(/^www\./, "")}.</p>}
+      {donate && <p className="mt-2 text-xs text-white/80">You&apos;ll leave T County Connect for {donate.hostname.replace(/^www\./, "")}.</p>}
     </section>
   );
 }

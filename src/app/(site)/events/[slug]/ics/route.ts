@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   if (!e) return new Response("Not found", { status: 404 });
   const url = absoluteUrl(eventHref(e));
   const lines = [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//TCountySpotlight//Events//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//T County Connect//Events//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
     ...(e.allDay ? [] : VTIMEZONE),
     "BEGIN:VEVENT",
     `UID:${e.id}@tcountyspotlight`,

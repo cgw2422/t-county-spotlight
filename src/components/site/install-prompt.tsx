@@ -30,11 +30,11 @@ export function InstallPrompt() {
   const dismiss = () => { setShow(false); try { localStorage.setItem(KEY, "1"); } catch {} };
   if (!show) return null;
   return (
-    <div role="dialog" aria-label="Install TCountySpotlight" className="fixed inset-x-3 bottom-[calc(4.5rem+var(--safe-bottom))] z-50 mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:bottom-6">
+    <div role="dialog" aria-label="Install T County Connect" className="fixed inset-x-3 bottom-[calc(4.5rem+var(--safe-bottom))] z-50 mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-xl lg:bottom-6">
       <div className="flex gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-navy-800 text-white"><OhioMark className="h-7 w-7" /></div>
+        <OhioMark className="h-12 w-12 rounded-xl ring-1 ring-slate-200" />
         <div className="flex-1">
-          <p className="font-semibold text-navy-900">Install TCountySpotlight</p>
+          <p className="font-display font-bold text-navy-900">Install T County Connect</p>
           {ios ? (
             <p className="mt-1 text-sm text-slate-600">Tap <Share className="inline h-4 w-4" aria-label="Share" /> then <strong>Add to Home Screen</strong> for quick access to events, specials and local businesses.</p>
           ) : (

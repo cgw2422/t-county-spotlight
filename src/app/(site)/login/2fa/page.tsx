@@ -14,7 +14,7 @@ export default async function TwoFactorPage({ searchParams }: { searchParams: Pr
   const pending = await getPending2faSession();
   if (!pending) redirect("/login/");
   return (
-    <AuthShell title="Two-step verification" subtitle="Open your authenticator app and enter the 6-digit code for TCountySpotlight.">
+    <AuthShell title="Two-step verification" subtitle="Open your authenticator app and enter the 6-digit code for T County Connect.">
       <TwoFactorForm next={safeNext(sp.next) ?? undefined} />
       <form action={cancel2faAction} className="mt-4 text-center">
         <button type="submit" className="text-sm font-medium text-slate-600 hover:underline">Cancel and sign in as someone else</button>

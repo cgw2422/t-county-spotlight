@@ -21,7 +21,7 @@ export const DEFAULT_NEWSLETTER_SETTINGS: NewsletterSettings = {
   fromAddress: "",
   replyTo: "",
   postalAddress: "",
-  consentVersion: "2026-10-v1",
+  consentVersion: "2026-11-tcc-v1", // bumped: signup wording now names T County Connect Weekly
   description: "Local events, community stories, business spotlights and things to do around Tuscarawas County, Ohio — about once a week.",
 };
 

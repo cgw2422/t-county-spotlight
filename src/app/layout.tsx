@@ -1,15 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource/fraunces/600.css";
-import "@fontsource/fraunces/700.css";
-import "@fontsource/fraunces/400-italic.css";
+// Brand typography: Montserrat Bold (headings, navigation, labels) + Open Sans (body)
+import "@fontsource/montserrat/700.css";
+import "@fontsource/montserrat/800.css";
+import "@fontsource/open-sans/400.css";
+import "@fontsource/open-sans/400-italic.css";
+import "@fontsource/open-sans/600.css";
+import "@fontsource/open-sans/700.css";
 import "./globals.css";
 import { getSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
 import { ServiceWorkerRegister } from "@/components/site/sw-register";
+import { getBrandAssetUrls } from "@/lib/brand-assets";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const s = await getSettings();
+  const [s, brand] = await Promise.all([getSettings(), getBrandAssetUrls()]);
+  const ogImage = s.seoDefaultImage || brand.og;
   return {
     metadataBase: new URL(absoluteUrl("/")),
     title: { default: s.seoDefaultTitle, template: `%s | ${s.siteName}` },
@@ -17,8 +22,10 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: s.pwaName,
     manifest: "/manifest.webmanifest",
     icons: {
-      icon: s.faviconUrl ? [{ url: s.faviconUrl }] : [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
-      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+      icon: brand.hasOfficialLogo || !s.faviconUrl
+        ? [{ url: brand.icon32, sizes: "32x32", type: "image/png" }, { url: brand.icon48, sizes: "48x48", type: "image/png" }, { url: brand.icon192, sizes: "192x192", type: "image/png" }]
+        : [{ url: s.faviconUrl }],
+      apple: [{ url: brand.appleTouch, sizes: "180x180" }],
     },
     appleWebApp: { capable: true, title: s.pwaShortName, statusBarStyle: "default" },
     openGraph: {
@@ -26,9 +33,9 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: s.siteName,
       title: s.seoDefaultTitle,
       description: s.seoDefaultDescription,
-      images: s.seoDefaultImage ? [s.seoDefaultImage] : undefined,
+      images: ogImage ? [{ url: ogImage, width: 1200, height: 630, alt: s.siteName }] : undefined,
     },
-    twitter: { card: "summary_large_image" },
+    twitter: { card: "summary_large_image", images: ogImage ? [ogImage] : undefined },
   };
 }
 

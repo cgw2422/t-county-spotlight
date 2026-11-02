@@ -11,7 +11,7 @@ let client: Stripe | null = null;
 export function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return null;
-  if (!client) client = new Stripe(key, { appInfo: { name: "TCountySpotlight" } });
+  if (!client) client = new Stripe(key, { appInfo: { name: "T County Connect" } });
   return client;
 }
 

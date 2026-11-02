@@ -41,7 +41,7 @@ export default async function GivesLanding() {
   return (
     <>
       <section className="relative overflow-hidden bg-navy-900 text-white">
-        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(247,162,75,0.45),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(47,123,240,0.4),transparent_60%)]" />
+        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,133,8,0.45),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(56,125,20,0.4),transparent_60%)]" />
         <div className="container-page relative py-12 sm:py-16 lg:py-20">
           <Breadcrumbs items={[{ label: "T-County Gives" }]} invert className="mb-6" />
           <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-sunset-400"><HeartHandshake className="h-4 w-4" aria-hidden /> T-County Gives</p>

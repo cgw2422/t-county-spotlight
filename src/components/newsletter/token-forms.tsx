@@ -98,12 +98,12 @@ export function AccountSubscribeForm({ email }: { email: string }) {
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4">
         <input type="checkbox" name="consent" required className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
         <span className="text-sm text-slate-700">
-          Yes, send the T-County Weekly to <strong>{email}</strong>: local events, community stories, business spotlights, things to do and occasional labeled promotions from local businesses.{" "}
+          Yes, send the T County Connect Weekly to <strong>{email}</strong>: local events, community stories, business spotlights, things to do and occasional labeled promotions from local businesses.{" "}
           <Link href="/newsletter/#privacy" className="font-semibold text-brand-700 hover:underline">How we use your email</Link>
         </span>
       </label>
       <FormMessage state={state} />
-      <Btn pending={pending} className="btn-primary w-full sm:w-auto">Get the T-County Weekly</Btn>
+      <Btn pending={pending} className="btn-primary w-full sm:w-auto">Get the T County Connect Weekly</Btn>
       <p className="text-xs text-slate-500">We&rsquo;ll email you a link to confirm. Free to subscribe. Unsubscribe anytime.</p>
     </form>
   );

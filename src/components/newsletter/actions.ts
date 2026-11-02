@@ -51,7 +51,7 @@ export async function unsubscribeByTokenAction(_: ActionState, fd: FormData): Pr
   const sub = await findByUnsubscribeToken(String(fd.get("token") ?? ""));
   if (!sub) return { error: "This link is invalid. Use the link from your most recent email." };
   await unsubscribe(sub.id, { reason: String(fd.get("reason") ?? ""), method: "link" });
-  return { ok: true, message: "You've been unsubscribed. You won't receive the T-County Weekly anymore." };
+  return { ok: true, message: "You've been unsubscribed. You won't receive the T County Connect Weekly anymore." };
 }
 
 // ── Signed-in members (/account/newsletter/) ──
@@ -68,7 +68,7 @@ export async function accountSubscribeAction(_: ActionState, fd: FormData): Prom
   if (String(fd.get("consent") ?? "") !== "on") return { error: "Please tick the box to confirm you'd like the newsletter." };
   if (!rateLimit(`nl-signup-email:${user.email.toLowerCase()}`, 5, 3600_000).ok) return { error: "Please wait a little before trying again." };
   await requestSubscription({ email: user.email, firstName: user.name?.split(/\s+/)[0] ?? null, source: "account", userId: user.id, ip: await clientIp() });
-  return { ok: true, message: `Almost done! We sent a confirmation link to ${user.email}. Open it to start receiving the T-County Weekly.` };
+  return { ok: true, message: `Almost done! We sent a confirmation link to ${user.email}. Open it to start receiving the T County Connect Weekly.` };
 }
 
 export async function accountPreferencesAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -84,5 +84,5 @@ export async function accountUnsubscribeAction(_: ActionState, fd: FormData): Pr
   const { sub } = await memberSubscriber();
   if (!sub) return { error: "You're not subscribed." };
   await unsubscribe(sub.id, { reason: String(fd.get("reason") ?? ""), method: "account" });
-  return { ok: true, message: "You've been unsubscribed from the T-County Weekly." };
+  return { ok: true, message: "You've been unsubscribed from the T County Connect Weekly." };
 }
