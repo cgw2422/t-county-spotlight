@@ -1,6 +1,6 @@
 /* T County Connect service worker.
  * Bump VERSION to invalidate old caches on deploy. */
-const VERSION = "v2-tcc"; // v2: T County Connect rebrand — drops caches holding old branding
+const VERSION = "v3-tcc-logos"; // v3: new official color + white logos — drops caches holding older branding
 const PRECACHE = `tcs-precache-${VERSION}`;
 const RUNTIME = `tcs-runtime-${VERSION}`;
 const OFFLINE_URL = "/offline/";

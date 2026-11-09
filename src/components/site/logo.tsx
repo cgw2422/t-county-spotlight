@@ -32,15 +32,16 @@ export function BrandWordmark({ onDark = false, className }: { onDark?: boolean;
 
 /**
  * Horizontal T County Connect logo. `src` is the trimmed official logo
- * generated from the uploaded artwork; on dark backgrounds it is placed on a
- * white plate so the original colors are preserved exactly.
+ * generated from the uploaded artwork. For the full-color logo on a dark
+ * background pass `onDark` (white plate); for the official all-white logo pass
+ * `plate={false}`.
  */
-export function Logo({ src, className, onDark = false, size = "md" }: { src?: string | null; className?: string; onDark?: boolean; size?: "sm" | "md" | "lg" }) {
+export function Logo({ src, className, onDark = false, plate = onDark, size = "md" }: { src?: string | null; className?: string; onDark?: boolean; plate?: boolean; size?: "sm" | "md" | "lg" }) {
   const h = size === "sm" ? "h-8" : size === "lg" ? "h-12 sm:h-14" : "h-10 sm:h-12";
   return (
     <Link href="/" className={cn("flex shrink-0 items-center", className)} aria-label={`${BRAND.name} home`}>
       {src ? (
-        <span className={cn(onDark && "rounded-xl bg-white px-3 py-2 shadow-sm")}>
+        <span className={cn(plate && "rounded-xl bg-white px-3 py-2 shadow-sm")}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={BRAND.name} className={cn(h, "w-auto max-w-[240px] object-contain")} />
         </span>

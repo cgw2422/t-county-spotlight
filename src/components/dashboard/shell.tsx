@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Lightbulb } from "lucide-react";
-import { OhioMark } from "@/components/site/logo";
 import { LogoutButton } from "@/components/account/logout-button";
 import { BusinessSwitcher, MobileNav, SidebarNav, type DashNavItem } from "./nav";
 import { cn } from "@/lib/utils";
 
 function Brand({ sub }: { sub?: string }) {
   return (
-    <Link href="/dashboard/" className="flex items-center gap-2.5 text-white">
-      <OhioMark className="h-9 w-9 rounded-xl" />
-      <span className="leading-tight">
-        <span className="block font-display text-[15px] font-extrabold tracking-tight">T County Connect</span>
-        <span className="block text-xs text-slate-300">{sub ?? "Business dashboard"}</span>
-      </span>
+    <Link href="/dashboard/" className="flex flex-col items-start gap-1 text-white" aria-label="T County Connect business dashboard">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/logo-white-sm.png" alt="T County Connect" className="h-8 w-auto max-w-[170px] object-contain" />
+      <span className="block text-xs text-slate-300">{sub ?? "Business dashboard"}</span>
     </Link>
   );
 }

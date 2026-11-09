@@ -10,8 +10,8 @@ import { subscribeAction } from "./actions";
 type Props = {
   source: Exclude<SignupSource, "admin_invite">;
   variant?: "card" | "compact" | "inline";
-  /** Dark background (site footer). */
-  tone?: "light" | "dark";
+  /** Background the form sits on: light, dark (navy) or green (Hillside Green site footer). */
+  tone?: "light" | "dark" | "green";
   title?: string | null;
   subtitle?: string | null;
   className?: string;
@@ -24,22 +24,23 @@ type Props = {
 export function NewsletterSignup({ source, variant = "card", tone = "light", title, subtitle, className }: Props) {
   const id = useId();
   const [state, action, pending] = useActionState<ActionState, FormData>(subscribeAction, null);
-  const dark = tone === "dark";
+  const green = tone === "green";
+  const dark = tone === "dark" || green;
   const done = !!state?.ok;
   const headline = title || SIGNUP_HEADLINE;
   const description = subtitle || SIGNUP_DESCRIPTION;
   const showName = variant === "card";
 
   const disclaimer = (
-    <p className={cn("text-xs", dark ? "text-slate-400" : "text-slate-500")}>
+    <p className={cn("text-xs", green ? "text-hillside-50" : dark ? "text-slate-400" : "text-slate-500")}>
       {SIGNUP_DISCLAIMER}{" "}
-      <Link href={PRIVACY_PATH} className={cn("underline underline-offset-2", dark ? "hover:text-white" : "hover:text-brand-700")}>How we use your email</Link>
+      <Link href={PRIVACY_PATH} className={cn("underline underline-offset-2", green ? "text-white" : dark ? "hover:text-white" : "hover:text-brand-700")}>How we use your email</Link>
     </p>
   );
 
   const success = (
-    <div role="status" aria-live="polite" className={cn("flex items-start gap-3 rounded-xl p-4", dark ? "bg-white/10 text-white" : "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200")}>
-      <CheckCircle2 className={cn("mt-0.5 h-5 w-5 shrink-0", dark ? "text-emerald-300" : "text-emerald-600")} aria-hidden />
+    <div role="status" aria-live="polite" className={cn("flex items-start gap-3 rounded-xl p-4", green ? "bg-white/15 text-white ring-1 ring-white/25" : dark ? "bg-white/10 text-white" : "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200")}>
+      <CheckCircle2 className={cn("mt-0.5 h-5 w-5 shrink-0", green ? "text-white" : dark ? "text-emerald-300" : "text-emerald-600")} aria-hidden />
       <p className="text-sm">{state?.message}</p>
     </div>
   );
@@ -56,7 +57,7 @@ export function NewsletterSignup({ source, variant = "card", tone = "light", tit
   );
 
   const error = state?.error ? (
-    <p id={`${id}-err`} role="alert" className={cn("text-sm font-medium", dark ? "text-red-300" : "text-red-700")}>{state.error}</p>
+    <p id={`${id}-err`} role="alert" className={cn("text-sm font-medium", green ? "inline-block rounded-md bg-red-700 px-2 py-1 text-white" : dark ? "text-red-300" : "text-red-700")}>{state.error}</p>
   ) : null;
 
   const submit = (
@@ -68,7 +69,7 @@ export function NewsletterSignup({ source, variant = "card", tone = "light", tit
 
   const emailInput = (
     <div className="min-w-0 flex-1">
-      <label htmlFor={`${id}-email`} className={cn(variant === "card" ? "label" : "sr-only", dark && "text-slate-200")}>Email address</label>
+      <label htmlFor={`${id}-email`} className={cn(variant === "card" ? "label" : "sr-only", dark && (green ? "text-white" : "text-slate-200"))}>Email address</label>
       <input
         id={`${id}-email`} name="email" type="email" required autoComplete="email" inputMode="email" maxLength={254}
         placeholder="you@example.com" className="input" aria-invalid={!!state?.fieldErrors?.email || undefined}
@@ -81,7 +82,7 @@ export function NewsletterSignup({ source, variant = "card", tone = "light", tit
     return (
       <div className={cn(className)}>
         <h2 className={cn("font-display text-xl font-semibold", dark ? "text-white" : "text-navy-900")}>{headline}</h2>
-        <p className={cn("mt-1 text-sm", dark ? "text-slate-300" : "text-slate-600")}>{description}</p>
+        <p className={cn("mt-1 text-sm", green ? "text-hillside-50" : dark ? "text-slate-300" : "text-slate-600")}>{description}</p>
         <div className="mt-4">
           {done ? success : (
             <form action={action} className="relative space-y-2" noValidate={false}>

@@ -21,7 +21,10 @@ export const BRAND = {
 } as const;
 
 /** The official logo artwork shipped with the site (byte-for-byte original). Used unless an admin uploads a replacement. */
-export const DEFAULT_BRAND_LOGO_URL = "/brand-source/t-county-connect-logo.png";
+export const DEFAULT_BRAND_LOGO_URL = "/brand-source/t-county-connect-logo-color.png";
+
+/** The official all-white logo (supplied as white artwork on a navy background). Used on dark/green backgrounds. */
+export const DEFAULT_BRAND_LOGO_WHITE_URL = "/brand-source/t-county-connect-logo-white-on-navy.png";
 
 /** Old brand strings — used only to migrate untouched default settings. */
 export const LEGACY_BRAND_VALUES = [

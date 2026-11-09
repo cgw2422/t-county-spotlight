@@ -18,7 +18,9 @@ This was a branding update to the existing platform. No records were deleted or 
 - **Fonts:** Montserrat 700/800 for headings, navigation, buttons and labels, and Open Sans 400/600/700 for body text. Both are self-hosted through `@fontsource`.
 
 ## Logo pipeline (no redrawing)
-The official artwork is committed **unchanged** at `public/brand-source/t-county-connect-logo.png` (2170×725 PNG, sha256 `88ef86da…020d`) and is used by default. An admin upload in Settings only replaces it.
+Official artwork, committed **unchanged** (originals uploaded to `/public`, renamed to URL-safe names):
+- `public/brand-source/t-county-connect-logo-color.png` — full-color logo (2172×724, from “County Connect Logo.png”, sha256 `47015f84…92b9`). Source for the header/light-background logo, icon mark, favicons, PWA/Apple icons, social image and emails.
+- `public/brand-source/t-county-connect-logo-white-on-navy.png` — all-white logo (2170×725, from “White Tuscarawas County Connect Logo.png”, sha256 `9806b7e3…71f1`). Supplied as white artwork on a solid navy background; `/brand/logo-white.png` keys that background out (pixel opacity = distance from the navy) so the exact white artwork sits transparently on the Hillside Green footer and the navy admin/dashboard sidebars. No CSS filters.
 
 Upload the original artwork in **Admin → Settings → General → Official logo (original artwork)** (`brandLogoUrl`). The route `/brand/<asset>` generates the following from it, using cropping, trimming and resizing only:
 - `logo.png`, `logo-sm.png`: the trimmed horizontal logo for the header, footer (on a white plate over navy), emails and structured data

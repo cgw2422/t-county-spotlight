@@ -5,7 +5,7 @@ import { db } from "./db";
 import { getSettings } from "./settings";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { BRAND, DEFAULT_BRAND_LOGO_URL } from "./brand";
+import { BRAND, DEFAULT_BRAND_LOGO_URL, DEFAULT_BRAND_LOGO_WHITE_URL } from "./brand";
 
 /**
  * Brand assets generated from the OFFICIAL logo artwork uploaded in
@@ -15,6 +15,8 @@ import { BRAND, DEFAULT_BRAND_LOGO_URL } from "./brand";
 export const BRAND_ASSETS = {
   "logo.png": { kind: "logo", width: 960 },
   "logo-sm.png": { kind: "logo", width: 480 },
+  "logo-white.png": { kind: "white", width: 960 }, // official all-white logo, navy background keyed out
+  "logo-white-sm.png": { kind: "white", width: 480 },
   "mark.png": { kind: "mark", size: 512 },
   "icon-32.png": { kind: "icon", size: 32, pad: 0.06 },
   "icon-48.png": { kind: "icon", size: 48, pad: 0.06 },
@@ -38,7 +40,7 @@ const FALLBACK: Partial<Record<BrandAssetName, string>> = {
 };
 
 export function brandVersion(sourceUrl: string, iconUrl?: string | null) {
-  return crypto.createHash("sha1").update(`${sourceUrl}|${iconUrl ?? ""}`).digest("hex").slice(0, 10);
+  return crypto.createHash("sha1").update(`${sourceUrl}|${iconUrl ?? ""}|${DEFAULT_BRAND_LOGO_WHITE_URL}`).digest("hex").slice(0, 10);
 }
 
 /** Public URL of a brand asset (versioned so caches refresh when the logo changes). */
@@ -60,6 +62,9 @@ export async function getBrandAssetUrls() {
     hasOfficialLogo: !!s.brandLogoUrl,
     logo: s.brandLogoUrl ? u("logo.png") : s.logoUrl,
     logoSmall: s.brandLogoUrl ? u("logo-sm.png") : s.logoUrl,
+    /** Official all-white logo for dark and green backgrounds (transparent PNG). */
+    logoWhite: u("logo-white.png")!,
+    logoWhiteSmall: u("logo-white-sm.png")!,
     mark: s.brandLogoUrl ? u("mark.png") : null,
     icon32: u("icon-32.png")!,
     icon48: u("icon-48.png")!,
@@ -207,6 +212,27 @@ async function backgroundOf(img: Buffer) {
   return { r: px[0], g: px[1], b: px[2], alpha: 1 };
 }
 
+/**
+ * The all-white logo is supplied as white artwork on a solid background.
+ * Key that background out: every pixel becomes white, with opacity equal to
+ * how far it is from the background color. The artwork's shapes and
+ * anti-aliased edges are preserved exactly; nothing is redrawn or recolored.
+ */
+async function whiteOnTransparent(src: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(src).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+  const bg = [data[0], data[1], data[2]];
+  const bgLum = 0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2];
+  const out = Buffer.alloc(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    const lum = 0.2126 * data[i * 3] + 0.7152 * data[i * 3 + 1] + 0.0722 * data[i * 3 + 2];
+    const a = Math.max(0, Math.min(1, (lum - bgLum) / (255 - bgLum)));
+    out[i * 4] = 255; out[i * 4 + 1] = 255; out[i * 4 + 2] = 255;
+    out[i * 4 + 3] = a < 0.04 ? 0 : Math.round(a * 255);
+  }
+  return sharp(out, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+}
+
 async function squareIcon(mark: Buffer, size: number, pad: number, bg = WHITE) {
   const inner = Math.max(1, Math.round(size * (1 - 2 * pad)));
   const resized = await sharp(mark).resize(inner, inner, { fit: "inside", background: bg }).png().toBuffer();
@@ -222,6 +248,11 @@ export async function renderBrandAsset(name: BrandAssetName, sourceUrl: string, 
     cache.set(key, (async () => {
       const src = await loadSource(sourceUrl);
       const spec = BRAND_ASSETS[name];
+      if (spec.kind === "white") {
+        const keyed = await whiteOnTransparent(await loadSource(DEFAULT_BRAND_LOGO_WHITE_URL));
+        const trimmedWhite = await sharp(keyed).trim({ threshold: 10 }).png().toBuffer();
+        return sharp(trimmedWhite).resize({ width: spec.width, withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+      }
       const trimmed = await sharp(src).flatten({ background: "#ffffff" }).trim({ background: "#ffffff", threshold: 20 }).png().toBuffer();
       if (spec.kind === "logo") return sharp(trimmed).resize({ width: spec.width, withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
       // A separately supplied official icon is used as-is (trimmed); otherwise crop the mark from the logo.

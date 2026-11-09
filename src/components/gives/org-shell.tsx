@@ -1,4 +1,3 @@
-import { BrandMark } from "@/components/site/logo";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { LogoutButton } from "@/components/account/logout-button";
@@ -6,12 +5,10 @@ import { OrgMobileNav, OrgSidebarNav, OrgSwitcher, type OrgNavItem } from "./org
 
 function Brand() {
   return (
-    <Link href="/organization/" className="flex items-center gap-2.5 text-white">
-      <BrandMark className="h-9 w-9 rounded-xl" />
-      <span className="leading-tight">
-        <span className="block font-display text-[15px] font-extrabold tracking-tight">T-County <span className="text-hillside-200">Gives</span></span>
-        <span className="block text-xs text-slate-300">T County Connect · Organization dashboard</span>
-      </span>
+    <Link href="/organization/" className="flex flex-col items-start gap-1 text-white" aria-label="T County Connect — T-County Gives organization dashboard">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/logo-white-sm.png" alt="T County Connect" className="h-8 w-auto max-w-[170px] object-contain" />
+      <span className="block text-xs text-slate-300">T-County <span className="font-semibold text-hillside-200">Gives</span> · Organization dashboard</span>
     </Link>
   );
 }

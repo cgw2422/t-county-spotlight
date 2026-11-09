@@ -27,8 +27,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       user={{ name: user.name, email: user.email, role: user.role }}
       isAdmin={user.role === "ADMIN"}
       siteName={settings.siteName}
-      logoUrl={brand.logoSmall || settings.logoDarkUrl || null}
-      logoOnDark={!brand.hasOfficialLogo && !!settings.logoDarkUrl}
+      logoUrl={brand.logoWhiteSmall}
+      logoOnDark
       counts={{ applications, events, specials, updates, articles, jobs, organizations }}
     >
       {children}
