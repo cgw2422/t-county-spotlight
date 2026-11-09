@@ -5,16 +5,16 @@ import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { getMenu } from "./nav-data";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
-/** Site footer on Hillside Green (#387D14) with the official all-white logo. */
+/** Site footer on navy with the official all-white logo. */
 export async function SiteFooter() {
   const [s, footer, header, brand] = await Promise.all([getSettings(), getMenu("FOOTER"), getMenu("HEADER"), getBrandAssetUrls()]);
   const socials = Object.entries(s.socials || {}).filter(([, v]) => v);
   const link = "rounded-sm text-white underline-offset-4 hover:underline focus-visible:outline-white";
   return (
-    <footer className="mt-16 bg-hillside-600 pb-24 text-white lg:pb-0">
-      <div className="border-b border-white/20">
+    <footer className="mt-16 bg-navy-950 pb-24 text-white lg:pb-0">
+      <div className="border-b border-white/10">
         <div className="container-page max-w-3xl py-10">
-          <NewsletterSignup source="footer" variant="compact" tone="green" />
+          <NewsletterSignup source="footer" variant="compact" tone="dark" />
         </div>
       </div>
       <div className="container-page grid gap-10 py-12 md:grid-cols-4">
@@ -45,7 +45,7 @@ export async function SiteFooter() {
           )}
         </div>
       </div>
-      <div className="border-t border-white/20">
+      <div className="border-t border-white/10">
         <div className="container-page flex flex-col gap-2 py-6 text-xs text-white sm:flex-row sm:justify-between">
           <p>© {new Date().getFullYear()} {s.siteName}. Proudly serving Tuscarawas County, Ohio.</p>
           <p>Sponsored content is always labeled. Editorial spotlights are never for sale.</p>

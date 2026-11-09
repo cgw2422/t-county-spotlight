@@ -61,7 +61,7 @@ export function NewsletterSignup({ source, variant = "card", tone = "light", tit
   ) : null;
 
   const submit = (
-    <button type="submit" disabled={pending} className={cn("btn-primary shrink-0", variant === "card" && "w-full sm:w-auto")}>
+    <button type="submit" disabled={pending} className={cn(dark && !green ? "btn-accent shrink-0" : "btn-primary shrink-0", variant === "card" && "w-full sm:w-auto")}>
       {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Mail className="h-4 w-4" aria-hidden />}
       {SIGNUP_BUTTON}
     </button>
