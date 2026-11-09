@@ -10,6 +10,7 @@ import { loadOrgActivity, loadPublicOrg } from "@/lib/gives/public";
 import { Breadcrumbs } from "@/components/public/breadcrumbs";
 import { JsonLd } from "@/components/public/json-ld";
 import { ShareButtons } from "@/components/public/share-buttons";
+import { PulseMentions } from "@/components/pulse/pulse-mentions";
 import { buildMetadata } from "@/components/public/seo";
 import { ActivitySections, ContactCard, DonateCard, ProfileHeader, UnclaimedNotice } from "@/components/gives/profile-sections";
 
@@ -147,6 +148,7 @@ export default async function ChurchPage({ params }: Props) {
             )}
 
             {a.events.length > 0 && <ActivitySections o={{ ...o, wishlistUrl: null }} a={{ ...a, needs: [], wishList: [], opps: [], updates: [] }} />}
+            <PulseMentions organizationId={o.id} name={o.name} />
             <ShareButtons url={url} title={o.name} />
           </div>
 

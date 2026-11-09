@@ -6,7 +6,7 @@ import { requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { saveSettings } from "@/lib/settings";
 import type { ActionState } from "@/components/ui/form-message";
-import { getAll, parseForm, zBool, zInt, zOpt, zUrlOpt } from "../_lib/form";
+import { getAll, parseForm, zBool, zInt, zOpt } from "../_lib/form";
 
 export async function saveSection(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireStaff();
@@ -53,7 +53,6 @@ export async function saveHeroBanner(_: ActionState, fd: FormData): Promise<Acti
   const p = parseForm(z.object({
     heroHeadline: z.string().trim().min(1, "Hero headline is required").max(200),
     heroSubheadline: z.string().trim().max(400).default(""),
-    heroImageUrl: zUrlOpt,
     bannerEnabled: zBool,
     bannerText: z.string().trim().max(300).default(""),
     bannerLink: z.string().trim().max(500).default("").refine((v) => !v || v.startsWith("/") || /^https?:\/\//.test(v), "Banner link must be a URL or /path"),

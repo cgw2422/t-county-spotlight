@@ -45,6 +45,7 @@ const HOMEPAGE_SECTIONS = [
   { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
   { key: "announcements", type: "announcements", title: "Community Announcements", subtitle: null, limit: 4 },
   { key: "gives", type: "gives", title: "T County Gives", subtitle: "Find a Cause. Meet a Need. Make a Difference.", limit: 3 },
+  { key: "community_pulse", type: "community_pulse", title: "Community Pulse", subtitle: "What people across T County are talking about and recommending", limit: 3 },
   { key: "newsletter", type: "newsletter", title: "Love Local. Stay in the Loop.", subtitle: null, limit: 0 },
   { key: "cta", type: "cta", title: "Own a local business?", subtitle: "Get listed in the Tuscarawas County business directory — free.", limit: 0 },
 ];
@@ -91,6 +92,13 @@ async function main() {
     await db.menuItem.createMany({ data: MENU.map(([label, href], i) => ({ location: "HEADER" as const, label, href, sortOrder: i })) });
     await db.menuItem.createMany({ data: MENU.map(([label, href], i) => ({ location: "MOBILE" as const, label, href, sortOrder: i })) });
     await db.menuItem.createMany({ data: FOOTER.map(([label, href], i) => ({ location: "FOOTER" as const, label, href, sortOrder: i })) });
+  }
+  // Community Pulse: footer + mobile menus (the desktop header is already full at 1280px).
+  for (const location of ["FOOTER", "MOBILE"] as const) {
+    if (!(await db.menuItem.findFirst({ where: { location, href: "/community-pulse/" } }))) {
+      const last = await db.menuItem.aggregate({ where: { location }, _max: { sortOrder: true } });
+      await db.menuItem.create({ data: { location, label: "Community Pulse", href: "/community-pulse/", sortOrder: (last._max.sortOrder ?? 0) + 1 } });
+    }
   }
   // Proposed plans — inactive until the owner approves pricing in Admin → Memberships.
   const plans = [

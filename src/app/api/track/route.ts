@@ -11,8 +11,10 @@ import { rateLimit } from "@/lib/rate-limit";
 const ALLOWED = new Set([
   "view_business", "view_event", "view_promotion", "view_article", "view_job",
   "click_website", "click_phone", "click_directions", "click_ticket", "click_apply",
+  // Community Pulse (targetType "PULSE", targetId = entry id)
+  "view_pulse", "click_pulse_business", "click_pulse_source",
 ]);
-const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB"]);
+const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE"]);
 const BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
 
 const schema = z.object({
@@ -49,6 +51,13 @@ export async function POST(req: Request) {
   if (body.businessId) {
     const exists = await db.business.findFirst({ where: { id: body.businessId, deletedAt: null }, select: { id: true } });
     if (!exists) return new NextResponse(null, { status: 204 });
+  }
+
+  // Community Pulse events must reference a real, public entry.
+  if (body.type.includes("pulse")) {
+    if (body.targetType !== "PULSE" || !body.targetId) return new NextResponse(null, { status: 400 });
+    const pulse = await db.communityPulse.findFirst({ where: { id: body.targetId, deletedAt: null, status: { in: ["PUBLISHED", "ARCHIVED"] } }, select: { id: true } });
+    if (!pulse) return new NextResponse(null, { status: 204 });
   }
 
   const day = new Date().toISOString().slice(0, 10);

@@ -6,6 +6,7 @@ import { publicBusinessWhere, publishedArticleWhere } from "@/lib/queries";
 import { articleHref, businessHref, eventHref, jobHref, pageHref, specialHref } from "@/lib/links";
 import { absoluteUrl } from "@/lib/utils";
 import { givesSitemapEntries } from "@/lib/gives/sitemap";
+import { publicPulseWhere, pulseHref } from "@/lib/pulse";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/things-to-do/", priority: 0.8, changeFrequency: "weekly" },
   { path: "/announcements/", priority: 0.6, changeFrequency: "weekly" },
   { path: "/jobs/", priority: 0.6, changeFrequency: "daily" },
+  { path: "/community-pulse/", priority: 0.7, changeFrequency: "weekly" },
   { path: "/explore/", priority: 0.5, changeFrequency: "weekly" },
   { path: "/list-your-business/", priority: 0.6, changeFrequency: "monthly" },
   { path: "/events/submit/", priority: 0.4, changeFrequency: "monthly" },
@@ -27,7 +29,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   try {
-    const [articles, businesses, pages, events, specials, jobs, categories] = await Promise.all([
+    const [articles, businesses, pages, events, specials, jobs, categories, pulses] = await Promise.all([
       db.article.findMany({ where: publishedArticleWhere(), select: { slug: true, legacyPath: true, updatedAt: true }, orderBy: { publishedAt: "desc" }, take: 45000 }),
       db.business.findMany({ where: publicBusinessWhere(), select: { slug: true, updatedAt: true } }),
       db.page.findMany({ where: { status: "PUBLISHED", deletedAt: null }, select: { slug: true, legacyPath: true, updatedAt: true } }),
@@ -35,6 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       db.promotion.findMany({ where: activePromotionWhere(now), select: { slug: true, updatedAt: true } }),
       db.job.findMany({ where: { status: "PUBLISHED", deletedAt: null, OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }, select: { slug: true, updatedAt: true } }),
       db.businessCategory.findMany({ where: { businesses: { some: publicBusinessWhere() } }, select: { slug: true } }),
+      db.communityPulse.findMany({ where: publicPulseWhere({}, { includeArchived: true }), select: { slug: true, updatedAt: true, resultsUpdatedAt: true }, orderBy: { publishedAt: "desc" } }),
     ]);
     const staticPaths = new Set(STATIC_ROUTES.map((r) => r.path));
     return [
@@ -45,6 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...pages.filter((p) => !staticPaths.has(pageHref(p))).map((p) => ({ url: absoluteUrl(pageHref(p)), lastModified: p.updatedAt, changeFrequency: "monthly" as const, priority: 0.5 })),
       ...events.map((e) => ({ url: absoluteUrl(eventHref(e)), lastModified: e.updatedAt, changeFrequency: "weekly" as const, priority: 0.6 })),
       ...specials.map((p) => ({ url: absoluteUrl(specialHref(p)), lastModified: p.updatedAt, changeFrequency: "weekly" as const, priority: 0.5 })),
+      ...pulses.map((p) => ({ url: absoluteUrl(pulseHref(p)), lastModified: p.resultsUpdatedAt && p.resultsUpdatedAt > p.updatedAt ? p.resultsUpdatedAt : p.updatedAt, changeFrequency: "monthly" as const, priority: 0.6 })),
       ...jobs.map((j) => ({ url: absoluteUrl(jobHref(j)), lastModified: j.updatedAt, changeFrequency: "weekly" as const, priority: 0.4 })),
       ...(await givesSitemapEntries()),
     ];

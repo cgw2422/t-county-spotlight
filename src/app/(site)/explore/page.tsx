@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Briefcase, CalendarDays, ChevronRight, Star, Tag } from "lucide-react";
+import { Briefcase, CalendarDays, ChevronRight, MessagesSquare, Star, Tag } from "lucide-react";
 import { db } from "@/lib/db";
 import { publicBusinessWhere } from "@/lib/queries";
 import { ExploreGrid } from "@/components/home/explore-grid";
@@ -48,6 +48,17 @@ export default async function ExplorePage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section aria-label="Community Pulse" className="container-page pt-4">
+        <Link href="/community-pulse/" className="card card-hover flex items-center gap-4 p-4 sm:p-5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-hillside-50 text-hillside-700"><MessagesSquare className="h-5 w-5" aria-hidden /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-navy-900">Community Pulse</span>
+            <span className="block text-sm text-slate-600">Local favorites, recommendations and conversations from across Tuscarawas County.</span>
+          </span>
+          <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+        </Link>
       </section>
 
       <ExploreGrid title="Explore by topic" />

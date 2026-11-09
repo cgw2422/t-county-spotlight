@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import { heroAppearanceImageUrls } from "@/lib/hero-appearance";
 
 export type Usage = { type: string; id: string; title: string; href: string; field: string; live: boolean };
 
@@ -18,6 +19,7 @@ export async function findMediaUsage(url: string): Promise<Usage[]> {
     db.placement.findMany({ where: { imageUrl: url }, select: { id: true, slot: true, isActive: true } }),
     getSettings(),
   ]);
+  const hero = await heroAppearanceImageUrls().catch(() => ({ published: [] as string[], draft: [] as string[] }));
   const out: Usage[] = [];
   for (const a of articles) out.push({ type: "Article", id: a.id, title: a.title, href: `/admin/articles/${a.id}/`, field: a.featuredImageUrl === url ? "Featured image" : a.ogImageUrl === url ? "Social image" : "Content", live: !a.deletedAt && (a.status === "PUBLISHED" || a.status === "SCHEDULED") });
   for (const b of businesses) out.push({ type: "Business", id: b.id, title: b.name, href: `/admin/businesses/${b.id}/`, field: b.logoUrl === url ? "Logo" : b.coverUrl === url ? "Cover" : "Description", live: !b.deletedAt && b.status === "PUBLISHED" });
@@ -27,7 +29,10 @@ export async function findMediaUsage(url: string): Promise<Usage[]> {
   for (const p of pages) out.push({ type: "Page", id: p.id, title: p.title, href: `/admin/pages/${p.id}/`, field: p.featuredImageUrl === url ? "Featured image" : "Content", live: !p.deletedAt && p.status === "PUBLISHED" });
   for (const u of updates) out.push({ type: "Business update", id: u.id, title: u.title, href: `/admin/updates/`, field: "Image", live: u.status === "PUBLISHED" });
   for (const p of placements) out.push({ type: "Placement", id: p.id, title: p.slot, href: `/admin/placements/`, field: "Image", live: p.isActive });
-  const settingKeys = (["logoUrl", "logoDarkUrl", "faviconUrl", "heroImageUrl", "seoDefaultImage"] as const).filter((k) => settings[k] === url);
-  for (const k of settingKeys) out.push({ type: "Site settings", id: k, title: k, href: k === "heroImageUrl" ? "/admin/homepage/" : "/admin/settings/", field: k, live: true });
+  const settingKeys = (["logoUrl", "logoDarkUrl", "faviconUrl", "seoDefaultImage"] as const).filter((k) => settings[k] === url);
+  for (const k of settingKeys) out.push({ type: "Site settings", id: k, title: k, href: "/admin/settings/", field: k, live: true });
+  // Homepage hero background (published + draft; legacy heroImageUrl is covered via the published fallback)
+  if (hero.published.includes(url) || settings.heroImageUrl === url) out.push({ type: "Homepage appearance", id: "heroAppearance", title: "Homepage hero background", href: "/admin/homepage/appearance/", field: "Published hero image", live: true });
+  else if (hero.draft.includes(url)) out.push({ type: "Homepage appearance", id: "heroAppearance", title: "Homepage hero background", href: "/admin/homepage/appearance/", field: "Draft hero image", live: false });
   return out;
 }

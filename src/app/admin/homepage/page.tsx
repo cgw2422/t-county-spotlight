@@ -8,7 +8,6 @@ import { PageHeader, Card } from "@/components/admin/page-header";
 import { ActionForm, Submit } from "@/components/admin/action-form";
 import { ActionButton } from "@/components/admin/action-button";
 import { Checkbox, FormGrid, TextField } from "@/components/admin/form-field";
-import { MediaField } from "@/components/admin/media-picker";
 import { SearchSelect } from "@/components/admin/search-select";
 import { cn } from "@/lib/utils";
 import { moveSection, saveHeroBanner, saveSection, toggleSection } from "./actions";
@@ -27,7 +26,7 @@ const PICK: Record<string, { type: LookupType; label: string } | undefined> = {
 };
 const TYPE_LABEL: Record<string, string> = {
   hero: "Hero banner", explore: "Explore categories grid", weekend: "This weekend's events", events: "Upcoming events", businesses: "Featured businesses",
-  spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner",
+  spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner", community_pulse: "Community Pulse (recent entries)",
 };
 
 async function resolveFeatured(type: LookupType, ids: string[]): Promise<LookupItem[]> {
@@ -41,7 +40,8 @@ async function resolveFeatured(type: LookupType, ids: string[]): Promise<LookupI
 }
 
 export default async function HomepageManager() {
-  await requireStaff();
+  const user = await requireStaff();
+  const isAdmin = user.role === "ADMIN";
   const [sections, settings] = await Promise.all([db.homepageSection.findMany({ orderBy: { sortOrder: "asc" } }), getSettings()]);
   const featured = await Promise.all(sections.map((s) => (PICK[s.type] ? resolveFeatured(PICK[s.type]!.type, s.featuredIds) : Promise.resolve([]))));
   return (
@@ -100,7 +100,11 @@ export default async function HomepageManager() {
             <ActionForm action={saveHeroBanner} className="space-y-4">
               <TextField name="heroHeadline" label="Hero headline" defaultValue={settings.heroHeadline} required maxLength={200} />
               <TextField name="heroSubheadline" label="Hero subheadline" defaultValue={settings.heroSubheadline} maxLength={400} />
-              <MediaField name="heroImageUrl" label="Hero image" defaultValue={settings.heroImageUrl} />
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                <p className="font-medium text-slate-800">Hero background</p>
+                <p className="mt-0.5">{settings.heroImageUrl ? "A background photo is live." : "Using the default gradient."}</p>
+                {isAdmin ? <Link href="/admin/homepage/appearance/" className="mt-1 inline-flex min-h-9 items-center font-semibold text-brand-700 hover:underline">Manage background in Homepage appearance →</Link> : <p className="mt-1 text-xs text-slate-500">Administrators manage the background in Homepage appearance.</p>}
+              </div>
               <div className="rounded-xl border border-slate-200 p-3">
                 <Checkbox name="bannerEnabled" label="Show announcement banner" defaultChecked={settings.bannerEnabled} help="A slim bar across the top of every page." />
                 <div className="mt-2 space-y-3">

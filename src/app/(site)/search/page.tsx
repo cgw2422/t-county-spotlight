@@ -17,6 +17,8 @@ import { buildMetadata, param, qs, type SearchParams } from "@/components/public
 import { EXPLORE_ITEMS } from "@/components/home/explore-grid";
 import { OrgCard } from "@/components/gives/cards";
 import { searchOrganizations } from "@/lib/gives/search";
+import { publicPulseWhere, pulseCardSelect } from "@/lib/pulse";
+import { PulseCard } from "@/components/pulse/pulse-card";
 
 export const dynamic = "force-dynamic";
 const LIMIT = 8;
@@ -37,7 +39,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     const evWhere = { AND: [upcomingEventWhere(now), { OR: [{ title: c }, { description: c }, { locationName: c }, { city: c }] }] };
     const spWhere = { ...activePromotionWhere(now), AND: [{ OR: [{ title: c }, { description: c }, { business: { name: c } }] }] };
     const pgWhere = { status: "PUBLISHED" as const, deletedAt: null, OR: [{ title: c }, { content: c }] };
-    const [bizCount, businesses, artCount, articles, rawEvents, spCount, specials, pages] = await Promise.all([
+    const pulseWhere = publicPulseWhere({ OR: [{ title: c }, { description: c }, { results: { some: { name: c } } }] }, { includeArchived: true });
+    const [bizCount, businesses, artCount, articles, rawEvents, spCount, specials, pages, pulseCount, pulses] = await Promise.all([
       db.business.count({ where: bizWhere }),
       db.business.findMany({ where: bizWhere, select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { name: "asc" }], take: LIMIT }),
       db.article.count({ where: artWhere }),
@@ -46,20 +49,23 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       db.promotion.count({ where: spWhere }),
       db.promotion.findMany({ where: spWhere, take: LIMIT, orderBy: [{ isSponsored: "desc" }, { startsAt: "desc" }], select: { id: true, slug: true, title: true, imageUrl: true, endsAt: true, isFeatured: true, isSponsored: true, business: { select: { name: true, logoUrl: true, coverUrl: true } } } }),
       db.page.findMany({ where: pgWhere, select: { id: true, slug: true, title: true, legacyPath: true, content: true }, take: 6 }),
+      db.communityPulse.count({ where: pulseWhere }),
+      db.communityPulse.findMany({ where: pulseWhere, select: pulseCardSelect, orderBy: [{ status: "asc" }, { publishedAt: "desc" }], take: 6 }),
     ]);
     const seen = new Set<string>();
     const events = expandOccurrences(rawEvents, now, new Date(now.getTime() + 365 * 86400_000)).filter((o) => (seen.has(o.id) ? false : (seen.add(o.id), true)));
-    return { bizCount, businesses, artCount, articles, events, spCount, specials, pages };
+    return { bizCount, businesses, artCount, articles, events, spCount, specials, pages, pulseCount, pulses };
   })() : null;
 
   const orgs = results ? await searchOrganizations(q, LIMIT) : null;
-  const total = results ? (orgs?.count ?? 0) + results.bizCount + results.artCount + results.events.length + results.spCount + results.pages.length : 0;
+  const total = results ? (orgs?.count ?? 0) + results.bizCount + results.artCount + results.events.length + results.spCount + results.pages.length + results.pulseCount : 0;
   const groups = results ? [
     { id: "businesses", label: "Businesses", count: results.bizCount },
     { id: "organizations", label: "Nonprofits & churches", count: orgs?.count ?? 0 },
     { id: "events", label: "Events", count: results.events.length },
     { id: "specials", label: "Specials", count: results.spCount },
     { id: "articles", label: "Stories", count: results.artCount },
+    { id: "community-pulse", label: "Community Pulse", count: results.pulseCount },
     { id: "pages", label: "Pages", count: results.pages.length },
   ].filter((g) => g.count > 0) : [];
 
@@ -126,6 +132,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             <section id="articles" aria-labelledby="r-art" className="scroll-mt-24">
               <GroupHeader id="r-art" title="Stories" count={results.artCount} more={results.artCount > LIMIT ? `/articles/${qs({ q })}` : undefined} />
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">{results.articles.map((a) => <ArticleCard key={a.id} a={a} />)}</div>
+            </section>
+          )}
+          {results.pulses.length > 0 && (
+            <section id="community-pulse" aria-labelledby="r-pulse" className="scroll-mt-24">
+              <GroupHeader id="r-pulse" title="Community Pulse" count={results.pulseCount} more={results.pulseCount > 6 ? `/community-pulse/${qs({ q })}` : undefined} />
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">{results.pulses.map((p) => <PulseCard key={p.id} p={p} />)}</div>
             </section>
           )}
           {results.pages.length > 0 && (

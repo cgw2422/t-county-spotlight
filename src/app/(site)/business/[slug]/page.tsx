@@ -25,6 +25,7 @@ import { buildMetadata } from "@/components/public/seo";
 import { followRedirectIfAny, isFollowing, isSaved } from "@/components/public/server";
 import { DAY_NAMES, format12, nyNow, openStatus, openingHoursSpec, parseHours } from "@/components/public/hours";
 import { GoogleReviews } from "@/components/public/google-reviews";
+import { PulseMentions } from "@/components/pulse/pulse-mentions";
 
 export const dynamic = "force-dynamic";
 
@@ -229,6 +230,8 @@ export default async function BusinessPage({ params }: Props) {
                 <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">{articles.map((a) => <ArticleCard key={a.id} a={a} />)}</div>
               </section>
             )}
+
+            <PulseMentions businessId={b.id} name={b.name} />
 
             <ShareButtons url={url} title={b.name} />
           </div>

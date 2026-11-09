@@ -10,6 +10,7 @@ import { loadOrgActivity, loadPublicOrg } from "@/lib/gives/public";
 import { Breadcrumbs } from "@/components/public/breadcrumbs";
 import { JsonLd } from "@/components/public/json-ld";
 import { ShareButtons } from "@/components/public/share-buttons";
+import { PulseMentions } from "@/components/pulse/pulse-mentions";
 import { buildMetadata } from "@/components/public/seo";
 import { ActivitySections, ContactCard, DonateCard, ProfileHeader, UnclaimedNotice } from "@/components/gives/profile-sections";
 
@@ -85,6 +86,7 @@ export default async function OrganizationPage({ params }: Props) {
             {claimed && !o.mission && !description && !impact && !a.needs.length && !a.opps.length && !a.events.length && !a.updates.length && (
               <p className="rounded-2xl bg-slate-50 p-6 text-slate-600 ring-1 ring-slate-200">{o.name} hasn&apos;t shared more details yet. Check back soon.</p>
             )}
+            <PulseMentions organizationId={o.id} name={o.name} />
             <ShareButtons url={url} title={o.name} />
           </div>
           <aside className="order-first space-y-6 lg:order-none lg:sticky lg:top-24 lg:self-start" aria-label="Organization details">

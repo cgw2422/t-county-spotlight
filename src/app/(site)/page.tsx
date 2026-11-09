@@ -6,6 +6,7 @@ import { permanentRedirect } from "next/navigation";
 import { CalendarDays, Store } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import { getHeroAppearance } from "@/lib/hero-appearance";
 import { weekendWindow } from "@/lib/events";
 import { getActivePlacements, getActiveSpecials, getArticlesForSection, getFeaturedBusinesses, getUpcomingOccurrences } from "@/lib/queries";
 import { Hero } from "@/components/home/hero";
@@ -18,6 +19,9 @@ import { SpecialCard } from "@/components/cards/special-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GivesHomeSection } from "@/components/gives/home-section";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
+import { getFeaturedPulse, getRecentPulses } from "@/lib/pulse";
+import { PulseHeroCard } from "@/components/pulse/pulse-hero-card";
+import { PulseCard } from "@/components/pulse/pulse-card";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +29,10 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
 
 async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>) {
   switch (s.type) {
-    case "hero":
-      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={settings.heroImageUrl ? { imageUrl: settings.heroImageUrl } : null} />;
+    case "hero": {
+      const pulse = await getFeaturedPulse();
+      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={await getHeroAppearance()} aside={pulse ? <PulseHeroCard pulse={pulse} /> : null} />;
+    }
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
     case "weekend": {
@@ -149,6 +155,16 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
           </div>
         </section>
       );
+    case "community_pulse": {
+      const items = await getRecentPulses(s.limit || 3);
+      if (!items.length) return null;
+      return (
+        <section key={s.id} className="container-page py-12">
+          <SectionHeader title={s.title} subtitle={s.subtitle} href="/community-pulse/" />
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{items.map((p) => <PulseCard key={p.id} p={p} />)}</div>
+        </section>
+      );
+    }
     default:
       return null;
   }
