@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { FORCED_PASSWORD_CHANGE_PATH, getSessionUser } from "@/lib/auth";
 import { homeForRole, safeNext } from "@/lib/tokens";
 import { AuthShell } from "@/components/account/auth-shell";
 import { RegisterForm } from "./register-form";
@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string; business?: string }> }) {
   const sp = await searchParams;
   const next = safeNext(sp.next) ?? undefined;
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
+  if (user?.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   if (user) redirect(next ?? homeForRole(user.role));
   return (
     <AuthShell

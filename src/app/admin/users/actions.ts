@@ -2,7 +2,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { hashToken, randomToken, requireAdmin } from "@/lib/auth";
+import { hashPassword, passwordProblem, requireAdmin } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { createUserToken } from "@/lib/tokens";
+import { absoluteUrl } from "@/lib/utils";
+import { oneLine } from "@/lib/text";
+import { BRAND } from "@/lib/brand";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import type { ActionState } from "@/components/ui/form-message";
@@ -55,18 +60,45 @@ export async function setUserStatus(_: ActionState, fd: FormData): Promise<Actio
   return { ok: true, message: p.data.status === "SUSPENDED" ? "User suspended and signed out everywhere." : "User reactivated." };
 }
 
+/** A) Email a secure, expiring, single-use reset link (only the token's SHA-256 hash is stored). */
 export async function sendPasswordReset(_: ActionState, fd: FormData): Promise<ActionState> {
   const me = await requireAdmin();
   const u = await db.user.findUnique({ where: { id: String(fd.get("id") ?? "") } });
   if (!u) return { error: "User not found." };
   if (u.status !== "ACTIVE") return { error: "Reactivate the account before sending a reset link." };
-  const token = randomToken();
-  await db.verificationToken.create({ data: { userId: u.id, type: "PASSWORD_RESET", tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 2 * 3600_000) } });
-  const base = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-  const link = `${base}/reset-password/?token=${encodeURIComponent(token)}`;
-  const r = await sendEmail(u.email, "Reset your T County Connect password", `An administrator sent you a link to set a new password:\n\n${link}\n\nThis link expires in 2 hours. If you didn't expect this, you can ignore it.`);
-  await audit(me.id, "user.password_reset", "User", u.id, { email: u.email, delivered: r.delivered });
+  if (!rateLimit(`admin-reset-link:${me.id}`, 30, 60 * 60_000).ok) return { error: "Too many reset links sent recently. Please wait a while." };
+  // createUserToken replaces any earlier unused reset link for this user.
+  const token = await createUserToken(u.id, "PASSWORD_RESET", 2 * 3600_000);
+  const link = absoluteUrl(`/reset-password/?token=${encodeURIComponent(token)}`);
+  const r = await sendEmail(u.email, `Reset your ${BRAND.name} password`, `Hi${u.firstName || u.name ? ` ${oneLine(u.firstName || u.name, 60)}` : ""},\n\nAn administrator sent you a link to set a new password:\n\n${link}\n\nThis link expires in 2 hours and can be used once. If you didn't expect this, you can ignore it — your password won't change.\n\n— ${BRAND.name}`);
+  await audit(me.id, "user.password_reset_link", "User", u.id, { email: u.email, delivered: r.delivered });
   return { ok: true, message: r.delivered ? `Reset link emailed to ${u.email}.` : `Email isn't configured, so the reset link was logged on the server (expires in 2 hours).` };
+}
+
+/**
+ * B) Set a temporary password. Stores only the bcrypt hash, forces a change at
+ * next sign-in and signs the user out everywhere. Admins can never view
+ * existing passwords, and can't use this on themselves (use /account/).
+ */
+export async function setTemporaryPassword(_: ActionState, fd: FormData): Promise<ActionState> {
+  const me = await requireAdmin();
+  const u = await db.user.findUnique({ where: { id: String(fd.get("id") ?? "") } });
+  if (!u) return { error: "User not found." };
+  if (u.id === me.id) return { error: "You can't set a temporary password on your own account. Change your password from My account instead." };
+  if (u.status !== "ACTIVE") return { error: "Reactivate the account before setting a password." };
+  const password = String(fd.get("tempPassword") ?? "");
+  const problem = passwordProblem(password);
+  if (problem) return { error: problem, fieldErrors: { tempPassword: problem } };
+  if (password !== String(fd.get("tempConfirm") ?? "")) return { error: "The temporary passwords don't match.", fieldErrors: { tempConfirm: "Passwords don't match." } };
+  if (!rateLimit(`temp-pw:${me.id}`, 20, 60 * 60_000).ok) return { error: "Too many temporary passwords set recently. Please wait a while and try again." };
+  const [, sessions] = await db.$transaction([
+    db.user.update({ where: { id: u.id }, data: { passwordHash: await hashPassword(password), mustChangePassword: true, passwordChangedAt: new Date() } }),
+    db.session.deleteMany({ where: { userId: u.id } }),
+    db.verificationToken.deleteMany({ where: { userId: u.id, type: "PASSWORD_RESET", usedAt: null } }),
+  ]);
+  await audit(me.id, "user.temp_password_set", "User", u.id, { email: u.email, sessionsRevoked: sessions.count, mustChangePassword: true });
+  revalidatePath(`/admin/users/${u.id}`);
+  return { ok: true, message: `Temporary password set for ${u.email}. They were signed out everywhere and must choose a new password when they next sign in. Share it securely — it isn't emailed.` };
 }
 
 export async function linkUserBusinesses(_: ActionState, fd: FormData): Promise<ActionState> {

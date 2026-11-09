@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Search, UserRound } from "lucide-react";
 import { getSettings } from "@/lib/settings";
-import { getCurrentUser, isStaff } from "@/lib/auth";
+import { getSessionUser, isStaff } from "@/lib/auth";
 import { Logo } from "./logo";
 import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { getMenu } from "./nav-data";
@@ -9,8 +9,8 @@ import { MobileMenu } from "./mobile-menu";
 import { NavLinks } from "./nav-links";
 
 export async function SiteHeader() {
-  const [settings, items, mobileItems, user, brand] = await Promise.all([getSettings(), getMenu("HEADER"), getMenu("MOBILE"), getCurrentUser(), getBrandAssetUrls()]);
-  const accountHref = !user ? "/login" : isStaff(user) ? "/admin" : user.role === "BUSINESS_OWNER" ? "/dashboard" : "/account";
+  const [settings, items, mobileItems, user, brand] = await Promise.all([getSettings(), getMenu("HEADER"), getMenu("MOBILE"), getSessionUser(), getBrandAssetUrls()]);
+  const accountHref = !user ? "/login" : user.mustChangePassword ? "/account/password/?required=1" : isStaff(user) ? "/admin" : user.role === "BUSINESS_OWNER" ? "/dashboard" : "/account";
   return (
     <>
       {settings.bannerEnabled && settings.bannerText && (

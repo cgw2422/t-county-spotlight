@@ -17,7 +17,7 @@ const schema = z.object({
 });
 
 export async function registerAction(_prev: FormState, fd: FormData): Promise<FormState> {
-  const values = echoValues(fd, ["password"]);
+  const values = echoValues(fd, ["password", "confirm"]);
   const parsed = schema.safeParse({
     name: fd.get("name"), email: fd.get("email"), password: fd.get("password") ?? "",
     ownsBusiness: fd.get("ownsBusiness") === "on", next: fd.get("next") || undefined,
@@ -30,6 +30,7 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   const { name, email, password, ownsBusiness, next } = parsed.data;
   const pwErr = passwordProblem(password);
   if (pwErr) return { error: pwErr, fieldErrors: { password: pwErr }, values };
+  if (password !== String(fd.get("confirm") ?? "")) return { error: "The two passwords don't match.", fieldErrors: { confirm: "Passwords don't match." }, values };
 
   const ip = await clientIp();
   if (!rateLimit(`register:${ip}`, 6, 60 * 60_000).ok || !rateLimit(`register:${ip}:${email}`, 3, 60 * 60_000).ok) {
@@ -43,7 +44,7 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   }
   let user;
   try {
-    user = await db.user.create({ data: { name, email, passwordHash: await hashPassword(password), role: "MEMBER" } });
+    user = await db.user.create({ data: { name, email, passwordHash: await hashPassword(password), passwordChangedAt: new Date(), role: "MEMBER" } });
   } catch {
     return { error: "We couldn't create an account with those details. If you already have an account, sign in or reset your password.", values };
   }

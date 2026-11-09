@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { ActionForm } from "@/components/account/action-form";
+import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { formatDate } from "@/lib/utils";
@@ -52,24 +54,9 @@ export default async function ProfilePage() {
       </Section>
 
       <Section title="Password" description="Changing your password signs you out everywhere else.">
-        <ActionForm action={changePasswordAction}>
-          <div>
-            <label htmlFor="currentPassword" className="label">Current password</label>
-            <input id="currentPassword" name="currentPassword" type="password" className="input" autoComplete="current-password" required />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="newPassword" className="label">New password</label>
-              <input id="newPassword" name="newPassword" type="password" className="input" autoComplete="new-password" minLength={10} required />
-              <p className="help">At least 10 characters, with letters and numbers.</p>
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="label">Confirm new password</label>
-              <input id="confirmPassword" name="confirmPassword" type="password" className="input" autoComplete="new-password" minLength={10} required />
-            </div>
-          </div>
-          <SubmitButton className="btn-primary w-full sm:w-auto" pendingText="Saving…">Change password</SubmitButton>
-        </ActionForm>
+        {user.passwordHash ? <ChangePasswordForm action={changePasswordAction} /> : (
+          <p className="text-sm text-slate-600">Your account doesn&apos;t have a password yet. <Link href="/forgot-password/" className="font-semibold text-brand-700 hover:underline">Email me a link to set one</Link>.</p>
+        )}
       </Section>
 
       <Section title="Delete account" danger description="This permanently removes your account, saved items, follows and notification settings. It can't be undone.">

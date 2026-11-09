@@ -9,9 +9,8 @@ import { sanitizePlain } from "@/lib/sanitize";
 import { absoluteUrl, slugify } from "@/lib/utils";
 import { parseOrgProfile, parseStaffOrgFields } from "@/lib/gives/profile";
 import { orgSlug, recalcNeed } from "@/lib/gives/queries";
-import { recomputeOwnership } from "@/lib/gives/ownership";
 import { isDonationVerified } from "@/lib/gives/admin";
-import { ORG_KINDS, ORG_ROLES, ORG_ROLE_LABEL, orgHref, type OrgKindValue, type OrgRoleValue } from "@/lib/gives/constants";
+import { ORG_KINDS, orgHref, type OrgKindValue } from "@/lib/gives/constants";
 import type { Prisma } from "@/generated/prisma/client";
 import type { ActionState } from "@/components/ui/form-message";
 
@@ -180,48 +179,7 @@ export async function trashOrg(_p: ActionState, fd: FormData): Promise<ActionSta
   return { ok: true, message: restore ? "Organization restored." : "Organization deleted." };
 }
 
-/**
- * Assign an EXISTING user as an organization manager. Never creates accounts —
- * people without one create a free account (/register/) or submit a claim.
- */
-export async function adminAssignManager(_p: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
-  const org = await db.organization.findUnique({ where: { id: str(fd, "orgId") }, select: { id: true, name: true } });
-  if (!org) return { error: "Organization not found." };
-  const userId = String(fd.getAll("user")[0] ?? "").slice(0, 40);
-  if (!userId) return { error: "Search for and choose an existing account. If they don't have one, ask them to create a free account at /register/ or submit a claim from the listing page." };
-  const role = str(fd, "role") as OrgRoleValue;
-  if (!(ORG_ROLES as readonly string[]).includes(role)) return { error: "Choose a role." };
-  const target = await db.user.findUnique({ where: { id: userId }, select: { id: true, email: true, name: true, status: true } });
-  if (!target) return { error: "That account no longer exists." };
-  if (target.status !== "ACTIVE") return { error: "That account isn't active." };
-  const existing = await db.organizationMember.findUnique({ where: { userId_organizationId: { userId: target.id, organizationId: org.id } } });
-  await db.organizationMember.upsert({
-    where: { userId_organizationId: { userId: target.id, organizationId: org.id } },
-    create: { userId: target.id, organizationId: org.id, role },
-    update: { role },
-  });
-  const ownership = await recomputeOwnership(org.id);
-  await audit(user.id, existing ? "organization.member_role" : "organization.member_add", "Organization", org.id, { email: target.email, role, from: existing?.role ?? null, by: "staff", ownership });
-  if (fd.get("notify") === "on" && !existing) {
-    await sendEmail(target.email, `You can now manage ${org.name} on T County Gives`, `Hi${target.name ? ` ${target.name}` : ""},\n\nThe T County Connect team gave your account ${ORG_ROLE_LABEL[role].toLowerCase()} access to ${org.name} on T County Gives.\n\nSign in to manage the listing, needs, volunteer opportunities and updates:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT County Gives is always free for nonprofits, churches and community groups.`);
-  }
-  refresh(org.id);
-  return { ok: true, message: existing ? `${target.email} is now ${role.toLowerCase()}.` : `${target.email} added as ${role.toLowerCase()}.` };
-}
-
-export async function adminRemoveOrgMember(_p: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
-  const orgId = str(fd, "orgId");
-  const userId = str(fd, "userId");
-  const link = await db.organizationMember.findUnique({ where: { userId_organizationId: { userId, organizationId: orgId } }, include: { user: { select: { email: true } } } });
-  if (!link) return { error: "Member not found." };
-  await db.organizationMember.delete({ where: { userId_organizationId: { userId, organizationId: orgId } } });
-  const ownership = await recomputeOwnership(orgId);
-  await audit(user.id, "organization.member_remove", "Organization", orgId, { email: link.user.email, by: "staff", ownership });
-  refresh(orgId);
-  return { ok: true, message: `Removed ${link.user.email}.${ownership === "UNCLAIMED" ? " The listing is now unclaimed." : ""}` };
-}
+// Member management lives in Listing Access (src/app/admin/listing-access/actions.ts, admin only).
 
 // ───────── Moderation of needs and opportunities ─────────
 

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ExternalLink, UserMinus, Ban, Archive, CheckCircle2, Trash2, Mail } from "lucide-react";
+import { ExternalLink, Ban, Archive, CheckCircle2, Trash2 } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/utils";
@@ -12,9 +11,11 @@ import { ActionButton, ConfirmButton } from "@/components/admin/action-button";
 import { PhotoManager } from "@/components/admin/photo-manager";
 import { SearchSelect } from "@/components/admin/search-select";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { Checkbox, SelectField, TextField } from "@/components/admin/form-field";
+import { SelectField, TextField } from "@/components/admin/form-field";
 import { BusinessForm } from "../business-form";
-import { addOwner, grantMembership, removeOwner, revokeMembership, saveBusinessArticles, savePhotos, setBusinessStatus, trashBusiness } from "../actions";
+import { ListingAccessPanel } from "@/components/admin/listing-access-panel";
+import { listingAccessRows } from "@/lib/listing-access";
+import { grantMembership, revokeMembership, saveBusinessArticles, savePhotos, setBusinessStatus, trashBusiness } from "../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit business" };
@@ -29,16 +30,16 @@ export default async function EditBusinessPage({ params, searchParams }: { param
     include: {
       categories: { select: { id: true } },
       photos: { orderBy: { sortOrder: "asc" } },
-      owners: { include: { user: { select: { id: true, email: true, name: true, passwordHash: true, status: true, lastLoginAt: true } } }, orderBy: { createdAt: "asc" } },
       articles: { include: { article: { select: { id: true, title: true, status: true } } } },
       subscriptions: { include: { plan: { select: { name: true } } }, orderBy: { createdAt: "desc" } },
       _count: { select: { events: true, promotions: true, followers: true } },
     },
   });
   if (!b) notFound();
-  const [categories, plans] = await Promise.all([
+  const [categories, plans, accessRows] = await Promise.all([
     db.businessCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     isAdmin ? db.membershipPlan.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true, isActive: true } }) : [],
+    listingAccessRows({ kind: "business", id }),
   ]);
   const now = new Date();
   const activeSubs = b.subscriptions.filter((s) => ["ACTIVE", "TRIALING"].includes(s.status) && (!s.currentPeriodEnd || s.currentPeriodEnd >= now));
@@ -58,7 +59,7 @@ export default async function EditBusinessPage({ params, searchParams }: { param
           </>
         }
       />
-      {created && <div className="mb-4"><Notice tone="success">Business created. Add photos, owners and linked articles using the tabs below.{owner === "new" && " An owner account was created without a password — the owner must use “Forgot password” on the sign-in page to set one."}</Notice></div>}
+      {created && <div className="mb-4"><Notice tone="success">Business created. Add photos, owners and linked articles using the tabs below.{owner === "new" && " An owner account was created without a password — use Listing Access → Resend invitation to email them a secure link to set one."}</Notice></div>}
       <ClientTabs
         tabs={[
           { id: "details", label: "Details", content: <BusinessForm b={b} categories={categories} selectedCategoryIds={b.categories.map((c) => c.id)} /> },
@@ -75,41 +76,8 @@ export default async function EditBusinessPage({ params, searchParams }: { param
             ),
           },
           {
-            id: "owners", label: "Owners", badge: b.owners.length,
-            content: (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <Card title="Owners & managers" bodyClassName="p-0">
-                  {b.owners.length ? (
-                    <ul className="divide-y divide-slate-100">
-                      {b.owners.map((o) => (
-                        <li key={o.userId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-slate-900">{o.user.name || o.user.email}</p>
-                            <p className="truncate text-sm text-slate-500">{o.user.email} · {o.role.toLowerCase()}{!o.user.passwordHash && <span className="badge-amber ml-2">No password set</span>}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            {isAdmin && <Link href={`/admin/users/${o.userId}/`} className="btn-ghost btn-sm">User</Link>}
-                            <ConfirmButton action={removeOwner} fields={{ id: b.id, userId: o.userId }} title={`Remove ${o.user.email}?`} body="They will lose access to manage this business. Their account is kept." confirmLabel="Remove">
-                              <UserMinus className="h-4 w-4" /> Remove
-                            </ConfirmButton>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : <p className="px-5 py-6 text-sm text-slate-500">No owners linked yet.</p>}
-                </Card>
-                <Card title="Add an owner" description="Link an existing account by email, or create one.">
-                  <ActionForm action={addOwner} resetOnSuccess className="space-y-3">
-                    <input type="hidden" name="id" value={b.id} />
-                    <TextField id="owner-email" name="email" type="email" label="Email" required placeholder="owner@example.com" />
-                    <SelectField id="owner-role" name="role" label="Role" options={[{ value: "OWNER", label: "Owner" }, { value: "MANAGER", label: "Manager" }]} />
-                    <Checkbox name="notify" label="Email them a notification" defaultChecked />
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">If no account exists, a Business Owner account is created with no password. They must use “Forgot password” on the sign-in page to set one. Members are upgraded to the Business Owner role.</p>
-                    <Submit pendingText="Adding…"><Mail className="h-4 w-4" /> Add owner</Submit>
-                  </ActionForm>
-                </Card>
-              </div>
-            ),
+            id: "owners", label: "Listing Access", badge: accessRows.length,
+            content: <ListingAccessPanel kind="business" listingId={b.id} listingName={b.name} rows={accessRows} canManage={isAdmin} linkUsers={isAdmin} />,
           },
           {
             id: "articles", label: "Articles", badge: b.articles.length,

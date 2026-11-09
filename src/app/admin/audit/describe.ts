@@ -7,6 +7,9 @@ const VERBS: Record<string, string> = {
   publish_scheduled: "auto-published scheduled", plan_create: "created plan", plan_update: "updated plan", plan_delete: "deleted plan", product_create: "created product", product_update: "updated product", product_delete: "deleted product", sessions_revoke: "signed out all sessions of", grant: "granted", revoke: "revoked", password_reset: "sent password reset to",
   owner_add: "added owner to", owner_remove: "removed owner from", save: "saved", reorder: "reordered", restore_revision: "restored a revision of",
   enable_2fa: "enabled 2FA", disable_2fa: "disabled 2FA", link_business: "linked business to",
+  create_invited: "invited new account", create_temp_password: "created account with temporary password for", send: "sent", resend: "re-sent", accept: "accepted",
+  add: "granted access to", role_change: "changed access role on", remove: "removed access from", password_reset_link: "sent password reset link to",
+  temp_password_set: "set temporary password for", password_change: "changed password for",
 };
 
 /** Human-readable one-line summary of an audit log entry. */

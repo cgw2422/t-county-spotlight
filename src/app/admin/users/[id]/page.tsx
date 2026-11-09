@@ -13,6 +13,7 @@ import { SearchSelect } from "@/components/admin/search-select";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { ROLE_LABEL } from "../../_lib/labels";
 import { linkUserBusinesses, revokeSessions, sendPasswordReset, setUserStatus, updateUser } from "../actions";
+import { TempPasswordForm } from "./temp-password-form";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Manage user" };
@@ -24,6 +25,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
     where: { id },
     include: {
       businesses: { include: { business: { select: { id: true, name: true, city: true } } } },
+      organizations: { include: { organization: { select: { id: true, name: true } } } },
       _count: { select: { sessions: true, savedItems: true, follows: true, redemptions: true } },
     },
   });
@@ -48,13 +50,13 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
             <div className="flex justify-between gap-3"><dt className="text-slate-500">Joined</dt><dd>{formatDateTime(u.createdAt)}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-500">Last sign-in</dt><dd>{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-500">Email verified</dt><dd>{u.emailVerifiedAt ? formatDateTime(u.emailVerifiedAt) : "No"}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-slate-500">Password</dt><dd>{u.passwordHash ? "Set" : <span className="badge-amber">Not set</span>}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Password</dt><dd className="flex flex-wrap justify-end gap-1.5">{u.passwordHash ? "Set" : <span className="badge-amber">Not set</span>}{u.mustChangePassword && <span className="badge-orange">Must change at next sign-in</span>}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Password last changed</dt><dd>{u.passwordChangedAt ? formatDateTime(u.passwordChangedAt) : "—"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-500">Two-factor</dt><dd>{u.totpEnabled ? "Enabled" : "Off"}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-500">Active sessions</dt><dd>{u._count.sessions}</dd></div>
             <div className="flex justify-between gap-3"><dt className="text-slate-500">Saved · following · redeemed</dt><dd>{u._count.savedItems} · {u._count.follows} · {u._count.redemptions}</dd></div>
           </dl>
           <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-            <ActionButton action={sendPasswordReset} fields={{ id: u.id }} confirm={{ title: `Send a password reset link to ${u.email}?`, body: "The link expires in 2 hours.", confirmLabel: "Send link" }}><KeyRound className="h-4 w-4" /> Send password reset</ActionButton>
             {!self && u._count.sessions > 0 && <ActionButton action={revokeSessions} fields={{ id: u.id }}><LogOut className="h-4 w-4" /> Sign out everywhere</ActionButton>}
             {!self && (u.status === "SUSPENDED" ? (
               <ActionButton action={setUserStatus} fields={{ id: u.id, status: "ACTIVE" }} className="btn-primary btn-sm"><CheckCircle2 className="h-4 w-4" /> Reactivate</ActionButton>
@@ -62,6 +64,28 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
               <ActionButton action={setUserStatus} fields={{ id: u.id, status: "SUSPENDED" }} confirm={{ title: `Suspend ${u.email}?`, body: "They are signed out immediately and can't sign in until reactivated.", confirmLabel: "Suspend", danger: true }} className="btn-sm btn border border-red-200 bg-white text-red-700 hover:bg-red-50"><Ban className="h-4 w-4" /> Suspend</ActionButton>
             ))}
           </div>
+        </Card>
+        <Card title="Reset password" description="Administrators can never view existing passwords.">
+          {self ? (
+            <p className="text-sm text-slate-600">To change your own password, use <Link href="/account/password/" className="font-semibold text-brand-700 hover:underline">My account → Change password</Link>.</p>
+          ) : u.status !== "ACTIVE" ? (
+            <Notice tone="warn">Reactivate the account before resetting its password.</Notice>
+          ) : (
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">A) Send password reset link</h3>
+                <p className="mt-0.5 text-sm text-slate-600">Emails a secure, single-use link that expires in 2 hours. Recommended.</p>
+                <div className="mt-2">
+                  <ActionButton action={sendPasswordReset} fields={{ id: u.id }} confirm={{ title: `Send a password reset link to ${u.email}?`, body: "The link expires in 2 hours and replaces any earlier link.", confirmLabel: "Send link" }}><KeyRound className="h-4 w-4" /> Send reset link</ActionButton>
+                </div>
+              </div>
+              <div className="border-t border-slate-100 pt-4">
+                <h3 className="text-sm font-semibold text-slate-900">B) Set temporary password</h3>
+                <p className="mb-3 mt-0.5 text-sm text-slate-600">Replaces their password, signs them out everywhere and makes them choose a new one at next sign-in. Share it securely — it&apos;s never emailed.</p>
+                <TempPasswordForm userId={u.id} />
+              </div>
+            </div>
+          )}
         </Card>
         <Card title="Business ownership" description="Businesses this user can manage from their dashboard.">
           <ActionForm action={linkUserBusinesses} className="space-y-3">
@@ -71,6 +95,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
             <Submit pendingText="Saving…">Save ownership</Submit>
           </ActionForm>
           {u.businesses.length > 0 && <p className="mt-3 text-sm text-slate-600">Open: {u.businesses.map((b, i) => <span key={b.businessId}>{i > 0 && ", "}<Link className="text-brand-700 hover:underline" href={`/admin/businesses/${b.businessId}/`}>{b.business.name}</Link></span>)}</p>}
+          {u.organizations.length > 0 && <p className="mt-2 text-sm text-slate-600">Organizations: {u.organizations.map((m, i) => <span key={m.organizationId}>{i > 0 && ", "}<Link className="text-brand-700 hover:underline" href={`/admin/organizations/${m.organizationId}/`}>{m.organization.name}</Link></span>)}</p>}
         </Card>
         <Card title="Recent activity" bodyClassName="p-0">
           {activity.length ? (

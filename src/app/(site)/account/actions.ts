@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { SESSION_COOKIE, clientIp, destroySession, getCurrentUser, hashPassword, hashToken, isStaff, passwordProblem, verifyPassword } from "@/lib/auth";
+import { SESSION_COOKIE, clientIp, destroySession, getCurrentUser, getSessionUser, hashPassword, hashToken, isStaff, passwordProblem, verifyPassword } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendVerificationEmail } from "@/lib/tokens";
+import { homeForRole, sendVerificationEmail } from "@/lib/tokens";
+import { postLoginHome } from "@/lib/gives/access";
 import { audit } from "@/lib/audit";
 import { NOTIFICATION_KEYS, enabledCategories, type NotificationPrefs } from "@/lib/notification-categories";
 import type { ActionState } from "@/components/ui/form-message";
@@ -59,22 +60,36 @@ export async function changeEmailAction(_p: ActionState, fd: FormData): Promise<
 }
 
 export async function changePasswordAction(_p: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await me();
+  // getSessionUser (not me()): users who must replace a temporary password can reach this action.
+  const user = await getSessionUser();
+  if (!user) redirect("/login/?next=%2Faccount%2Fpassword%2F");
   if (!rateLimit(`pw-change:${user.id}`, 6, 15 * 60_000).ok) return { error: "Too many attempts. Please wait a few minutes." };
+  const forced = user.mustChangePassword;
   const current = String(fd.get("currentPassword") ?? "");
   const next = String(fd.get("newPassword") ?? "");
   const confirm = String(fd.get("confirmPassword") ?? "");
-  if (!(await verifyPassword(current, user.passwordHash))) return { error: "Your current password is incorrect." };
+  // The forced flow skips the current password: they just signed in with the temporary one.
+  if (!forced && !(await verifyPassword(current, user.passwordHash))) {
+    return { error: "Your current password is incorrect.", fieldErrors: { currentPassword: "Incorrect password" } };
+  }
   const problem = passwordProblem(next);
-  if (problem) return { error: problem };
-  if (next !== confirm) return { error: "The new passwords don't match." };
+  if (problem) return { error: problem, fieldErrors: { newPassword: problem } };
+  if (next !== confirm) return { error: "The new passwords don't match.", fieldErrors: { confirmPassword: "Passwords don't match." } };
+  if (await verifyPassword(next, user.passwordHash)) {
+    const msg = forced ? "Choose a new password — not the temporary one you were given." : "Your new password must be different from your current one.";
+    return { error: msg, fieldErrors: { newPassword: msg } };
+  }
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const currentSessionId = token ? hashToken(token) : "";
   await db.$transaction([
-    db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next) } }),
+    db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next), mustChangePassword: false, passwordChangedAt: new Date() } }),
     db.session.deleteMany({ where: { userId: user.id, id: { not: currentSessionId } } }),
+    // Any outstanding reset links are now stale.
+    db.verificationToken.deleteMany({ where: { userId: user.id, type: "PASSWORD_RESET", usedAt: null } }),
   ]);
-  await audit(user.id, "user.password_change", "User", user.id);
+  await audit(user.id, "user.password_change", "User", user.id, { forced });
+  revalidatePath("/", "layout");
+  if (forced) redirect(await postLoginHome(user, homeForRole(user.role)));
   return { message: "Password changed. You've been signed out on your other devices." };
 }
 

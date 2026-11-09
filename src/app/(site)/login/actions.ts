@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { clientIp, createSession, destroySession, getPending2faSession, verifyPassword } from "@/lib/auth";
+import { FORCED_PASSWORD_CHANGE_PATH, clientIp, createSession, destroySession, getPending2faSession, verifyPassword } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTotp } from "@/lib/totp";
 import { homeForRole, safeNext } from "@/lib/tokens";
@@ -43,6 +43,8 @@ export async function loginAction(_prev: FormState, fd: FormData): Promise<FormS
   }
   await createSession(user.id);
   await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  // Temporary (admin-issued) password: nothing else is reachable until it's replaced.
+  if (user.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   redirect(target ?? (await postLoginHome(user, homeForRole(user.role))));
 }
 
@@ -59,6 +61,7 @@ export async function verify2faAction(_prev: ActionState, fd: FormData): Promise
   }
   await db.session.update({ where: { id: session.id }, data: { needs2fa: false } });
   await db.user.update({ where: { id: session.userId }, data: { lastLoginAt: new Date() } });
+  if (session.user.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   redirect(safeNext(String(fd.get("next") ?? "")) ?? (await postLoginHome(session.user, homeForRole(session.user.role))));
 }
 

@@ -1,24 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Archive, BadgeCheck, Ban, CalendarCheck, CalendarPlus, CheckCircle2, Eye, EyeOff, ExternalLink, LayoutDashboard, RotateCcw, Star, Trash2, UserMinus, XCircle } from "lucide-react";
+import { Archive, BadgeCheck, Ban, CalendarCheck, CalendarPlus, CheckCircle2, Eye, EyeOff, ExternalLink, LayoutDashboard, RotateCcw, Star, Trash2, XCircle } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { CLAIM_STATUS_BADGE, CLAIM_STATUS_LABEL, KIND_LABEL, NEED_STATUS_LABEL, OPPORTUNITY_STATUS_LABEL, ORG_ROLES, ORG_ROLE_LABEL, ORG_SOURCE_LABEL, needHref, opportunityHref, orgHref } from "@/lib/gives/constants";
+import { CLAIM_STATUS_BADGE, CLAIM_STATUS_LABEL, KIND_LABEL, NEED_STATUS_LABEL, OPPORTUNITY_STATUS_LABEL, ORG_SOURCE_LABEL, needHref, opportunityHref, orgHref } from "@/lib/gives/constants";
 import { isOrgPublic } from "@/lib/gives/queries";
 import { isDonationVerified } from "@/lib/gives/admin";
 import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { ClientTabs } from "@/components/admin/client-tabs";
 import { ActionForm, Submit } from "@/components/admin/action-form";
 import { ActionButton, ConfirmButton } from "@/components/admin/action-button";
-import { Checkbox, SelectField, TextArea } from "@/components/admin/form-field";
-import { SearchSelect } from "@/components/admin/search-select";
+import { TextArea } from "@/components/admin/form-field";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { ListingAccessPanel } from "@/components/admin/listing-access-panel";
+import { listingAccessRows } from "@/lib/listing-access";
 import { OrgStatusBadge, KindBadge, OwnershipBadge, PublishBadge } from "@/components/gives/badges";
 import { StaffListingFields } from "@/components/gives/staff-listing-fields";
 import { OrgProfileForm } from "@/components/gives/org-profile-form";
 import { toOrgFormValues } from "@/components/gives/org-form-values";
-import { adminAssignManager, adminRemoveOrgMember, adminSaveOrg, markOrgChecked, setOrgPublished, setOrgStatus, toggleOrgFeatured, trashOrg, verifyOrg } from "../actions";
+import { adminSaveOrg, markOrgChecked, setOrgPublished, setOrgStatus, toggleOrgFeatured, trashOrg, verifyOrg } from "../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Organization" };
@@ -31,7 +32,7 @@ export default async function AdminOrganizationPage({ params, searchParams }: { 
   const org = await db.organization.findUnique({
     where: { id },
     include: {
-      members: { include: { user: { select: { id: true, email: true, name: true, passwordHash: true, lastLoginAt: true } } }, orderBy: { createdAt: "asc" } },
+      _count: { select: { members: true } },
       needs: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, take: 50, include: { _count: { select: { pledges: true } } } },
       opportunities: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, take: 50, include: { _count: { select: { signups: true } } } },
       updates: { orderBy: { createdAt: "desc" }, take: 20 },
@@ -40,12 +41,13 @@ export default async function AdminOrganizationPage({ params, searchParams }: { 
     },
   });
   if (!org) notFound();
-  const [registration, verifier, creator, donationVerified, importBatch] = await Promise.all([
+  const [registration, verifier, creator, donationVerified, importBatch, accessRows] = await Promise.all([
     db.auditLog.findFirst({ where: { action: "organization.register", entityId: org.id }, include: { user: { select: { email: true, name: true } } } }),
     org.verifiedById ? db.user.findUnique({ where: { id: org.verifiedById }, select: { email: true, name: true } }) : null,
     org.createdById ? db.user.findUnique({ where: { id: org.createdById }, select: { email: true, name: true } }) : null,
     isDonationVerified(org.id, org.donationUrl),
     org.importBatchId ? db.organizationImport.findUnique({ where: { id: org.importBatchId }, select: { id: true, filename: true } }) : null,
+    listingAccessRows({ kind: "organization", id: org.id }),
   ]);
   const isPublic = isOrgPublic(org);
   const reg = (registration?.details ?? {}) as Record<string, string>;
@@ -141,37 +143,13 @@ export default async function AdminOrganizationPage({ params, searchParams }: { 
             ),
           },
           {
-            id: "members", label: "Members", badge: org.members.length,
+            id: "members", label: "Listing Access", badge: org._count.members,
             content: (
               <div className="grid gap-6 lg:grid-cols-2">
-                <Card title="Team members" description={<>Ownership: <OwnershipBadge status={org.ownershipStatus} /></>} bodyClassName="p-0">
-                  {org.members.length ? (
-                    <ul className="divide-y divide-slate-100">
-                      {org.members.map((m) => (
-                        <li key={m.userId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-slate-900">{m.user.name || m.user.email}</p>
-                            <p className="truncate text-sm text-slate-500">{m.user.email} · {ORG_ROLE_LABEL[m.role]}{!m.user.passwordHash && <span className="badge-amber ml-2">No password set</span>}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            {isAdmin && <Link href={`/admin/users/${m.userId}/`} className="btn-ghost btn-sm">User</Link>}
-                            <ConfirmButton action={adminRemoveOrgMember} fields={{ ...fid, userId: m.userId }} title={`Remove ${m.user.email}?`} body={org.members.length === 1 ? "They lose access. This is the last manager, so the listing becomes unclaimed (it stays published). Their account is kept." : "They lose access to this organization. Their account is kept."} confirmLabel="Remove"><UserMinus className="h-4 w-4" /> Remove</ConfirmButton>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : <p className="px-5 py-6 text-sm text-slate-500">No members.</p>}
-                </Card>
-                <Card title="Assign organization manager" description="Give an existing account access. Existing members get the new role.">
-                  <ActionForm action={adminAssignManager} resetOnSuccess className="space-y-3">
-                    <input type="hidden" name="orgId" value={org.id} />
-                    <SearchSelect name="user" type="user" multiple={false} label="Existing account (search email or name)" placeholder="Search accounts…" />
-                    <SelectField id="m-role" name="role" label="Role" defaultValue="OWNER" options={ORG_ROLES.map((r) => ({ value: r, label: ORG_ROLE_LABEL[r] }))} />
-                    <Checkbox name="notify" label="Email them that they've been given access" defaultChecked />
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">No account yet? We never create accounts for people. Ask them to create a free account at <span className="font-mono">/register/</span> or submit a claim from the listing page{isPublic ? <> (<Link href={`/gives/claim/${org.slug}/`} className="text-brand-700 underline">claim link</Link>)</> : null}.</p>
-                    <Submit pendingText="Saving…">Assign manager</Submit>
-                  </ActionForm>
-                </Card>
+                <div className="lg:col-span-2">
+                  <ListingAccessPanel kind="organization" listingId={org.id} listingName={org.name} rows={accessRows} canManage={isAdmin} linkUsers={isAdmin} />
+                  <p className="mt-2 text-xs text-slate-500">Ownership: <OwnershipBadge status={org.ownershipStatus} /> · Roles: Owner (full control), Manager (organization admin — can manage the team), Editor (content only).{isPublic ? <> People can also request access with the <Link href={`/gives/claim/${org.slug}/`} className="text-brand-700 underline">claim link</Link>.</> : null}</p>
+                </div>
                 <Card title="Ownership claims" bodyClassName="p-0" actions={<Link href="/admin/organizations/claims/" className="btn-ghost btn-sm">Claims queue</Link>}>
                   {org.claims.length ? (
                     <ul className="divide-y divide-slate-100">

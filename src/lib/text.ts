@@ -21,3 +21,13 @@ export function decodePlainText(s: string | null | undefined): string {
   }
   return out;
 }
+
+/** Escape a plain-text value for interpolation into HTML (emails, raw markup). */
+export function escapeHtml(s: string | null | undefined): string {
+  return (s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+/** Single-line plain text for email subjects/headers (no CR/LF). */
+export function oneLine(s: string | null | undefined, max = 150): string {
+  return (s ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, max);
+}

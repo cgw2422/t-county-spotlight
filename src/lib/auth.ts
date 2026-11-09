@@ -27,11 +27,7 @@ export async function verifyPassword(pw: string, hash: string | null | undefined
   return bcrypt.compare(pw, hash);
 }
 
-export function passwordProblem(pw: string): string | null {
-  if (pw.length < 10) return "Password must be at least 10 characters.";
-  if (!/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) return "Password must include letters and numbers.";
-  return null;
-}
+export { passwordProblem, PASSWORD_MIN_LENGTH } from "./password-rules";
 
 export async function clientIp() {
   const h = await headers();
@@ -81,11 +77,29 @@ const loadSession = cache(async () => {
   return session;
 });
 
-/** Returns the fully-authenticated user (2FA completed), or null. */
-export const getCurrentUser = cache(async () => {
+/**
+ * The signed-in user (2FA completed) even when they still have to replace a
+ * temporary password. Use ONLY for display and for the password-change flow;
+ * everything else must use getCurrentUser / requireUser.
+ */
+export const getSessionUser = cache(async () => {
   const s = await loadSession();
   if (!s || s.needs2fa) return null;
   return s.user;
+});
+
+/** Where users with an admin-issued temporary password must go first. */
+export const FORCED_PASSWORD_CHANGE_PATH = "/account/password/?required=1";
+
+/**
+ * Returns the fully-authenticated user (2FA completed), or null. A user who
+ * must replace a temporary password counts as signed out here, so no
+ * dashboard, admin, account or API action can run until they change it.
+ */
+export const getCurrentUser = cache(async () => {
+  const u = await getSessionUser();
+  if (!u || u.mustChangePassword) return null;
+  return u;
 });
 
 export async function getPending2faSession() {
@@ -96,8 +110,9 @@ export async function getPending2faSession() {
 export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 
 export async function requireUser(next = "/") {
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (user.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   return user;
 }
 
@@ -109,8 +124,9 @@ export function isStaff(user: { role: Role } | null | undefined) {
 
 /** Admin area: ADMIN and EDITOR. Pass ["ADMIN"] for admin-only actions. */
 export async function requireStaff(roles: Role[] = STAFF_ROLES) {
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login?next=/admin");
+  if (user.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   if (!roles.includes(user.role)) redirect("/?denied=1");
   return user;
 }

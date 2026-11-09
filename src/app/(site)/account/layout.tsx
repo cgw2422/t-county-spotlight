@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Bookmark, Heart, LayoutDashboard, MailWarning, Shield, Store, Bell } from "lucide-react";
-import { getCurrentUser, getOwnedBusinesses, isStaff } from "@/lib/auth";
+import { getOwnedBusinesses, getSessionUser, isStaff } from "@/lib/auth";
+import { AuthShell } from "@/components/account/auth-shell";
+import { ChangePasswordForm } from "@/components/account/change-password-form";
+import { changePasswordAction } from "./actions";
 import { AccountTabs } from "@/components/account/account-tabs";
 import { ActionForm } from "@/components/account/action-form";
 import { LogoutButton } from "@/components/account/logout-button";
@@ -47,8 +50,18 @@ function SignedOut() {
 }
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
   if (!user) return <SignedOut />;
+  // Admin-issued temporary password: every /account/ page shows only the
+  // change form until a new password is chosen (enforced server-side too).
+  if (user.mustChangePassword) {
+    return (
+      <AuthShell title="Choose a new password" subtitle={<>You signed in with a temporary password for <strong className="break-all">{user.email}</strong>. Choose your own password to continue.</>}
+        footer={<LogoutButton className="btn-ghost btn-sm" label="Sign out instead" />}>
+        <ChangePasswordForm action={changePasswordAction} forced />
+      </AuthShell>
+    );
+  }
   const businesses = await getOwnedBusinesses(user.id);
   const initials = (user.name || user.email).split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   return (

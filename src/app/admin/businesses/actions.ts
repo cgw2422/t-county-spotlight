@@ -6,8 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { sendEmail } from "@/lib/email";
-import { absoluteUrl, fromDateInput, slugify } from "@/lib/utils";
+import { fromDateInput, slugify } from "@/lib/utils";
 import type { ActionState } from "@/components/ui/form-message";
 import { Prisma } from "@/generated/prisma/client";
 import { googleListingFromForm } from "@/lib/google-places";
@@ -178,49 +177,7 @@ export async function saveBusinessArticles(_: ActionState, fd: FormData): Promis
   return { ok: true, message: "Linked articles saved." };
 }
 
-/** Links (or creates) a user as owner. New users get no password and must use "Forgot password". */
-export async function addOwner(_: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
-  const p = parseForm(z.object({ id: z.string().min(1), email: zReq("Email", 200).toLowerCase().refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Enter a valid email"), role: z.enum(["OWNER", "MANAGER"]).default("OWNER"), notify: zBool }), fd);
-  if (p.error) return p.error;
-  const { id, email, role, notify } = p.data;
-  const b = await db.business.findUnique({ where: { id }, select: { id: true, name: true } });
-  if (!b) return { error: "Business not found." };
-  let u = await db.user.findUnique({ where: { email } });
-  let created = false;
-  if (!u) {
-    u = await db.user.create({ data: { email, role: "BUSINESS_OWNER" } });
-    created = true;
-  } else if (u.role === "MEMBER") {
-    u = await db.user.update({ where: { id: u.id }, data: { role: "BUSINESS_OWNER" } });
-    await audit(user.id, "user.role", "User", u.id, { email, from: "MEMBER", to: "BUSINESS_OWNER" });
-  }
-  await db.businessOwner.upsert({ where: { userId_businessId: { userId: u.id, businessId: id } }, create: { userId: u.id, businessId: id, role }, update: { role } });
-  await audit(user.id, "business.owner_add", "Business", id, { name: b.name, email, role, createdUser: created });
-  if (notify) {
-    await sendEmail(
-      email,
-      `You now manage ${b.name} on T County Connect`,
-      `You've been added as ${role === "OWNER" ? "an owner" : "a manager"} of ${b.name} on T County Connect.\n\n` +
-        (created ? `An account was created for ${email}. Set your password here: ${absoluteUrl("/forgot-password/")}\n\n` : "") +
-        `Sign in to manage your listing: ${absoluteUrl("/dashboard/")}`,
-    );
-  }
-  revalidatePath(`/admin/businesses/${id}`);
-  return { ok: true, message: created ? `Created an account for ${email} and linked it. They must use “Forgot password” to set a password.` : `${email} linked as ${role.toLowerCase()}.` };
-}
-
-export async function removeOwner(_: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireStaff();
-  const businessId = String(fd.get("id") ?? "");
-  const userId = String(fd.get("userId") ?? "");
-  const link = await db.businessOwner.findUnique({ where: { userId_businessId: { userId, businessId } }, include: { user: { select: { email: true } }, business: { select: { name: true } } } });
-  if (!link) return { error: "Owner link not found." };
-  await db.businessOwner.delete({ where: { userId_businessId: { userId, businessId } } });
-  await audit(user.id, "business.owner_remove", "Business", businessId, { name: link.business.name, email: link.user.email });
-  revalidatePath(`/admin/businesses/${businessId}`);
-  return { ok: true, message: `Removed ${link.user.email}.` };
-}
+// Owner/manager management lives in Listing Access (src/app/admin/listing-access/actions.ts, admin only).
 
 /** Admin-only: complimentary membership (Subscription source "manual"). */
 export async function grantMembership(_: ActionState, fd: FormData): Promise<ActionState> {

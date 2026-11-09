@@ -4,6 +4,7 @@ import { Store } from "lucide-react";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Field } from "@/components/account/auth-shell";
+import { NewPasswordFields } from "@/components/account/password-fields";
 import { registerAction } from "./actions";
 import { echoed, echoedChecked } from "@/components/dashboard/fields";
 
@@ -17,8 +18,7 @@ export function RegisterForm({ next, business }: { next?: string; business?: boo
       <FormMessage state={state} />
       <Field label="Your name" name="name" autoComplete="name" required maxLength={100} error={fe.name} autoFocus defaultValue={echoed(v, "name", "")} />
       <Field label="Email address" name="email" type="email" autoComplete="email" inputMode="email" required error={fe.email} defaultValue={echoed(v, "email", "")} />
-      <Field label="Create a password" name="password" type="password" autoComplete="new-password" required minLength={10}
-        help="At least 10 characters, with letters and numbers." error={fe.password} />
+      <NewPasswordFields label="Create a password" confirmLabel="Confirm password" errors={{ password: fe.password, confirm: fe.confirm }} />
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 hover:border-brand-200">
         <input type="checkbox" name="ownsBusiness" defaultChecked={echoedChecked(v, "ownsBusiness", !!business)} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-brand-600" />
         <span className="text-sm">

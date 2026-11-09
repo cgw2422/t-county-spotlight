@@ -24,7 +24,7 @@ export async function resetPasswordAction(_prev: ActionState, fd: FormData): Pro
     db.user.update({
       where: { id: user.id },
       // Following the emailed link proves inbox access, so the address is verified too.
-      data: { passwordHash: await hashPassword(password), emailVerifiedAt: user.emailVerifiedAt ?? new Date() },
+      data: { passwordHash: await hashPassword(password), emailVerifiedAt: user.emailVerifiedAt ?? new Date(), mustChangePassword: false, passwordChangedAt: new Date() },
     }),
     db.verificationToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
     db.verificationToken.deleteMany({ where: { userId: user.id, type: "PASSWORD_RESET", usedAt: null } }),

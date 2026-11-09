@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, getPending2faSession } from "@/lib/auth";
+import { FORCED_PASSWORD_CHANGE_PATH, getSessionUser, getPending2faSession } from "@/lib/auth";
 import { homeForRole, safeNext } from "@/lib/tokens";
 import { AuthShell } from "@/components/account/auth-shell";
 import { LoginForm } from "./login-form";
@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; locked?: string; reset?: string }> }) {
   const sp = await searchParams;
   const next = safeNext(sp.next) ?? undefined;
-  const user = await getCurrentUser();
+  const user = await getSessionUser();
+  if (user?.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   if (user) redirect(next ?? homeForRole(user.role));
   if (await getPending2faSession()) redirect(`/login/2fa/${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   return (
