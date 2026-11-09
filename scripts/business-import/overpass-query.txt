@@ -1,0 +1,13 @@
+[out:json][timeout:300];
+area["name"="Ohio"]["admin_level"="4"]->.oh;
+area["name"="Tuscarawas County"]["admin_level"="6"](area.oh)->.tc;
+(
+  nwr["name"]["shop"](area.tc);
+  nwr["name"]["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|food_court|biergarten|pharmacy|dentist|doctors|clinic|veterinary|bank|fuel|car_wash|car_rental|cinema|theatre|arts_centre|nightclub|events_venue|childcare|driving_school|coworking_space)$"](area.tc);
+  nwr["name"]["craft"](area.tc);
+  nwr["name"]["office"~"^(company|estate_agent|insurance|lawyer|accountant|financial|financial_advisor|architect|travel_agent|tax_advisor|it|employment_agency|advertising_agency|newspaper|surveyor|engineer|consulting|property_management)$"](area.tc);
+  nwr["name"]["tourism"~"^(hotel|motel|guest_house|bed_and_breakfast|hostel|camp_site|caravan_site|chalet|attraction|museum|gallery|winery|theme_park|zoo)$"](area.tc);
+  nwr["name"]["leisure"~"^(fitness_centre|bowling_alley|golf_course|miniature_golf|amusement_arcade|escape_game|water_park|sports_centre|marina|horse_riding)$"](area.tc);
+  nwr["name"]["healthcare"](area.tc);
+);
+out center tags;

@@ -18,6 +18,13 @@ Creates `data/business-import/<timestamp>/candidates.csv` and `duplicate-report.
 - **Duplicates:** detected both within the OpenStreetMap results and against existing T County Connect listings. A match on name and town, phone, website, or street address counts; matches are never imported.
 - **Default answers:** `approve` is pre-filled `yes` only for complete, local, non-duplicate records, and `no` for everything else.
 
+### If the script can't reach Overpass (cloud servers are often blocked)
+1. Open https://overpass-turbo.eu in your browser.
+2. Paste the contents of `scripts/business-import/overpass-query.txt` into the left panel and click **Run**. It takes about a minute.
+3. Click **Export → Data → "raw OSM data"** (download as JSON).
+4. Upload that file to the repo (for example `data/business-import/osm-export.json`).
+5. Run `npm run businesses:fetch -- --input data/business-import/osm-export.json`.
+
 ## Step 2: review
 Open `candidates.csv` in Excel or Google Sheets. Set `approve` to `yes` or `no`, fix any names, categories, addresses, phones or websites, and save as CSV.
 
