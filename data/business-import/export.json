@@ -1,0 +1,4901 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.4 2390de5a",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-09T14:25:22Z",
+    "timestamp_areas_base": "2026-11-09T14:15:08Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 368155526,
+      "lat": 40.5256578,
+      "lon": -81.4880407,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "331",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Karl Avenue",
+        "ele": "269",
+        "gnis:feature_id": "1065508",
+        "name": "Warther Museum",
+        "source": "USGS Geonames",
+        "tourism": "museum",
+        "website": "https://thewarthermuseum.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 368155594,
+      "lat": 40.5031241,
+      "lon": -81.6412436,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "106",
+        "addr:state": "OH",
+        "addr:street": "West Main Street",
+        "ele": "310",
+        "email": "alpinehillsc@gmail.com",
+        "fee": "donation",
+        "gnis:feature_id": "1960699",
+        "name": "Alpine Hills Museum",
+        "opening_hours": "Mar-Nov Mo-Sa 09:30-17:00; Su off; Jul 04 off",
+        "phone": "+1 330 852 4113",
+        "source": "USGS Geonames",
+        "tourism": "museum",
+        "website": "https://alpinehillssugarcreek.com",
+        "wikidata": "Q113163473"
+      }
+    },
+    {
+      "type": "node",
+      "id": 471398296,
+      "lat": 40.5358566,
+      "lon": -81.2748599,
+      "tags": {
+        "addr:city": "Mineral City",
+        "addr:housenumber": "9280",
+        "addr:postcode": "44656",
+        "addr:state": "OH",
+        "addr:street": "Atwood Lake Road Northeast",
+        "amenity": "restaurant",
+        "cuisine": "american",
+        "name": "Lighthouse Bistro",
+        "phone": "+1 330 343 1111",
+        "website": "https://www.thelighthousebistro.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1729763506,
+      "lat": 40.4974789,
+      "lon": -81.4517351,
+      "tags": {
+        "addr:street": "435 Minnich Ave NW, New Philadelphia, OH 4663",
+        "amenity": "restaurant",
+        "name": "Uncle Primos"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1729775123,
+      "lat": 40.5046387,
+      "lon": -81.4504577,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1103",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "4th Street Northwest",
+        "name": "Ernie’s Bicycle Shop",
+        "phone": "+1-330-343-4056",
+        "service:bicycle:repair": "yes",
+        "service:bicycle:retail": "yes",
+        "shop": "bicycle",
+        "source": "local_knowledge",
+        "website": "https://www.erniesbikeshop.com/newphiladelphia"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1729776829,
+      "lat": 40.5073473,
+      "lon": -81.4625181,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "515",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Union Avenue",
+        "branch": "Dover",
+        "brand": "Giant Eagle",
+        "brand:wikidata": "Q1522721",
+        "name": "Giant Eagle",
+        "opening_hours": "Mo-Su 07:00-22:00",
+        "phone": "+1 330-364-5301",
+        "ref": "4089",
+        "shop": "supermarket",
+        "source": "local_knowledge"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1729785547,
+      "lat": 40.4888044,
+      "lon": -81.4456765,
+      "tags": {
+        "amenity": "bar",
+        "name": "Broadway Brewhouse"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1895314061,
+      "lat": 40.5397381,
+      "lon": -81.2951191,
+      "tags": {
+        "addr:housename": "Atwood Dari Bar",
+        "addr:housenumber": "4033",
+        "addr:postcode": "44656",
+        "addr:street": "Ohio 212",
+        "amenity": "fast_food",
+        "name": "Atwood Dari Bar",
+        "website": "http://www.facebook.com/pages/Atwood-Dari-Bar/115925895094409"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1895314067,
+      "lat": 40.5357999,
+      "lon": -81.2742837,
+      "tags": {
+        "leisure": "marina",
+        "name": "Atwood Lake Marina West"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1895320727,
+      "lat": 40.544736,
+      "lon": -81.2699707,
+      "tags": {
+        "name": "Atwood Lake Campground (main gate)",
+        "tourism": "camp_site"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2910624635,
+      "lat": 40.490017,
+      "lon": -81.4495183,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "264",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "1152",
+        "website": "https://www.speedway.com/locations/OH/New-Philadelphia/264-West-High-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2910624636,
+      "lat": 40.4924287,
+      "lon": -81.4440903,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "243",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "North Broadway Street",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6242"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2972063756,
+      "lat": 40.645283,
+      "lon": -81.453564,
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "450",
+        "addr:postcode": "44612-8776",
+        "addr:state": "OH",
+        "addr:street": "Canal Street Southeast",
+        "alt_name": "Dairy Queen",
+        "amenity": "fast_food",
+        "brand": "DQ Grill & Chill",
+        "brand:wikidata": "Q1141226",
+        "cuisine": "ice_cream;burger",
+        "name": "DQ Grill & Chill",
+        "phone": "+1 330-874-3347",
+        "takeaway": "yes",
+        "website": "https://www.dairyqueen.com/locations/oh/bolivar/450-canal-st-se/6506"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2972063757,
+      "lat": 40.6413479,
+      "lon": -81.4441581,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "cuisine": "burger",
+        "name": "McDonald's",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/bolivar/11123-state-rte-212-ne/11156.html"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2972063758,
+      "lat": 40.6452178,
+      "lon": -81.4533362,
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "450",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "Canal Street Southeast",
+        "addr:unit": "B",
+        "amenity": "fast_food",
+        "brand": "Subway",
+        "brand:wikidata": "Q244457",
+        "cuisine": "sandwich",
+        "name": "Subway",
+        "opening_hours": "09:00-22:00",
+        "phone": "+1 330-874-7827",
+        "takeaway": "yes",
+        "website": "https://restaurants.subway.com/united-states/oh/bolivar/450b-canal-street-se"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2972063759,
+      "lat": 40.6183403,
+      "lon": -81.4245221,
+      "tags": {
+        "name": "Zoar Market",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2972063772,
+      "lat": 40.6409612,
+      "lon": -81.4438345,
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "11099",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "Sr 212",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "fuel:diesel": "yes",
+        "name": "Speedway",
+        "ref": "6241",
+        "website": "https://www.speedway.com/locations/OH/Bolivar/11099-State-Route-212-Northeast"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3133980519,
+      "lat": 40.2660716,
+      "lon": -81.6086489,
+      "tags": {
+        "addr:city": "Newcomerstown",
+        "addr:housenumber": "640",
+        "addr:postcode": "43832",
+        "addr:street": "Heller Drive",
+        "amenity": "restaurant",
+        "name": "April's Country Kitchen",
+        "phone": "+1-740-498-4242"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3183966653,
+      "lat": 40.4924152,
+      "lon": -81.4594993,
+      "tags": {
+        "amenity": "pharmacy",
+        "brand": "Rite Aid",
+        "brand:wikidata": "Q3433273",
+        "check_date": "2024-06-19",
+        "dispensing": "yes",
+        "healthcare": "pharmacy",
+        "name": "Rite Aid",
+        "website": "https://www.riteaid.com/locations/oh/new-philadelphia/705-west-high-avenue.html"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185459875,
+      "lat": 40.5174989,
+      "lon": -81.4685129,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "300",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Oxford Street",
+        "amenity": "pharmacy",
+        "brand": "CVS Pharmacy",
+        "brand:website": "https://www.cvs.com/",
+        "brand:wikidata": "Q2078880",
+        "dispensing": "yes",
+        "drive_through": "yes",
+        "healthcare": "pharmacy",
+        "name": "CVS Pharmacy",
+        "ref": "4353",
+        "short_name": "CVS",
+        "website": "https://www.cvs.com/store-locator/dover-oh-pharmacies/300-oxford-st-dover-oh-44622/storeid=4353"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185459876,
+      "lat": 40.5179878,
+      "lon": -81.4698442,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "225",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6243",
+        "website": "https://www.speedway.com/locations/OH/Dover/225-South-Wooster-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185479362,
+      "lat": 40.5072923,
+      "lon": -81.4511048,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1315",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "4th Street Northwest",
+        "amenity": "fast_food",
+        "branch": "4th St Northwest",
+        "brand": "Papa John's",
+        "brand:wikidata": "Q2759586",
+        "cuisine": "pizza",
+        "name": "Papa John's",
+        "opening_hours": "Mo-Th 10:00-23:00; Fr-Sa 10:00-24:00; Su 10:00-23:00",
+        "phone": "+1 330-364-2900",
+        "takeaway": "yes",
+        "website": "https://locations.papajohns.com/united-states/oh/44663/new-philadelphia/1315-4th-st-nw"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185479363,
+      "lat": 40.5074186,
+      "lon": -81.4516901,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Granato's Pizza"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185479364,
+      "lat": 40.5078199,
+      "lon": -81.4518324,
+      "tags": {
+        "amenity": "car_rental",
+        "brand": "Enterprise",
+        "brand:wikidata": "Q17085454",
+        "name": "Enterprise",
+        "official_name": "Enterprise Rent-A-Car"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185479365,
+      "lat": 40.505672,
+      "lon": -81.4514948,
+      "tags": {
+        "brand": "Valvoline",
+        "brand:wikidata": "Q7912852",
+        "name": "Valvoline",
+        "official_name": "Valvoline Instant Oil Change",
+        "shop": "car_repair",
+        "website": "https://store.vioc.com/oh/newphiladelphia/oil-change-060081.html"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3185479366,
+      "lat": 40.5061226,
+      "lon": -81.4499707,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Fox's Pizza Den"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3192370164,
+      "lat": 40.5266544,
+      "lon": -81.4894489,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1042",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6244",
+        "website": "https://www.speedway.com/locations/OH/Dover/1042-North-Tuscarawas-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3192370165,
+      "lat": 40.5275196,
+      "lon": -81.4915262,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1127",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "3557"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3666014125,
+      "lat": 40.637882,
+      "lon": -81.4394612,
+      "tags": {
+        "brand": "NAPA Auto Parts",
+        "brand:wikidata": "Q6970842",
+        "name": "NAPA Auto Parts",
+        "shop": "car_parts"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3666014225,
+      "lat": 40.639835,
+      "lon": -81.4433473,
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "11031",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "Fairoaks Boulevard Northeast",
+        "amenity": "fast_food",
+        "brand": "Wendy's",
+        "brand:wikidata": "Q550258",
+        "cuisine": "burger",
+        "drive_through": "yes",
+        "name": "Wendy's",
+        "opening_hours": "07:00-22:00",
+        "opening_hours:drive_through": "Mo-Su 06:30-23:00",
+        "phone": "+1 330-874-3145",
+        "takeaway": "yes",
+        "website": "https://locations.wendys.com/united-states/oh/bolivar/11031-fairoaks-boulevard-ne"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3753085076,
+      "lat": 40.440547,
+      "lon": -81.7035344,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Miller's Dutch Kitchen"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3753085077,
+      "lat": 40.4396282,
+      "lon": -81.7023226,
+      "tags": {
+        "amenity": "fuel",
+        "name": "76"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3753128714,
+      "lat": 40.3589303,
+      "lon": -81.4359632,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Tents of Grace Cafe"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3753128715,
+      "lat": 40.359839,
+      "lon": -81.4335315,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Marathon",
+        "brand:wikidata": "Q458363",
+        "name": "Marathon"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3753131605,
+      "lat": 40.3245076,
+      "lon": -81.5217884,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Valero",
+        "brand:wikidata": "Q1283291",
+        "name": "Valero"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3755020597,
+      "lat": 40.2711361,
+      "lon": -81.606958,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Gulf",
+        "brand:wikidata": "Q5617505",
+        "name": "Gulf"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3917904353,
+      "lat": 40.3986595,
+      "lon": -81.3533927,
+      "tags": {
+        "leisure": "golf_course",
+        "name": "Big Bend Golf Course"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3917904354,
+      "lat": 40.3945915,
+      "lon": -81.3536983,
+      "tags": {
+        "leisure": "golf_course",
+        "name": "Big Bend Golf Course"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3946567196,
+      "lat": 40.5498684,
+      "lon": -81.4987641,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Marathon",
+        "brand:wikidata": "Q458363",
+        "name": "Marathon"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3946567197,
+      "lat": 40.5507605,
+      "lon": -81.4960924,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Marathon",
+        "brand:wikidata": "Q458363",
+        "name": "Marathon"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4431193257,
+      "lat": 40.5008288,
+      "lon": -81.6424599,
+      "tags": {
+        "name": "Swiss Village Bulk Foods",
+        "opening_hours": "Mo-Sa 08:00-18:00; Su off",
+        "shop": "supermarket"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4951205706,
+      "lat": 40.5998515,
+      "lon": -81.360185,
+      "tags": {
+        "amenity": "bar",
+        "name": "Drunken Uncle",
+        "old_name": "Lunden Tree"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4951205707,
+      "lat": 40.6001437,
+      "lon": -81.3608582,
+      "tags": {
+        "amenity": "cafe",
+        "name": "Steineck's Bakery"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4957097963,
+      "lat": 40.6008546,
+      "lon": -81.3596908,
+      "tags": {
+        "alt_name": "Verizon Wireless",
+        "brand": "Verizon",
+        "brand:wikidata": "Q919641",
+        "name": "Verizon",
+        "shop": "mobile_phone"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4971638353,
+      "lat": 40.6022608,
+      "lon": -81.3620341,
+      "tags": {
+        "name": "repair shop",
+        "shop": "car_repair"
+      }
+    },
+    {
+      "type": "node",
+      "id": 4971640453,
+      "lat": 40.5991025,
+      "lon": -81.360965,
+      "tags": {
+        "amenity": "bar",
+        "name": "T.V. Tavern"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5198392978,
+      "lat": 40.5090264,
+      "lon": -81.4639178,
+      "tags": {
+        "brand": "Ollie's Bargain Outlet",
+        "brand:wikidata": "Q7088304",
+        "name": "Ollie's Bargain Outlet",
+        "shop": "variety_store",
+        "short_name": "Ollie's"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5198392979,
+      "lat": 40.5086017,
+      "lon": -81.4623392,
+      "tags": {
+        "name": "Rainbow",
+        "shop": "shoes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5198392980,
+      "lat": 40.5084743,
+      "lon": -81.4623419,
+      "tags": {
+        "brand": "Anytime Fitness",
+        "brand:wikidata": "Q4778364",
+        "fixme:atp": "check if location still exists; no corresponding ATP location found",
+        "leisure": "fitness_centre",
+        "name": "Anytime Fitness"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5198392981,
+      "lat": 40.5081354,
+      "lon": -81.4623614,
+      "tags": {
+        "brand": "Aaron's",
+        "brand:wikidata": "Q10397787",
+        "check_date": "2024-06-27",
+        "check_date:opening_hours": "2024-06-27",
+        "name": "Aaron's",
+        "opening_hours": "Mo-Th 10:00-19:00; Fr 10:00-20:00; Sa 10:00-18:00; Su closed",
+        "shop": "furniture",
+        "website": "https://locations.aarons.com/us/oh/dover/515-union-ave"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5198392982,
+      "lat": 40.5074019,
+      "lon": -81.4629167,
+      "tags": {
+        "amenity": "bank",
+        "brand": "Huntington Bank",
+        "brand:wikidata": "Q798819",
+        "name": "Huntington Bank"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5369046121,
+      "lat": 40.6410479,
+      "lon": -81.4430332,
+      "tags": {
+        "amenity": "bank",
+        "name": "Citizens Bank"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5396826222,
+      "lat": 40.2868024,
+      "lon": -81.5673912,
+      "tags": {
+        "addr:city": "Newcomerstown",
+        "addr:housenumber": "100",
+        "addr:postcode": "43832",
+        "addr:state": "OH",
+        "addr:street": "Morris Crossing",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "compressed_air": "yes",
+        "name": "Speedway",
+        "ref": "6240",
+        "website": "https://www.speedway.com/locations/OH/Newcomerstown/100-Morris-Crossing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5396871121,
+      "lat": 40.2865152,
+      "lon": -81.5678386,
+      "tags": {
+        "addr:city": "Newcomerstown",
+        "addr:housenumber": "110",
+        "addr:postcode": "43832",
+        "addr:state": "OH",
+        "addr:street": "Morris Crossing",
+        "amenity": "fast_food",
+        "brand": "Wendy's",
+        "brand:wikidata": "Q550258",
+        "cuisine": "burger",
+        "drive_through": "yes",
+        "internet_access": "wlan",
+        "name": "Wendy's",
+        "opening_hours": "07:00-22:00",
+        "opening_hours:drive_through": "Mo-Su 06:30-23:00",
+        "phone": "+1 740-498-4327",
+        "takeaway": "yes",
+        "website": "https://locations.wendys.com/united-states/oh/newcomerstown/110-morris-xing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5396936321,
+      "lat": 40.2856069,
+      "lon": -81.5656096,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "BP",
+        "brand:wikidata": "Q152057",
+        "name": "BP"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5748000321,
+      "lat": 40.4923426,
+      "lon": -81.4722548,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "135",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Southwest",
+        "amenity": "fast_food",
+        "brand": "Chipotle",
+        "brand:wikidata": "Q465751",
+        "cuisine": "mexican",
+        "name": "Chipotle",
+        "official_name": "Chipotle Mexican Grill",
+        "phone": "+1 330-308-9375",
+        "takeaway": "yes",
+        "website": "https://locations.chipotle.com/oh/new-philadelphia/135-bluebell-dr-sw"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5748000421,
+      "lat": 40.4924616,
+      "lon": -81.4722357,
+      "tags": {
+        "brand": "T-Mobile",
+        "brand:wikidata": "Q3511885",
+        "name": "T-Mobile",
+        "shop": "mobile_phone",
+        "website": "https://www.t-mobile.com/stores/bd/t-mobile-new-philadelphia-oh-44663-874e"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5748000422,
+      "lat": 40.4926079,
+      "lon": -81.4722184,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "125",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Southwest",
+        "amenity": "cafe",
+        "branch": "Bluebell Drive, New Philadelphia",
+        "brand": "Starbucks",
+        "brand:wikidata": "Q37158",
+        "cuisine": "coffee_shop",
+        "name": "Starbucks",
+        "official_name": "Starbucks Coffee",
+        "phone": "+1 330-401-9748",
+        "ref": "1019054",
+        "takeaway": "yes",
+        "website": "https://www.starbucks.com/store-locator/store/1019054/bluebell-dr-new-philadelphia-125-bluebell-drive-sw-new-philadelphia-oh-44663966"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5924800585,
+      "lat": 40.4002154,
+      "lon": -81.3486641,
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "mexican",
+        "name": "El Pueblito"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5924800586,
+      "lat": 40.3998977,
+      "lon": -81.3480181,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Papa John's",
+        "brand:wikidata": "Q2759586",
+        "cuisine": "pizza",
+        "name": "Papa John's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6299173489,
+      "lat": 40.3902835,
+      "lon": -81.3464048,
+      "tags": {
+        "name": "Stillwater Outfitters",
+        "shop": "outdoor"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6311390490,
+      "lat": 40.4737309,
+      "lon": -81.4417605,
+      "tags": {
+        "brand": "BMW",
+        "name": "Mathias BMW",
+        "phone": "+1-330-308-8868",
+        "shop": "motorcycle"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6399733325,
+      "lat": 40.4513812,
+      "lon": -81.6299618,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "2274",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "Ragersville Road Southwest",
+        "amenity": "restaurant",
+        "cuisine": "american",
+        "name": "Tavern of Ragersville",
+        "outdoor_seating": "no",
+        "takeaway": "yes",
+        "website": "https://www.facebook.com/Tavern-of-Ragersville-LLC-1703350913272573/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6405230028,
+      "lat": 40.5179059,
+      "lon": -81.480162,
+      "tags": {
+        "name": "Hoodeltown",
+        "name:en": "Hoodeltown Brewing Co",
+        "shop": "beverages"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6740309893,
+      "lat": 40.4715785,
+      "lon": -81.418735,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1216",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "East High Avenue",
+        "amenity": "restaurant",
+        "name": "Maggoo's Pizza, Pasta, & More",
+        "opening_hours": "Tu-Th 16:00-21:00; Fr-Sa 16:00-22:00; Su-Mo closed",
+        "phone": "+1-330-365-1466"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6853964470,
+      "lat": 40.4928504,
+      "lon": -81.4688337,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1150",
+        "addr:postcode": "44633",
+        "addr:street": "West High Avenue",
+        "brand": "Advance Auto Parts",
+        "brand:wikidata": "Q4686051",
+        "name": "Advance Auto Parts",
+        "opening_hours": "Mo-We 08:00-21:00; Th-Sa 07:30-21:00; Su 09:00-20:00",
+        "shop": "car_parts",
+        "website": "https://stores.advanceautoparts.com/oh/new-philadelphia/1150-w-high-ave"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6853964471,
+      "lat": 40.492427,
+      "lon": -81.466562,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1072",
+        "addr:postcode": "44633",
+        "addr:street": "West High Avenue",
+        "amenity": "restaurant",
+        "brand": "Buffalo Wild Wings",
+        "brand:wikidata": "Q509255",
+        "cuisine": "wings",
+        "name": "Buffalo Wild Wings",
+        "opening_hours": "Mo-Su 10:30-22:00; Fr,Sa 10:30-24:00",
+        "short_name": "BW3"
+      }
+    },
+    {
+      "type": "node",
+      "id": 7011114286,
+      "lat": 40.4732547,
+      "lon": -81.4204196,
+      "tags": {
+        "addr:housenumber": "1690",
+        "addr:street": "East High Avenue",
+        "name": "5 Barrel Bullet Brewing",
+        "shop": "beverages"
+      }
+    },
+    {
+      "type": "node",
+      "id": 7043270071,
+      "lat": 40.4893845,
+      "lon": -81.4452789,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "101",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "South Broadway Street",
+        "beauty": "nails",
+        "name": "Dana Nail Junkie & Co.",
+        "shop": "beauty",
+        "website": "https://dananailjunkie.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8447418213,
+      "lat": 40.444526,
+      "lon": -81.70005,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Marathon",
+        "brand:wikidata": "Q458363",
+        "name": "Marathon"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8825517158,
+      "lat": 40.4894665,
+      "lon": -81.444333,
+      "tags": {
+        "addr:housenumber": "141",
+        "addr:street": "E High Ave",
+        "amenity": "bank",
+        "brand": "Chase",
+        "brand:wikidata": "Q524629",
+        "check_date": "2024-09-17",
+        "name": "Chase",
+        "opening_hours": "Mo-Fr 09:00-17:00; Sa 09:00-13:00",
+        "phone": "+1-330-364-7242",
+        "website": "https://locator.chase.com/oh/new-philadelphia/141-e-high-ave"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8825559156,
+      "lat": 40.4894518,
+      "lon": -81.4452718,
+      "tags": {
+        "addr:housenumber": "108",
+        "addr:street": "E High Ave",
+        "name": "House of Stones",
+        "phone": "+1-330-343-7161",
+        "shop": "jewelry",
+        "website": "https://www.houseofstones.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8825563913,
+      "lat": 40.487511,
+      "lon": -81.4461095,
+      "tags": {
+        "addr:housenumber": "205",
+        "addr:street": "S Broadway St",
+        "name": "Lighting, Signs, & Decals",
+        "opening_hours": "Mo-Fr 09:00-16:00",
+        "phone": "+1-330-440-3129",
+        "shop": "copyshop",
+        "website": "https://lightingsign.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8825576629,
+      "lat": 40.4874832,
+      "lon": -81.4467397,
+      "tags": {
+        "addr:housenumber": "214",
+        "addr:street": "Broadway Street",
+        "name": "Tire Choice Auto Services Center",
+        "phone": "+1-330-680-7253",
+        "shop": "tyres",
+        "website": "https://locations.thetirechoice.com/oh/new-philadelphia/214-south-broadway.html"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8825591099,
+      "lat": 40.4893222,
+      "lon": -81.445602,
+      "tags": {
+        "addr:housenumber": "111",
+        "addr:street": "S Broadway St.",
+        "name": "Metro By T-Mobile",
+        "phone": "+1-330-365-9559",
+        "shop": "mobile_phone",
+        "website": "https://www.metrobyt-mobile.com/storelocator/oh/new-philadelphia/111-s-broadway-st"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668017097,
+      "lat": 40.4928705,
+      "lon": -81.4477624,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "238",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "2nd Street Northwest",
+        "amenity": "pharmacy",
+        "dispensing": "yes",
+        "healthcare": "pharmacy",
+        "name": "Discount Drug Mart",
+        "opening_hours": "Mo-Sa 08:00-22:00; Su 09:00-21:00",
+        "phone": "+1 330 725 2340",
+        "ref": "26",
+        "website": "https://ddmphoto.discount-drugmart.com/stores/ohio/new-phila/discount-drug-mart-new-phila-26"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668030158,
+      "lat": 40.2866576,
+      "lon": -81.5677631,
+      "tags": {
+        "addr:city": "Newcomerstown",
+        "addr:housenumber": "100",
+        "addr:postcode": "43832",
+        "addr:state": "OH",
+        "addr:street": "Morris Crossing",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6240",
+        "shop": "convenience",
+        "website": "https://www.speedway.com/locations/OH/Newcomerstown/100-Morris-Crossing"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668084217,
+      "lat": 40.4926653,
+      "lon": -81.444109,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "243",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "North Broadway Street",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6242",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668084218,
+      "lat": 40.4898677,
+      "lon": -81.449592,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "264",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "1152",
+        "shop": "convenience",
+        "website": "https://www.speedway.com/locations/OH/New-Philadelphia/264-West-High-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668295802,
+      "lat": 40.4954229,
+      "lon": -81.4741839,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "240",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "brand": "Tractor Supply Company",
+        "brand:wikidata": "Q15109925",
+        "name": "Tractor Supply Company",
+        "opening_hours": "Su 09:00-19:00; Mo-Sa 08:00-21:00",
+        "phone": "+1 330 339 9500",
+        "ref": "574",
+        "shop": "country_store",
+        "website": "https://www.tractorsupply.com/tsc/store_NewPhiladelphia-OH-44663_574"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303821,
+      "lat": 40.4940288,
+      "lon": -81.4693783,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1187",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "brand": "ALDI",
+        "brand:wikidata": "Q41171672",
+        "name": "ALDI",
+        "opening_hours": "Mo-Su 08:30-20:00",
+        "phone": "+1 833-463-7006",
+        "ref": "63006",
+        "shop": "supermarket",
+        "website": "https://stores.aldi.us/oh/new-philadelphia/1187-w-high-street"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303822,
+      "lat": 40.4971874,
+      "lon": -81.474026,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "408",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "brand": "Big Lots",
+        "brand:wikidata": "Q4905973",
+        "name": "Big Lots",
+        "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-21:00",
+        "phone": "+1 330-339-2690",
+        "ref": "815",
+        "shop": "department_store",
+        "website": "https://local.biglots.com/oh/new-philadelphia/408-bluebell-dr-nw"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303823,
+      "lat": 40.4962392,
+      "lon": -81.4741131,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "348",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "name": "Dollar General",
+        "post_office": "post_partner",
+        "post_office:brand": "FedEx OnSite",
+        "post_office:service_provider": "FedEx",
+        "post_office:website": "https://local.fedex.com/en-us/oh/new-philadelphia/phdcl",
+        "ref": "2509",
+        "shop": "variety_store",
+        "website": "https://www.dollargeneral.com/store-directory/oh/new-philadelphia/2509"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303824,
+      "lat": 40.4958053,
+      "lon": -81.4741799,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "280",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "brand": "Dollar Tree",
+        "brand:wikidata": "Q5289230",
+        "check_date": "2024-07-11",
+        "check_date:opening_hours": "2024-07-11",
+        "name": "Dollar Tree",
+        "opening_hours": "Mo-Sa 09:00-22:00; Su 09:00-20:00",
+        "ref": "2788",
+        "shop": "variety_store",
+        "website": "https://www.dollartree.com/locations/oh/new-philadelphia/2788/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303825,
+      "lat": 40.4940789,
+      "lon": -81.4738219,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1281",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "amenity": "fuel",
+        "brand": "Sheetz",
+        "brand:wikidata": "Q7492551",
+        "name": "Sheetz",
+        "ref": "357"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303834,
+      "lat": 40.4941175,
+      "lon": -81.4741807,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1281",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "atm": "yes",
+        "brand": "Sheetz",
+        "brand:wikidata": "Q7492551",
+        "car_wash": "yes",
+        "delivery": "yes",
+        "internet_access": "wlan",
+        "name": "Sheetz",
+        "opening_hours": "24/7",
+        "phone": "+1 330-365-9284",
+        "ref": "357",
+        "shop": "convenience",
+        "website": "https://orders.sheetz.com/findasheetz/store/357"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303835,
+      "lat": 40.4929082,
+      "lon": -81.4733106,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1260",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6246",
+        "shop": "convenience",
+        "website": "https://www.speedway.com/locations/OH/New-Philadelphia/1260-West-High-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668303836,
+      "lat": 40.493156,
+      "lon": -81.4732885,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1260",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6246",
+        "website": "https://www.speedway.com/locations/OH/New-Philadelphia/1260-West-High-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668364456,
+      "lat": 40.5190935,
+      "lon": -81.4715611,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "119",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "name": "Tienda La Favorita",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668364477,
+      "lat": 40.5179476,
+      "lon": -81.4697116,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "225",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6243",
+        "shop": "convenience",
+        "website": "https://www.speedway.com/locations/OH/Dover/225-South-Wooster-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668451625,
+      "lat": 40.5268189,
+      "lon": -81.4911854,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1120",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "amenity": "fuel",
+        "brand": "BP",
+        "brand:wikidata": "Q152057",
+        "name": "BP",
+        "opening_hours": "24/7"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668451626,
+      "lat": 40.5266033,
+      "lon": -81.4912219,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1120",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "name": "Duchess",
+        "opening_hours": "24/7",
+        "phone": "+1 330 343 9294",
+        "ref": "75",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668451635,
+      "lat": 40.5263008,
+      "lon": -81.4885371,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1020",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "name": "Yoder's Hometown Market",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668451666,
+      "lat": 40.5264514,
+      "lon": -81.4895235,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1042",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6244",
+        "shop": "convenience",
+        "website": "https://www.speedway.com/locations/OH/Dover/1042-North-Tuscarawas-Avenue"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668451667,
+      "lat": 40.5277158,
+      "lon": -81.4914567,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1127",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "3557",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668478833,
+      "lat": 40.6354956,
+      "lon": -81.4384115,
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "10787",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "SR 212",
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "name": "Dollar General",
+        "opening_hours": "Mo-Su 08:00-21:00",
+        "phone": "+1-234-360-0570",
+        "ref": "6157",
+        "shop": "variety_store",
+        "website": "https://www.dollargeneral.com/store-directory/oh/bolivar/6157"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9668478862,
+      "lat": 40.6410942,
+      "lon": -81.4437423,
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "11099",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "Sr 212",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedway",
+        "ref": "6241",
+        "shop": "convenience",
+        "website": "https://www.speedway.com/locations/OH/Bolivar/11099-State-Route-212-Northeast"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9774644601,
+      "lat": 40.4819084,
+      "lon": -81.4851224,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1633",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Steele Hill Road Northwest",
+        "name": "Shook Auto",
+        "phone": "+1-330-339-5711",
+        "shop": "car"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10307611286,
+      "lat": 40.480477,
+      "lon": -81.4426625,
+      "tags": {
+        "amenity": "restaurant",
+        "cuisine": "chinese",
+        "name": "Empire Chinese Buffet",
+        "phone": "+1-330-339-9300",
+        "website": "https://www.facebook.com/people/Empire-China-Buffet/100063618787697/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10311189435,
+      "lat": 40.4729944,
+      "lon": -81.4048374,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1776",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Tech Park Drive Northeast",
+        "addr:unit": "202",
+        "healthcare": "speech_therapist",
+        "name": "TeleVine Therapy",
+        "phone": "+1-330-536-3042",
+        "website": "https://televinetherapy.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 10635866287,
+      "lat": 40.483017,
+      "lon": -81.4413069,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "513",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Mill Avenue Southwest",
+        "addr:unit": "279",
+        "name": "J&L RE Solutions LLC",
+        "office": "estate_agent",
+        "opening_hours": "Mo-Fr 09:00-18:00",
+        "phone": "+1-888-409-5008",
+        "website": "https://webuyyourland4cash.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11140873005,
+      "lat": 40.5293456,
+      "lon": -81.4813247,
+      "tags": {
+        "addr:housenumber": "939",
+        "addr:postcode": "44622",
+        "addr:street": "North Wooster Avenue",
+        "brand": "Circle K",
+        "brand:wikidata": "Q3268010",
+        "name": "Circle K",
+        "opening_hours": "24/7",
+        "operator": "Circle K",
+        "phone": "+13303431014",
+        "shop": "convenience",
+        "website": "https://www.circlek.com/store-locator/US/dover/939-n-wooster/4705431"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11140877205,
+      "lat": 40.5291716,
+      "lon": -81.4812046,
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "935",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Wooster Avenue",
+        "amenity": "fast_food",
+        "brand": "Subway",
+        "brand:wikidata": "Q244457",
+        "cuisine": "sandwich",
+        "drive_through": "no",
+        "name": "Subway",
+        "opening_hours": "Mo-Su 09:00-22:00",
+        "operator": "Subway",
+        "phone": "+1 330-343-7827",
+        "takeaway": "yes",
+        "website": "https://restaurants.subway.com/united-states/oh/dover/933-&-935-n-wooster-ave"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11146507405,
+      "lat": 40.4919882,
+      "lon": -81.4555056,
+      "tags": {
+        "addr:housenumber": "537",
+        "addr:postcode": "44633",
+        "addr:street": "West High Avenue",
+        "name": "Cheap Tobacco",
+        "opening_hours": "Mo-Fr 09:00-19:00; Su 10:00-17:00; Sa 09:00-18:00",
+        "operator": "Cheap Tabacco",
+        "shop": "tobacco",
+        "website": "https://www.cheaptobaccousa.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11146593505,
+      "lat": 40.4919193,
+      "lon": -81.4556754,
+      "tags": {
+        "addr:housenumber": "239",
+        "addr:postcode": "44663",
+        "addr:street": "West High Avenue",
+        "amenity": "fast_food",
+        "brand": "Little Caesars",
+        "brand:wikidata": "Q1393809",
+        "cuisine": "pizza",
+        "name": "Little Caesars",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "operator": "Little Caesars",
+        "phone": "+1-330-308-0654",
+        "takeaway": "yes",
+        "website": "https://littlecaesars.com/en-us/store/10306/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11157994954,
+      "lat": 40.3932226,
+      "lon": -81.346552,
+      "tags": {
+        "addr:city": "Uhrichsville",
+        "addr:housenumber": "505",
+        "addr:postcode": "44683",
+        "addr:state": "OH",
+        "addr:street": "North Water Street",
+        "contact:facebook": "https://www.facebook.com/profile.php?id=100093696834706",
+        "name": "Wade Auto Repair and Performance",
+        "phone": "+1-740-922-0163",
+        "service:vehicle:alignment": "yes",
+        "service:vehicle:bearings": "yes",
+        "service:vehicle:brakes": "yes",
+        "service:vehicle:chassis": "yes",
+        "service:vehicle:cv_axles": "yes",
+        "service:vehicle:engine_repair": "yes",
+        "service:vehicle:oil_change": "yes",
+        "service:vehicle:repair": "yes",
+        "service:vehicle:tyres": "yes",
+        "shop": "car_repair"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11222325237,
+      "lat": 40.4112547,
+      "lon": -81.3505125,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Wendy's",
+        "brand:wikidata": "Q550258",
+        "cuisine": "burger",
+        "name": "Wendy's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11253801637,
+      "lat": 40.5114766,
+      "lon": -81.5418271,
+      "tags": {
+        "name": "Norma Johnson Center",
+        "operator": "Tuscarawas County Park Department (TuscParks)",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11420723469,
+      "lat": 40.4005573,
+      "lon": -81.3478843,
+      "tags": {
+        "addr:housenumber": "1103",
+        "addr:postcode": "44683",
+        "addr:street": "North Water Street",
+        "brand": "Circle K",
+        "brand:wikidata": "Q3268010",
+        "name": "Circle K",
+        "opening_hours": "24/7",
+        "operator": "Circle K",
+        "phone": "+1-740-922-6925",
+        "shop": "convenience",
+        "website": "https://www.circlek.com/store-locator/US/uhrichsville/1103-n-water-st/4705566"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11434789969,
+      "lat": 40.5986615,
+      "lon": -81.5271969,
+      "tags": {
+        "addr:housenumber": "219",
+        "addr:postcode": "44680",
+        "addr:street": "North Wooster Avenue",
+        "brand": "Circle K",
+        "brand:wikidata": "Q3268010",
+        "name": "Circle K",
+        "opening_hours": "24/7",
+        "operator": "Circle K",
+        "phone": "+1-330-878-9035",
+        "shop": "convenience",
+        "website": "https://www.circlek.com/store-locator/US/strasburg/219-n-wooster/4705434"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11434818669,
+      "lat": 40.5984557,
+      "lon": -81.5275313,
+      "tags": {
+        "addr:housenumber": "219",
+        "addr:postcode": "44680",
+        "addr:street": "North Wooster Avenue",
+        "amenity": "fuel",
+        "brand": "Circle K",
+        "brand:wikidata": "Q3268010",
+        "name": "Circle K",
+        "opening_hours": "24/7",
+        "operator": "Circle K",
+        "phone": "+1-330-878-9035",
+        "website": "https://www.circlek.com/store-locator/US/strasburg/219-n-wooster/4705434"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11599447192,
+      "lat": 40.5919752,
+      "lon": -81.5251328,
+      "tags": {
+        "addr:city": "Tuscarawas County",
+        "addr:country": "US",
+        "addr:housenumber": "607",
+        "addr:postcode": "44680",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "cuisine": "burger",
+        "drive_through": "yes",
+        "indoor_seating": "yes",
+        "internet_access": "wlan",
+        "name": "McDonald's",
+        "phone": "+1 330-878-2444",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/strasburg/607-s-wooster-ave/22193.html"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11845638582,
+      "lat": 40.5031057,
+      "lon": -81.6405824,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "100",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "North Broadway Street",
+        "description": "Featured on the cover of the Guinness Book of World Records in 1977. Every half hour, a cuckoo bird pops out and then you hear Swiss polka music playing as the band",
+        "name": "World's Largest Cuckoo Clock",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11921908671,
+      "lat": 40.4924948,
+      "lon": -81.4689794,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "143",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Garland Dr. SW",
+        "email": "info@laurenagrisystems.com",
+        "facebook": "http://www.facebook.com/LaurenAgriSystems",
+        "name": "Lauren AgriSystems Ltd.",
+        "opening_hours": "Mo-Fr 09:00-17:00",
+        "phone": "+1-330-708-5799",
+        "shop": "agrarian"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11952137980,
+      "lat": 40.5864922,
+      "lon": -81.6085211,
+      "tags": {
+        "addr:city": "Dundee",
+        "addr:housenumber": "6783",
+        "addr:postcode": "44624",
+        "addr:state": "Ohio",
+        "addr:street": "State Route 93",
+        "name": "Dundee Marketplace",
+        "payment:cash": "yes",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "phone": "+12347011003",
+        "shop": "supermarket",
+        "website": "https://dundeemarketplace.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11952137981,
+      "lat": 40.5864751,
+      "lon": -81.6082347,
+      "tags": {
+        "addr:city": "Dundee",
+        "addr:housenumber": "8088",
+        "addr:postcode": "44624",
+        "addr:state": "Ohio",
+        "addr:street": "State Route 516",
+        "amenity": "restaurant",
+        "name": "Cafe 93",
+        "phone": "+12347011003"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12022797112,
+      "lat": 40.4987347,
+      "lon": -81.472813,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "611",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "brand": "Menards",
+        "brand:wikidata": "Q1639897",
+        "name": "Menards",
+        "ref": "3336",
+        "shop": "doityourself",
+        "website": "https://www.menards.com/store-details/store.html?store=3336"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12292372365,
+      "lat": 40.509836,
+      "lon": -81.452278,
+      "tags": {
+        "addr:country": "US",
+        "addr:housenumber": "1446",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "4th Street Northwest",
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "check_date": "2024-02-01",
+        "check_date:opening_hours": "2024-02-01",
+        "check_date:opening_hours:drive_through": "2024-02-01",
+        "cuisine": "burger",
+        "drive_through": "yes",
+        "indoor_seating": "yes",
+        "internet_access": "wlan",
+        "name": "McDonald's",
+        "opening_hours": "Mo-Sa 05:00-22:00; Su 06:00-22:00",
+        "opening_hours:drive_through": "Mo-We 05:00-23:00; Th 05:00-24:00; Fr-Sa 05:00-01:00; Su 06:00-23:00",
+        "phone": "+1 330-343-6566",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/new-philadelphia/1446-4th-st-nw/17706.html"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12308382657,
+      "lat": 40.3244242,
+      "lon": -81.578762,
+      "tags": {
+        "name": "Umbrella Rock",
+        "natural": "rock",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12478478018,
+      "lat": 40.5180156,
+      "lon": -81.4693683,
+      "tags": {
+        "amenity": "car_wash",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedy Wash"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12478479346,
+      "lat": 40.4925651,
+      "lon": -81.4437763,
+      "tags": {
+        "amenity": "car_wash",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "name": "Speedy Wash"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12613655631,
+      "lat": 40.4960737,
+      "lon": -81.474372,
+      "tags": {
+        "addr:housenumber": "270",
+        "addr:street": "Bluebell Dr",
+        "brand": "Planet Fitness",
+        "brand:wikidata": "Q7201095",
+        "leisure": "fitness_centre",
+        "name": "Planet Fitness",
+        "opening_hours": "Mo-Th 00:00-12:00; Fr 00:00-21:00; Sa,Su 06:00-19:00",
+        "phone": "+1-234-801-4527"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12650628756,
+      "lat": 40.5231131,
+      "lon": -81.4892922,
+      "tags": {
+        "brand": "Nissan",
+        "brand:wikidata": "Q20165",
+        "name": "Parkway Nissan",
+        "shop": "car"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12652958287,
+      "lat": 40.4967727,
+      "lon": -81.4731023,
+      "tags": {
+        "brand": "GameStop",
+        "brand:wikidata": "Q202210",
+        "name": "GameStop",
+        "shop": "video_games"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12652968998,
+      "lat": 40.4927383,
+      "lon": -81.4677215,
+      "tags": {
+        "amenity": "car_wash",
+        "brand": "Take 5",
+        "brand:wikidata": "Q112359190",
+        "name": "Take 5 Car Wash",
+        "shop": "car_repair"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12652993703,
+      "lat": 40.4949487,
+      "lon": -81.4705695,
+      "tags": {
+        "brand": "Walmart",
+        "brand:wikidata": "Q483551",
+        "name": "Walmart Garden Center",
+        "shop": "garden_centre"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12652993704,
+      "lat": 40.4955763,
+      "lon": -81.4706712,
+      "tags": {
+        "amenity": "pharmacy",
+        "brand": "Walmart",
+        "brand:wikidata": "Q483551",
+        "healthcare": "pharmacy",
+        "name": "Walmart Pharmacy"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12653000611,
+      "lat": 40.4926705,
+      "lon": -81.4752859,
+      "tags": {
+        "brand": "TownePlace Suites",
+        "brand:wikidata": "Q7830092",
+        "name": "TownePlace Suites",
+        "official_name": "TownePlace Suites by Marriott",
+        "tourism": "hotel"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12653000612,
+      "lat": 40.4937944,
+      "lon": -81.4748862,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Arby's",
+        "brand:wikidata": "Q630866",
+        "cuisine": "sandwich",
+        "drive_through": "yes",
+        "name": "Arby's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12653007899,
+      "lat": 40.5238236,
+      "lon": -81.4899258,
+      "tags": {
+        "brand": "AutoZone",
+        "brand:wikidata": "Q4826087",
+        "name": "AutoZone",
+        "shop": "car_parts"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12675071754,
+      "lat": 40.6048353,
+      "lon": -81.5300863,
+      "tags": {
+        "addr:city": "Strasburg",
+        "addr:housenumber": "715",
+        "addr:postcode": "44680",
+        "addr:state": "OH",
+        "addr:street": "North Wooster Avenue",
+        "amenity": "fuel",
+        "brand": "Sunoco",
+        "brand:wikidata": "Q1423218",
+        "name": "Sunoco",
+        "website": "https://www.sunoco.com/locations/store/715-n-wooster-ave-strasburg-oh-0874132400"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900626,
+      "lat": 40.5868695,
+      "lon": -81.5226442,
+      "tags": {
+        "brand": "BellStores",
+        "brand:wikidata": "Q111698204",
+        "name": "BellStores",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900627,
+      "lat": 40.5871073,
+      "lon": -81.5228353,
+      "tags": {
+        "amenity": "fuel",
+        "name": "Bellstores"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900628,
+      "lat": 40.587064,
+      "lon": -81.5225181,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "DQ Grill & Chill",
+        "brand:wikidata": "Q1141226",
+        "cuisine": "ice_cream;burger",
+        "name": "DQ Grill & Chill",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900629,
+      "lat": 40.5870517,
+      "lon": -81.5247176,
+      "tags": {
+        "name": "Mickey Mart",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900630,
+      "lat": 40.587132,
+      "lon": -81.5245102,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Taco Bell",
+        "brand:wikidata": "Q752941",
+        "cuisine": "tex-mex",
+        "name": "Taco Bell",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900631,
+      "lat": 40.5873512,
+      "lon": -81.5247785,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "BP",
+        "brand:wikidata": "Q152057",
+        "name": "BP"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684900632,
+      "lat": 40.5885305,
+      "lon": -81.525177,
+      "tags": {
+        "addr:city": "Strasburg",
+        "addr:housenumber": "782",
+        "addr:postcode": "44680",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "amenity": "fast_food",
+        "brand": "Hardee's",
+        "brand:wikidata": "Q1585088",
+        "cuisine": "burger",
+        "drive_through": "yes",
+        "internet_access": "wlan",
+        "name": "Hardee's",
+        "opening_hours": "Su-Th 06:00-21:00; Fr-Sa 06:00-22:00",
+        "phone": "+1-330-878-4350",
+        "takeaway": "yes",
+        "website": "https://locations.hardees.com/oh/strasburg/782-s-wooster-avenue/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684906514,
+      "lat": 40.5900583,
+      "lon": -81.5256701,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Subway",
+        "brand:wikidata": "Q244457",
+        "cuisine": "sandwich",
+        "name": "Subway",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684906515,
+      "lat": 40.5899472,
+      "lon": -81.5256323,
+      "tags": {
+        "alt_name": "Verizon Wireless",
+        "brand": "Verizon",
+        "brand:wikidata": "Q919641",
+        "name": "Verizon",
+        "shop": "mobile_phone"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12684963159,
+      "lat": 40.5995441,
+      "lon": -81.3617251,
+      "tags": {
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "name": "Dollar General",
+        "shop": "variety_store"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12843195868,
+      "lat": 40.5187578,
+      "lon": -81.478681,
+      "tags": {
+        "addr:housenumber": "120",
+        "addr:street": "North Tuscarawas Avenue",
+        "amenity": "restaurant",
+        "name": "Taqueria Lopez",
+        "phone": "+1-330-440-3972"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844122687,
+      "lat": 40.5082896,
+      "lon": -81.632726,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "522",
+        "addr:state": "OH",
+        "addr:street": "Dover Road Northeast",
+        "amenity": "cafe",
+        "internet_access": "wlan",
+        "name": "Amish Country Donuts & Cafe",
+        "opening_hours": "Mo-Sa 07:00-14:00; Su off",
+        "phone": "+1 330 852 5214",
+        "website": "https://www.amishcountrydonuts.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844343440,
+      "lat": 40.5035286,
+      "lon": -81.64075,
+      "tags": {
+        "female:signed": "no",
+        "male:signed": "no",
+        "name": "Village Hair Shop",
+        "opening_hours": "\"by appointment only\"",
+        "shop": "hairdresser"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844356013,
+      "lat": 40.503489,
+      "lon": -81.6406315,
+      "tags": {
+        "beauty": "nails",
+        "name": "Coated",
+        "shop": "beauty"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844370468,
+      "lat": 40.5038599,
+      "lon": -81.6404083,
+      "tags": {
+        "amenity": "pharmacy",
+        "healthcare": "pharmacy",
+        "name": "Premier Pharmacy",
+        "opening_hours": "Mo-Fr 05:00-18:00; Sa 05:00-13:00; Su off"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844376363,
+      "lat": 40.5009108,
+      "lon": -81.6429964,
+      "tags": {
+        "amenity": "veterinary",
+        "name": "Sugarcreek Veterinary Clinic"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844821809,
+      "lat": 40.5083731,
+      "lon": -81.6178563,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "1050",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "Dover Road Northeast",
+        "amenity": "bank",
+        "name": "Farm Credit Mid-America",
+        "phone": "+1 330 674 0700",
+        "website": "https://www.fcma.com/locations/detail/sugarcreek--oh"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844828952,
+      "lat": 40.5027095,
+      "lon": -81.6406189,
+      "tags": {
+        "name": "The Gospel Shop",
+        "opening_hours": "Mo-Th,Sa 08:30-17:00; Fr 08:30-19:00; Su off",
+        "shop": "books"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844863554,
+      "lat": 40.5023192,
+      "lon": -81.6413996,
+      "tags": {
+        "amenity": "bank",
+        "name": "The Commercial & Savings Bank"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844876241,
+      "lat": 40.5030695,
+      "lon": -81.6411426,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "100",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "West Main Street",
+        "contact:facebook": "https://www.facebook.com/fuzzyedgescorner",
+        "name": "Fuzzy Edges Corner",
+        "opening_hours": "Su-Th off; Fr 11:00-16:00; Sa 11:00-17:00",
+        "phone": "+1 330 415 6100",
+        "shop": "gift"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844892368,
+      "lat": 40.5027727,
+      "lon": -81.6407454,
+      "tags": {
+        "name": "Carlisle Fabric & Quilts",
+        "opening_hours": "Mo 08:30-18:00; Tu-Fr 08:30-17:00; Sa 08:30-16:00; Su off",
+        "shop": "fabric"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844919434,
+      "lat": 40.5028742,
+      "lon": -81.6403545,
+      "tags": {
+        "name": "Collectors Decanters & Steins",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844922456,
+      "lat": 40.5032097,
+      "lon": -81.6413768,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "110",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "West Main Street",
+        "name": "Secret Garden, Inc",
+        "shop": "gift"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844925456,
+      "lat": 40.5027723,
+      "lon": -81.6413858,
+      "tags": {
+        "craft": "photographer",
+        "name": "Jackie Beachy Photography"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844932455,
+      "lat": 40.5027711,
+      "lon": -81.6400996,
+      "tags": {
+        "amenity": "bank",
+        "brand": "Huntington Bank",
+        "brand:wikidata": "Q798819",
+        "name": "Huntington Bank",
+        "opening_hours": "Mo-Th 09:00-16:00; Fr 09:00-17:00; Sa 09:00-12:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844934530,
+      "lat": 40.502399,
+      "lon": -81.6401951,
+      "tags": {
+        "amenity": "pub",
+        "name": "Bags Sport Pub",
+        "opening_hours": "Mo-Th 11:00-21:00; Su 11:00-20:00; Fr,Sa 11:00-22:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844934740,
+      "lat": 40.5029142,
+      "lon": -81.6404409,
+      "tags": {
+        "name": "Esther's Home Bakery",
+        "opening_hours": "Mo-Sa 08:00-17:00; Su off",
+        "shop": "bakery"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844940393,
+      "lat": 40.5033185,
+      "lon": -81.6392357,
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "124",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "Factory Street Northeast",
+        "name": "The Budget",
+        "office": "newspaper",
+        "phone": "+1 330 852 4634"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844945996,
+      "lat": 40.5026515,
+      "lon": -81.6411775,
+      "tags": {
+        "amenity": "cafe",
+        "cuisine": "coffee_shop",
+        "name": "Collective Coffee Co",
+        "opening_hours": "Tu-Fr 07:30-17:00; Sa 08:00-14:00; Su,Mo off"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844954845,
+      "lat": 40.502992,
+      "lon": -81.6405329,
+      "tags": {
+        "brand": "Jackson Hewitt",
+        "brand:wikidata": "Q6117132",
+        "name": "Jackson Hewitt",
+        "office": "tax_advisor",
+        "official_name": "Jackson Hewitt Tax Service"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12844957469,
+      "lat": 40.5026748,
+      "lon": -81.6411544,
+      "tags": {
+        "name": "Nita's Closet Fashion Boutique",
+        "opening_hours": "Tu-Fr 10:00-17:00; Sa 10:00-14:00; Su,Mo off",
+        "shop": "fashion_accessories"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13166639982,
+      "lat": 40.4985219,
+      "lon": -81.4071475,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "2397",
+        "addr:postcode": "44663",
+        "addr:state": "Ohio",
+        "addr:street": "State Route 39",
+        "craft": "electrician",
+        "email": "joedump330@gmail.com",
+        "name": "Joe Dump",
+        "opening_hours": "Mo-Fr 08:00-17:00",
+        "phone": "+1-330-447-6352",
+        "website": "https://www.joedumpllc.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13166639991,
+      "lat": 40.4981397,
+      "lon": -81.4081754,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "2352",
+        "addr:postcode": "44663",
+        "addr:state": "Ohio",
+        "addr:street": "State Route 39",
+        "amenity": "bar",
+        "min_age": "21",
+        "name": "Huffys Bar and Grill",
+        "website": "https://www.facebook.com/huffysbarandgrill/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13443059901,
+      "lat": 40.4966847,
+      "lon": -81.4740245,
+      "tags": {
+        "addr:housenumber": "344",
+        "addr:postcode": "44663",
+        "addr:street": "Bluebell Drive Northwest",
+        "name": "B. Beautiful Hair & Nails Salon",
+        "phone": "+1-330-339-2244",
+        "shop": "hairdresser",
+        "website": "https://bbeautifulsalon.my.canva.site"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13447875247,
+      "lat": 40.4966561,
+      "lon": -81.474,
+      "tags": {
+        "addr:housenumber": "344",
+        "addr:street": "Bluebell Dr. NW",
+        "name": "B. Beautiful Hair & Nails Salon",
+        "phone": "+1-330-339-2244",
+        "shop": "beauty",
+        "website": "https://bbeautifulsalon.my.canva.site"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13451459802,
+      "lat": 40.6476097,
+      "lon": -81.4519043,
+      "tags": {
+        "addr:housenumber": "225",
+        "addr:street": "Canal St.",
+        "amenity": "restaurant",
+        "description": "Restaurant serving American dishes such as burgers. Serves beers and cocktails.",
+        "name": "Towpath Tavern",
+        "phone": "+1-330-874-6141"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13527667826,
+      "lat": 40.4710245,
+      "lon": -81.4180036,
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1834",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "East High Avenue",
+        "name": "ProAv",
+        "office": "company",
+        "website": "https://www.proavaircraft.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13903140357,
+      "lat": 40.3996389,
+      "lon": -81.3487699,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Domino's",
+        "brand:wikidata": "Q839466",
+        "cuisine": "pizza",
+        "name": "Domino's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13903140382,
+      "lat": 40.3900832,
+      "lon": -81.3413668,
+      "tags": {
+        "brand": "NAPA Auto Parts",
+        "brand:wikidata": "Q6970842",
+        "name": "NAPA Auto Parts",
+        "shop": "car_parts"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13903140397,
+      "lat": 40.412104,
+      "lon": -81.3489491,
+      "tags": {
+        "brand": "Advance Auto Parts",
+        "brand:wikidata": "Q4686051",
+        "name": "Advance Auto Parts",
+        "shop": "car_parts"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13903140412,
+      "lat": 40.4107271,
+      "lon": -81.35037,
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Arby's",
+        "brand:wikidata": "Q630866",
+        "cuisine": "sandwich",
+        "name": "Arby's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13903140429,
+      "lat": 40.4100339,
+      "lon": -81.3514356,
+      "tags": {
+        "alt_name": "Kentucky Fried Chicken",
+        "amenity": "fast_food",
+        "brand": "KFC",
+        "brand:wikidata": "Q524757",
+        "cuisine": "chicken",
+        "name": "KFC",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13903140484,
+      "lat": 40.4100667,
+      "lon": -81.3471033,
+      "tags": {
+        "brand": "AutoZone",
+        "brand:wikidata": "Q4826087",
+        "name": "AutoZone",
+        "shop": "car_parts"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14181196097,
+      "lat": 40.2735405,
+      "lon": -81.6000056,
+      "tags": {
+        "addr:city": "Newcomerstown",
+        "addr:housenumber": "330",
+        "addr:postcode": "43832",
+        "addr:state": "OH",
+        "addr:street": "Ray Street",
+        "check_date": "2026-09-14",
+        "contact:email": "durbentireservice@gmail.com",
+        "contact:facebook": "https://www.facebook.com/DurbenTire/",
+        "currency:XBT": "yes",
+        "name": "Durben Tire Service",
+        "opening_hours": "Mo-Fr 09:00-17:00",
+        "payment:lightning": "yes",
+        "payment:lightning:operator": "square",
+        "payment:lightning_contactless": "no",
+        "payment:onchain": "no",
+        "phone": "+1-740-498-8182",
+        "service:vehicle:maintenance": "yes",
+        "service:vehicle:repairs": "yes",
+        "service:vehicle:tires": "yes",
+        "service:vehicle:tpms": "yes",
+        "service:vehicle:wheel_alignment": "yes",
+        "shop": "car_repair",
+        "website": "https://www.durbentire.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14334634601,
+      "lat": 40.5086282,
+      "lon": -81.64172,
+      "tags": {
+        "addr:housenumber": "215",
+        "addr:postcode": "44681",
+        "addr:street": "Dover Road Northwest",
+        "amenity": "restaurant",
+        "check_date": "2026-10-30",
+        "cuisine": "pizza",
+        "name": "Park Street Pizza",
+        "outdoor_seating": "yes",
+        "phone": "+13308522993",
+        "website": "http://www.parkstreetpizza.com"
+      }
+    },
+    {
+      "type": "way",
+      "id": 161028695,
+      "center": {
+        "lat": 40.5085524,
+        "lon": -81.4576388
+      },
+      "tags": {
+        "addr:housenumber": "600",
+        "addr:postcode": "44663",
+        "addr:street": "Monroe Street NW",
+        "brand": "YMCA",
+        "brand:wikidata": "Q157169",
+        "building": "yes",
+        "leisure": "sports_centre",
+        "name": "YMCA"
+      }
+    },
+    {
+      "type": "way",
+      "id": 161080331,
+      "center": {
+        "lat": 40.4946085,
+        "lon": -81.4747217
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1299",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "alt_name": "Hampton Inn",
+        "branch": "New Philadelphia",
+        "brand": "Hampton",
+        "brand:wikidata": "Q5646230",
+        "building": "yes",
+        "name": "Hampton",
+        "official_name": "Hampton by Hilton",
+        "phone": "+1 330-339-7000",
+        "ref": "NPHOHHX",
+        "tourism": "hotel",
+        "website": "https://www.hilton.com/en/hotels/nphohhx-hampton-new-philadelphia/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 161080341,
+      "center": {
+        "lat": 40.4958512,
+        "lon": -81.4703275
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:country": "US",
+        "addr:housenumber": "231",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Southwest",
+        "brand": "Walmart",
+        "brand:wikidata": "Q483551",
+        "building": "retail",
+        "name": "Walmart Supercenter",
+        "opening_hours": "24/7",
+        "operator": "Walmart",
+        "payment:app:walmart": "yes",
+        "payment:apple_pay": "no",
+        "payment:google_pay": "no",
+        "payment:samsung_pay": "no",
+        "phone": "+1 330-339-3991",
+        "ref": "2115",
+        "ref:walmart": "2115",
+        "sensory_friendly:accommodation": "dimmed_light;static_screens;no_pa",
+        "sensory_friendly:conditional": "yes @ 08:00-10:00",
+        "shop": "supermarket",
+        "website": "https://www.walmart.com/store/2115-new-philadelphia-oh"
+      }
+    },
+    {
+      "type": "way",
+      "id": 164419462,
+      "center": {
+        "lat": 40.6377794,
+        "lon": -81.4485675
+      },
+      "tags": {
+        "leisure": "golf_course",
+        "name": "Wilkshire Golf Course",
+        "sport": "golf"
+      }
+    },
+    {
+      "type": "way",
+      "id": 164419494,
+      "center": {
+        "lat": 40.6416736,
+        "lon": -81.4446607
+      },
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "11155",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "State Route 212 Northeast",
+        "brand": "Sleep Inn",
+        "brand:wikidata": "Q69588194",
+        "building": "yes",
+        "name": "Sleep Inn",
+        "phone": "+1 234-732-3036",
+        "ref": "OH005",
+        "tourism": "hotel",
+        "website": "https://www.choicehotels.com/ohio/uniontown/cambria-hotels"
+      }
+    },
+    {
+      "type": "way",
+      "id": 164419499,
+      "center": {
+        "lat": 40.6407959,
+        "lon": -81.4421926
+      },
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "11031",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "State Route 212 Northeast",
+        "branch": "Bolivar",
+        "brand": "Giant Eagle",
+        "brand:wikidata": "Q1522721",
+        "building": "retail",
+        "name": "Giant Eagle",
+        "opening_hours": "Mo-Su 07:00-21:00",
+        "phone": "+1 330-874-3511",
+        "ref": "4016",
+        "shop": "supermarket"
+      }
+    },
+    {
+      "type": "way",
+      "id": 190098658,
+      "center": {
+        "lat": 40.6118673,
+        "lon": -81.422586
+      },
+      "tags": {
+        "addr:city": "Zoar",
+        "addr:housenumber": "162",
+        "addr:postcode": "44697",
+        "addr:state": "OH",
+        "addr:street": "Main Street",
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "mexican",
+        "name": "Oro Azteca Mexican Grill & Cantina",
+        "phone": "+1-330-874-6069",
+        "website": "https://oroaztecamexicangrillcantina.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 236944861,
+      "center": {
+        "lat": 40.5088065,
+        "lon": -81.6081299
+      },
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "1343",
+        "addr:postcode": "44681",
+        "addr:street": "Old Route 39 Northeast",
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Dutch Valley Restaurant",
+        "opening_hours": "Mo-Th 07:00-19:00; Fr,Sa 07:00-20:00; Su off",
+        "phone": "+1-330-852-4627"
+      }
+    },
+    {
+      "type": "way",
+      "id": 236944865,
+      "center": {
+        "lat": 40.5092023,
+        "lon": -81.6070515
+      },
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "1357",
+        "addr:postcode": "44681",
+        "addr:street": "Old Route 39 Northeast",
+        "building": "yes",
+        "name": "Carlisle Inn Sugarcreek",
+        "phone": "+1-330-852-2586",
+        "tourism": "hotel"
+      }
+    },
+    {
+      "type": "way",
+      "id": 263368717,
+      "center": {
+        "lat": 40.546672,
+        "lon": -81.4813444
+      },
+      "tags": {
+        "access": "yes",
+        "leisure": "sports_centre",
+        "name": "Dover City Pool",
+        "sport": "swimming"
+      }
+    },
+    {
+      "type": "way",
+      "id": 309847081,
+      "center": {
+        "lat": 40.5306653,
+        "lon": -81.6214188
+      },
+      "tags": {
+        "leisure": "golf_course",
+        "name": "Willandale Golf Club"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312021760,
+      "center": {
+        "lat": 40.4958948,
+        "lon": -81.4609995
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Lam's Oriental Cusine and Buffet"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312533809,
+      "center": {
+        "lat": 40.4806,
+        "lon": -81.4415298
+      },
+      "tags": {
+        "building": "retail",
+        "name": "New Towne Mall",
+        "shop": "mall"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312537636,
+      "center": {
+        "lat": 40.4805341,
+        "lon": -81.4448676
+      },
+      "tags": {
+        "addr:state": "OH",
+        "amenity": "restaurant",
+        "brand": "Applebee's Neighborhood Grill & Bar",
+        "brand:wikidata": "Q621532",
+        "building": "commercial",
+        "cuisine": "american",
+        "name": "Applebee's",
+        "official_name": "Applebee's Neighborhood Grill & Bar",
+        "phone": "+1 330-308-5530",
+        "website": "https://restaurants.applebees.com/en-us/oh/new-philadelphia/233-graff-road-se-91073",
+        "website:menu": "https://www.applebees.com/en/menu?StoreNumber=91073&action=viewmenu"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312537637,
+      "center": {
+        "lat": 40.4799372,
+        "lon": -81.4445407
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Red Lobster",
+        "brand:wikidata": "Q846301",
+        "building": "yes",
+        "cuisine": "seafood",
+        "name": "Red Lobster"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312537638,
+      "center": {
+        "lat": 40.4786656,
+        "lon": -81.4425952
+      },
+      "tags": {
+        "brand": "AT&T",
+        "brand:wikidata": "Q298594",
+        "building": "shop",
+        "name": "AT&T",
+        "shop": "mobile_phone"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312537639,
+      "center": {
+        "lat": 40.4790297,
+        "lon": -81.4432342
+      },
+      "tags": {
+        "brand": "Mattress Warehouse",
+        "brand:wikidata": "Q61995079",
+        "building": "yes",
+        "name": "Mattress Warehouse",
+        "shop": "bed"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312537641,
+      "center": {
+        "lat": 40.4793374,
+        "lon": -81.4438756
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Bob Evans",
+        "brand:wikidata": "Q4932386",
+        "building": "commercial",
+        "cuisine": "american",
+        "name": "Bob Evans"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312538418,
+      "center": {
+        "lat": 40.4828662,
+        "lon": -81.4457026
+      },
+      "tags": {
+        "building": "retail",
+        "name": "Buehler's Fresh Foods",
+        "shop": "supermarket"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540297,
+      "center": {
+        "lat": 40.4934179,
+        "lon": -81.4675567
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Pizza Hut",
+        "brand:wikidata": "Q191615",
+        "building": "yes",
+        "cuisine": "pizza",
+        "name": "Pizza Hut"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540299,
+      "center": {
+        "lat": 40.4937393,
+        "lon": -81.4731029
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "110",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "amenity": "fast_food",
+        "brand": "Burger King",
+        "brand:wikidata": "Q177054",
+        "building": "yes",
+        "cuisine": "burger",
+        "delivery": "yes",
+        "drive_through": "yes",
+        "internet_access": "wlan",
+        "name": "Burger King",
+        "opening_hours": "Mo-Sa 06:00-22:00; Su 07:00-22:00",
+        "phone": "+1 330-691-9898",
+        "ref": "5239",
+        "takeaway": "yes",
+        "website": "https://www.bk.com/store-locator/store/restaurant_2935"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540301,
+      "center": {
+        "lat": 40.494569,
+        "lon": -81.4734809
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Texas Roadhouse",
+        "brand:wikidata": "Q7707945",
+        "building": "yes",
+        "cuisine": "steak_house",
+        "name": "Texas Roadhouse"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540302,
+      "center": {
+        "lat": 40.4945853,
+        "lon": -81.4730637
+      },
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Long John Silver's",
+        "brand:wikidata": "Q1535221",
+        "building": "yes",
+        "cuisine": "seafood",
+        "name": "Long John Silver's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540303,
+      "center": {
+        "lat": 40.4961755,
+        "lon": -81.4728703
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "320",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Northwest",
+        "amenity": "fast_food",
+        "brand": "Taco Bell",
+        "brand:wikidata": "Q752941",
+        "building": "yes",
+        "cuisine": "tex-mex",
+        "name": "Taco Bell",
+        "opening_hours": "Mo-Tu 06:00-03:00; We 06:30-03:00; Th 06:00-03:00; Fr-Sa 06:00-03:30; Su 06:00-02:00",
+        "phone": "+1 330-339-7788",
+        "takeaway": "yes",
+        "website": "https://locations.tacobell.com/oh/new-philadelphia/320-bluebell-drive-nw.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540304,
+      "center": {
+        "lat": 40.4927903,
+        "lon": -81.474694
+      },
+      "tags": {
+        "addr:housenumber": "1290",
+        "addr:postcode": "44663",
+        "addr:street": "West High Avenue",
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "barbecue",
+        "name": "Hog Heaven",
+        "phone": "+1 330 308 8040",
+        "website": "https://www.hogheaven-bbq.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540306,
+      "center": {
+        "lat": 40.4928213,
+        "lon": -81.4729953
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Denny's",
+        "brand:wikidata": "Q1189695",
+        "building": "yes",
+        "cuisine": "american",
+        "name": "Denny's"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540309,
+      "center": {
+        "lat": 40.4918574,
+        "lon": -81.4721624
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "145",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Bluebell Drive Southwest",
+        "branch": "New Philadelphia",
+        "brand": "Holiday Inn Express",
+        "brand:wikidata": "Q5880423",
+        "building": "yes",
+        "name": "Holiday Inn Express & Suites",
+        "phone": "+1 330-339-7731",
+        "ref": "NPHEX",
+        "tourism": "hotel",
+        "website": "https://www.ihg.com/holidayinnexpress/hotels/us/en/new-philadelphia/nphex/hoteldetail"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540310,
+      "center": {
+        "lat": 40.4917953,
+        "lon": -81.471489
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "161",
+        "addr:postcode": "44663-9660",
+        "addr:street": "Bluebell Drive Southwest",
+        "branch": "Dutch Valley Inn",
+        "brand": "Best Western",
+        "brand:wikidata": "Q830334",
+        "building": "yes",
+        "name": "Best Western",
+        "phone": "+1 330-339-6500",
+        "ref": "36152",
+        "tourism": "hotel",
+        "website": "https://www.bestwestern.com/en_US/book/hotels-in-new-philadelphia/best-western-dutch-valley-inn/propertyCode.36152.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540311,
+      "center": {
+        "lat": 40.4910403,
+        "lon": -81.4722327
+      },
+      "tags": {
+        "building": "yes",
+        "name": "New Philadelphia Inn",
+        "tourism": "motel"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540313,
+      "center": {
+        "lat": 40.4907847,
+        "lon": -81.4708563
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1203",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Front Avenue Southwest",
+        "brand": "Rural King",
+        "brand:wikidata": "Q7380525",
+        "building": "retail",
+        "name": "Rural King",
+        "opening_hours": "07:00-21:00",
+        "phone": "+1 330 308 5075",
+        "ref": "68",
+        "shop": "country_store",
+        "website": "https://www.ruralking.com/new-philadelphia-oh"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540314,
+      "center": {
+        "lat": 40.4909941,
+        "lon": -81.46861
+      },
+      "tags": {
+        "brand": "Harbor Freight Tools",
+        "brand:wikidata": "Q5654601",
+        "building": "yes",
+        "name": "Harbor Freight Tools",
+        "shop": "hardware"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312540315,
+      "center": {
+        "lat": 40.4924253,
+        "lon": -81.4656751
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1062",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "building": "retail",
+        "name": "Heritage Country Store",
+        "operator": "Heritage Cooperative",
+        "shop": "country_store"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312541449,
+      "center": {
+        "lat": 40.4930543,
+        "lon": -81.4721905
+      },
+      "tags": {
+        "addr:housenumber": "1240",
+        "addr:postcode": "44663",
+        "addr:street": "West High Avenue",
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "mexican",
+        "name": "El San Jose Mexican Restaurant",
+        "phone": "+1-330-308-8928"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312541452,
+      "center": {
+        "lat": 40.4926779,
+        "lon": -81.4697549
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Schoenbrunn Inn",
+        "tourism": "motel"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312541455,
+      "center": {
+        "lat": 40.4936953,
+        "lon": -81.4647104
+      },
+      "tags": {
+        "amenity": "doctors",
+        "building": "yes",
+        "healthcare": "doctor",
+        "layer": "2",
+        "name": "Mercy Health Center of Tuscarawas County",
+        "operator": "Mercy Health",
+        "operator:wikidata": "Q5053169"
+      }
+    },
+    {
+      "type": "way",
+      "id": 312679027,
+      "center": {
+        "lat": 40.5156402,
+        "lon": -81.4667273
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "88",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "East Iron Avenue",
+        "amenity": "fast_food",
+        "brand": "Domino's",
+        "brand:wikidata": "Q839466",
+        "building": "yes",
+        "cuisine": "pizza",
+        "drive_through": "no",
+        "name": "Domino's",
+        "phone": "+13303434434",
+        "takeaway": "yes",
+        "website": "https://pizza.dominos.com/ohio/dover/88-e-iron-ave/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 313110036,
+      "center": {
+        "lat": 40.4774297,
+        "lon": -81.4399442
+      },
+      "tags": {
+        "amenity": "post_office",
+        "brand": "The UPS Store",
+        "brand:wikidata": "Q7771029",
+        "building": "yes",
+        "name": "The UPS Store",
+        "shop": "copyshop",
+        "short_name": "UPS"
+      }
+    },
+    {
+      "type": "way",
+      "id": 313110037,
+      "center": {
+        "lat": 40.4758145,
+        "lon": -81.4387579
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "495",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Mill Road",
+        "brand": "Lowe's",
+        "brand:wikidata": "Q1373493",
+        "building": "retail",
+        "name": "Lowe's",
+        "opening_hours": "Mo-Sa 06:00-21:00; Su 08:00-20:00",
+        "phone": "+1 330-339-1936",
+        "ref": "0269",
+        "shop": "doityourself",
+        "start_date": "1994-03-10",
+        "website": "https://www.lowes.com/store/oh-new-philadelphia/0269"
+      }
+    },
+    {
+      "type": "way",
+      "id": 319582863,
+      "center": {
+        "lat": 40.5196036,
+        "lon": -81.4121796
+      },
+      "tags": {
+        "leisure": "golf_course",
+        "name": "Green Valley"
+      }
+    },
+    {
+      "type": "way",
+      "id": 339601012,
+      "center": {
+        "lat": 40.5147503,
+        "lon": -81.4698882
+      },
+      "tags": {
+        "landuse": "fairground",
+        "name": "Tuscarawas County Fairgrounds",
+        "tourism": "attraction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 355557539,
+      "center": {
+        "lat": 40.5234697,
+        "lon": -81.4899344
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Shoney's",
+        "brand:wikidata": "Q7500392",
+        "building": "yes",
+        "cuisine": "american",
+        "name": "Shoney's"
+      }
+    },
+    {
+      "type": "way",
+      "id": 355557548,
+      "center": {
+        "lat": 40.5243968,
+        "lon": -81.4903429
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "brand": "Bob Evans",
+        "brand:wikidata": "Q4932386",
+        "building": "commercial",
+        "cuisine": "american",
+        "name": "Bob Evans"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211152,
+      "center": {
+        "lat": 40.6096206,
+        "lon": -81.5351223
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Strausburg Antique Mall",
+        "shop": "antiques"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211154,
+      "center": {
+        "lat": 40.6107304,
+        "lon": -81.5353473
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Campesino's Grill Mexican Restaurant"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211155,
+      "center": {
+        "lat": 40.6104952,
+        "lon": -81.5358134
+      },
+      "tags": {
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "building": "retail",
+        "name": "Dollar General",
+        "shop": "variety_store",
+        "website": "https://www.dollargeneral.com/store-directory/oh/strasburg/3137"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211156,
+      "center": {
+        "lat": 40.6092366,
+        "lon": -81.5331568
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Rosalie's Restaurant"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211157,
+      "center": {
+        "lat": 40.6088483,
+        "lon": -81.532904
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Wallick Auction Inc.",
+        "shop": "auction"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211160,
+      "center": {
+        "lat": 40.6086472,
+        "lon": -81.5319368
+      },
+      "tags": {
+        "amenity": "car_wash",
+        "building": "yes",
+        "name": "Car Wash"
+      }
+    },
+    {
+      "type": "way",
+      "id": 356211914,
+      "center": {
+        "lat": 40.6082161,
+        "lon": -81.5333405
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Rick's Station Bar & Grill"
+      }
+    },
+    {
+      "type": "way",
+      "id": 360427950,
+      "center": {
+        "lat": 40.4796592,
+        "lon": -81.4036378
+      },
+      "tags": {
+        "amenity": "theatre",
+        "name": "Schoenbrunn Amphitheatre",
+        "theatre:type": "amphi"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388687574,
+      "center": {
+        "lat": 40.5220738,
+        "lon": -81.4889477
+      },
+      "tags": {
+        "building": "commercial",
+        "name": "Flynn's Tire & Auto Service",
+        "shop": "car_repair"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388687575,
+      "center": {
+        "lat": 40.5215213,
+        "lon": -81.488425
+      },
+      "tags": {
+        "brand": "Honda",
+        "brand:wikidata": "Q9584",
+        "building": "commercial",
+        "name": "Parkway Honda",
+        "shop": "car"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388687589,
+      "center": {
+        "lat": 40.5176279,
+        "lon": -81.4873709
+      },
+      "tags": {
+        "building": "commercial",
+        "name": "Ziegler Tire & Service",
+        "shop": "tyres"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388711468,
+      "center": {
+        "lat": 40.5628573,
+        "lon": -81.4985731
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Geib Funeral Services",
+        "shop": "funeral_directors"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388711473,
+      "center": {
+        "lat": 40.5529863,
+        "lon": -81.4965229
+      },
+      "tags": {
+        "addr:state": "OH",
+        "amenity": "fast_food",
+        "brand": "Arby's",
+        "brand:wikidata": "Q630866",
+        "building": "commercial",
+        "cuisine": "sandwich",
+        "drive_through": "yes",
+        "fixme:atp": "no ATP match, check if still exists",
+        "name": "Arby's",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388711475,
+      "center": {
+        "lat": 40.55117,
+        "lon": -81.497293
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Buehler's Fresh Foods Dover",
+        "shop": "supermarket"
+      }
+    },
+    {
+      "type": "way",
+      "id": 388711476,
+      "center": {
+        "lat": 40.550204,
+        "lon": -81.4988098
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "201",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "West Ohio Avenue",
+        "amenity": "fast_food",
+        "brand": "Subway",
+        "brand:wikidata": "Q244457",
+        "building": "yes",
+        "cuisine": "sandwich",
+        "name": "Subway",
+        "opening_hours": "09:00-22:00",
+        "phone": "+1 330-602-7776",
+        "takeaway": "yes",
+        "website": "https://restaurants.subway.com/united-states/oh/dover/201-west-ohio-ave"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391435840,
+      "center": {
+        "lat": 40.550208,
+        "lon": -81.4940582
+      },
+      "tags": {
+        "amenity": "pharmacy",
+        "brand": "Discount Drug Mart",
+        "brand:wikidata": "Q5281733",
+        "building": "yes",
+        "healthcare": "pharmacy",
+        "name": "Discount Drug Mart"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391435841,
+      "center": {
+        "lat": 40.5498304,
+        "lon": -81.4938253
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "name": "Grinders Above & Beyond"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391435848,
+      "center": {
+        "lat": 40.5377728,
+        "lon": -81.4974533
+      },
+      "tags": {
+        "amenity": "veterinary",
+        "building": "yes",
+        "name": "Valley View Animal Hospital"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391615698,
+      "center": {
+        "lat": 40.5271762,
+        "lon": -81.4898635
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1051",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Tuscarawas Avenue",
+        "amenity": "fast_food",
+        "brand": "Wendy's",
+        "brand:wikidata": "Q550258",
+        "building": "yes",
+        "cuisine": "burger",
+        "name": "Wendy's",
+        "opening_hours": "07:00-22:00",
+        "opening_hours:drive_through": "Mo-Su 06:30-00:00",
+        "phone": "+1 330-364-0073",
+        "takeaway": "yes",
+        "website": "https://locations.wendys.com/united-states/oh/dover/1051-n-tuscarawas-ave"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391615699,
+      "center": {
+        "lat": 40.526441,
+        "lon": -81.4889675
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1030",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Tuscarawas Avenue",
+        "alt_name": "Kentucky Fried Chicken",
+        "amenity": "fast_food",
+        "brand": "KFC",
+        "brand:wikidata": "Q524757",
+        "building": "yes",
+        "cuisine": "chicken",
+        "name": "KFC",
+        "takeaway": "yes",
+        "website": "https://locations.kfc.com/oh/dover/1030-tuscarawas-avenue"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391615704,
+      "center": {
+        "lat": 40.5277685,
+        "lon": -81.4899824
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Carter Lumber",
+        "shop": "trade",
+        "trade": "building_supplies"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391615705,
+      "center": {
+        "lat": 40.5253085,
+        "lon": -81.4936973
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Country Inn & Suites",
+        "tourism": "hotel"
+      }
+    },
+    {
+      "type": "way",
+      "id": 391615706,
+      "center": {
+        "lat": 40.5260469,
+        "lon": -81.4960903
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1120",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Gateway Place",
+        "brand": "Comfort Inn & Suites",
+        "brand:wikidata": "Q113152349",
+        "building": "yes",
+        "name": "Comfort Inn",
+        "phone": "+1 330-365-9388",
+        "ref": "OH792",
+        "tourism": "hotel",
+        "website": "https://www.choicehotels.com/ohio/west-chester/quality-inn-hotels"
+      }
+    },
+    {
+      "type": "way",
+      "id": 404829392,
+      "center": {
+        "lat": 40.5157092,
+        "lon": -81.449213
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1000",
+        "addr:postcode": "44622",
+        "addr:street": "North Bellevue Avenue",
+        "leisure": "golf_course",
+        "name": "Union Country Club",
+        "phone": "+1 330 343 5544",
+        "website": "https://www.unioncountryclub.net/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 451126223,
+      "center": {
+        "lat": 40.5355962,
+        "lon": -81.4899896
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "1616",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "North Walnut Street",
+        "building": "yes",
+        "name": "Baker Florist",
+        "shop": "florist",
+        "website": "https://www.bakerflorist.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 482848284,
+      "center": {
+        "lat": 40.4108078,
+        "lon": -81.3488282
+      },
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "building": "yes",
+        "cuisine": "burger",
+        "name": "McDonald's",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/uhrichsville/101-mccauley-dr/7950.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 488583111,
+      "center": {
+        "lat": 40.5889335,
+        "lon": -81.5240745
+      },
+      "tags": {
+        "addr:city": "Strasburg",
+        "addr:housenumber": "777",
+        "addr:postcode": "44680",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "branch": "Strasburg",
+        "building": "yes",
+        "name": "MPACT Collision of Strasburg",
+        "opening_hours": "Mo-Fr 08:00-17:00",
+        "phone": "+1-330-878-4223",
+        "shop": "car_repair",
+        "website": "https://mpactcollision.com/locations/strasburg/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 545456519,
+      "center": {
+        "lat": 40.5149159,
+        "lon": -81.4561731
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "659",
+        "addr:postcode": "44622",
+        "addr:street": "Boulevard Street",
+        "amenity": "hospital",
+        "emergency": "yes",
+        "gnis:feature_id": "1047331",
+        "healthcare": "hospital",
+        "name": "Union Hospital",
+        "opening_hours": "24/7",
+        "operator": "Cleveland Clinic",
+        "operator:type": "private",
+        "operator:wikidata": "Q4117596",
+        "phone": "+1 330 343 3311",
+        "website": "https://my.clevelandclinic.org/locations/directions/511-union-hospital"
+      }
+    },
+    {
+      "type": "way",
+      "id": 545471897,
+      "center": {
+        "lat": 40.4018045,
+        "lon": -81.3369598
+      },
+      "tags": {
+        "addr:city": "Dennison",
+        "addr:housenumber": "819",
+        "addr:postcode": "44621",
+        "addr:street": "North 1st Street",
+        "amenity": "hospital",
+        "emergency": "yes",
+        "gnis:feature_id": "1054358",
+        "healthcare": "hospital",
+        "name": "Trinity Hospital Twin City",
+        "not:operator:wikidata": "Q7842827",
+        "opening_hours": "24/7",
+        "operator": "Trinity Health",
+        "operator:wikidata": "Q7842826",
+        "phone": "+1 740 922 2800",
+        "website": "https://www.trinitytwincity.org/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 607490730,
+      "center": {
+        "lat": 40.443786,
+        "lon": -81.3842211
+      },
+      "tags": {
+        "leisure": "sports_centre",
+        "name": "Midvale Speedway",
+        "sport": "motor",
+        "website": "https://www.midvalespeedway.com"
+      }
+    },
+    {
+      "type": "way",
+      "id": 610030157,
+      "center": {
+        "lat": 40.6384992,
+        "lon": -81.439679
+      },
+      "tags": {
+        "amenity": "pub",
+        "building": "yes",
+        "microbrewery": "yes",
+        "name": "Lockport Brewery"
+      }
+    },
+    {
+      "type": "way",
+      "id": 730232347,
+      "center": {
+        "lat": 40.6396884,
+        "lon": -81.4551941
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Fort Laurens Museum",
+        "operator": "Ohio History Connection & Zoar Community Association",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "way",
+      "id": 730881014,
+      "center": {
+        "lat": 40.4024107,
+        "lon": -81.3448728
+      },
+      "tags": {
+        "name": "Uhrichsville Water Park",
+        "operator": "City of Uhrichsville",
+        "tourism": "theme_park"
+      }
+    },
+    {
+      "type": "way",
+      "id": 730881040,
+      "center": {
+        "lat": 40.401971,
+        "lon": -81.3453611
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Uhrichsville City Water Park Tickets",
+        "shop": "ticket"
+      }
+    },
+    {
+      "type": "way",
+      "id": 744950099,
+      "center": {
+        "lat": 40.6244916,
+        "lon": -81.5439499
+      },
+      "tags": {
+        "addr:city": "Strasburg",
+        "addr:housenumber": "9735",
+        "addr:postcode": "44680",
+        "addr:state": "OH",
+        "addr:street": "US-250",
+        "amenity": "cinema",
+        "drive_in": "yes",
+        "name": "Lynn Drive-In Movies",
+        "outdoor": "yes",
+        "pets_allowed": "no",
+        "screen": "1",
+        "start_date": "1937",
+        "website": "https://lynndrivein.com/",
+        "wikidata": "Q43157743"
+      }
+    },
+    {
+      "type": "way",
+      "id": 761273344,
+      "center": {
+        "lat": 40.4896342,
+        "lon": -81.447435
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "158",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "amenity": "cinema",
+        "building": "yes",
+        "name": "Quaker Cinema",
+        "screen": "2",
+        "wikidata": "Q43162824"
+      }
+    },
+    {
+      "type": "way",
+      "id": 924819064,
+      "center": {
+        "lat": 40.2857735,
+        "lon": -81.565055
+      },
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "building": "yes",
+        "cuisine": "burger",
+        "drive_through": "yes",
+        "name": "McDonald's",
+        "source": "microsoft/BuildingFootprints",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/newcomerstown/211-adena-dr/7079.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 955615683,
+      "center": {
+        "lat": 40.2867778,
+        "lon": -81.5625815
+      },
+      "tags": {
+        "addr:city": "Newcomerstown",
+        "addr:housenumber": "299",
+        "addr:postcode": "43832",
+        "addr:state": "OH",
+        "addr:street": "Adena Drive",
+        "branch": "Newcomerstown",
+        "brand": "Super 8",
+        "brand:wikidata": "Q5364003",
+        "building": "yes",
+        "name": "Super 8 by Wyndham Newcomerstown",
+        "phone": "+1 740-498-4116",
+        "ref": "12010",
+        "tourism": "motel",
+        "website": "https://www.wyndhamhotels.com/super-8/newcomerstown-ohio/super-8-newcomerstown/overview"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1036433529,
+      "center": {
+        "lat": 40.4793778,
+        "lon": -81.6658045
+      },
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "213",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "Smokey Lane Road Southwest",
+        "building": "yes",
+        "description": "Museum dedicated to preserving and restoring railroad equipment, primarily steam locomotives.",
+        "name": "Age of Steam Roundhouse Museum",
+        "tourism": "museum",
+        "website": "https://www.ageofsteamroundhouse.org/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1036696538,
+      "center": {
+        "lat": 40.5082871,
+        "lon": -81.6267164
+      },
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "building": "retail",
+        "cuisine": "burger",
+        "name": "McDonald's",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/sugarcreek/725-dover-rd/11967.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1052078846,
+      "center": {
+        "lat": 40.5174372,
+        "lon": -81.4687093
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "300",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Oxford Street",
+        "brand": "CVS Pharmacy",
+        "brand:website": "https://www.cvs.com/",
+        "brand:wikidata": "Q2078880",
+        "building": "retail",
+        "name": "CVS Pharmacy",
+        "ref": "4353",
+        "shop": "chemist",
+        "short_name": "CVS",
+        "website": "https://www.cvs.com/store-locator/dover-oh-pharmacies/300-oxford-st-dover-oh-44622/storeid=4353"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1062072637,
+      "center": {
+        "lat": 40.4937841,
+        "lon": -81.465199
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1045",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "West High Avenue",
+        "amenity": "clinic",
+        "brand:wikidata": "Q4701673",
+        "building": "yes",
+        "healthcare": "clinic",
+        "healthcare:speciality": "general;paediatrics;cardiology",
+        "name": "Akron Children's Hospital - New Philadelphia Health Center",
+        "operator": "Akron Children's Hospital",
+        "operator:short": "ACH",
+        "operator:type": "private",
+        "operator:wikidata": "Q4701673",
+        "operator:wikipedia": "en:Akron Children's Hospital"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1102525785,
+      "center": {
+        "lat": 40.4531502,
+        "lon": -81.4078022
+      },
+      "tags": {
+        "amenity": "arts_centre",
+        "building": "yes",
+        "name": "Tuscarawas County Center-Arts"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1127807204,
+      "center": {
+        "lat": 40.4846612,
+        "lon": -81.4082522
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1826",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Tech Park Drive Northeast",
+        "building": "yes",
+        "name": "Gemini Industrial Machine Group",
+        "office": "consulting",
+        "phone": "+1-330-364-7300",
+        "website": "https://www.geminiindustrial.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1188420843,
+      "center": {
+        "lat": 40.52454,
+        "lon": -81.4648594
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "704",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "East Avenue",
+        "amenity": "bar",
+        "building": "yes",
+        "contact:facebook": "https://www.facebook.com/DoverShenanigans/",
+        "name": "Shenanigans",
+        "opening_hours": "Tu-Th 11:00-24:00; Fr-Sa 11:00-02:30; Su 11:00-20:00",
+        "phone": "+1-234-801-2356",
+        "website": "https://dovershenanigans.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1193447406,
+      "center": {
+        "lat": 40.5197217,
+        "lon": -81.4785135
+      },
+      "tags": {
+        "building": "yes",
+        "name": "Auman Museum of Radio & TV",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1193475227,
+      "center": {
+        "lat": 40.4647592,
+        "lon": -81.4177652
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1984",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "East High Avenue",
+        "building": "yes",
+        "name": "Schoenbrunn Village",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1193476143,
+      "center": {
+        "lat": 40.3918847,
+        "lon": -81.3453445
+      },
+      "tags": {
+        "addr:city": "Uhrichsville",
+        "addr:housenumber": "330",
+        "addr:postcode": "44683",
+        "addr:state": "OH",
+        "addr:street": "North Main Street",
+        "building": "yes",
+        "name": "Uhrichsville Clay Museum",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1227546698,
+      "center": {
+        "lat": 40.5925262,
+        "lon": -81.5253259
+      },
+      "tags": {
+        "addr:city": "Strasburg",
+        "addr:housenumber": "509",
+        "addr:postcode": "44680",
+        "addr:state": "OH",
+        "addr:street": "South Wooster Avenue",
+        "branch": "Strasburg Dover",
+        "brand": "Ramada",
+        "brand:wikidata": "Q1502859",
+        "building": "yes",
+        "name": "Ramada Strasburg Dover",
+        "official_name": "Ramada by Wyndham",
+        "phone": "+1 330-878-1400",
+        "tourism": "hotel",
+        "website": "https://www.wyndhamhotels.com/ramada/strasburg-ohio/ramada-strasburg-dover/overview"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1231095266,
+      "center": {
+        "lat": 40.5087124,
+        "lon": -81.6227763
+      },
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Speedway",
+        "brand:wikidata": "Q7575683",
+        "compressed_air": "yes",
+        "name": "Speedway",
+        "website": "https://www.speedway.com/locations/OH/Sugarcreek/861-Dover-Road-Northeast"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1231095642,
+      "center": {
+        "lat": 40.5090936,
+        "lon": -81.4520445
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "1412",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "4th Street Northwest",
+        "amenity": "fast_food",
+        "brand": "Wendy's",
+        "brand:wikidata": "Q550258",
+        "building": "yes",
+        "cuisine": "burger",
+        "name": "Wendy's",
+        "opening_hours": "07:00-22:00",
+        "opening_hours:drive_through": "Mo-Su 06:30-00:00",
+        "phone": "+1 330-364-5991",
+        "takeaway": "yes",
+        "website": "https://locations.wendys.com/united-states/oh/new-philadelphia/1412-4th-st-nw"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1366294795,
+      "center": {
+        "lat": 40.4751051,
+        "lon": -81.4213754
+      },
+      "tags": {
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "building": "yes",
+        "name": "Dollar General",
+        "shop": "variety_store"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1366299750,
+      "center": {
+        "lat": 40.4936055,
+        "lon": -81.4687397
+      },
+      "tags": {
+        "brand": "O'Reilly Auto Parts",
+        "brand:wikidata": "Q7071951",
+        "building": "retail",
+        "name": "O'Reilly Auto Parts",
+        "shop": "car_parts"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1366302289,
+      "center": {
+        "lat": 40.5281633,
+        "lon": -81.4918886
+      },
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "McDonald's",
+        "brand:wikidata": "Q38076",
+        "building": "retail",
+        "cuisine": "burger",
+        "name": "McDonald's",
+        "takeaway": "yes",
+        "website": "https://www.mcdonalds.com/us/en-us/location/oh/dover/3384-davis-rd/3592.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1387511610,
+      "center": {
+        "lat": 40.5013522,
+        "lon": -81.641421
+      },
+      "tags": {
+        "addr:city": "Sugarcreek",
+        "addr:housenumber": "206",
+        "addr:postcode": "44681",
+        "addr:state": "OH",
+        "addr:street": "Factory Street Southeast",
+        "building": "no",
+        "internet_access": "wlan",
+        "internet_access:fee": "customers",
+        "name": "Sugarcreek Village Inn",
+        "phone": "+1 330 852 9900",
+        "tourism": "hotel",
+        "website": "https://sugarcreekvillageinn.com"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1423394213,
+      "center": {
+        "lat": 40.5125475,
+        "lon": -81.5513745
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "4915",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Old Route 39 Northwest",
+        "building": "commercial",
+        "craft": "winery",
+        "name": "Silver Moon Winery",
+        "phone": "+1-330-602-6040",
+        "website": "https://www.silvermoonwinery.com/Default.asp"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1423969040,
+      "center": {
+        "lat": 40.5153426,
+        "lon": -81.5653981
+      },
+      "tags": {
+        "addr:city": "Dover",
+        "addr:housenumber": "5773",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Old Route 39 Northwest",
+        "amenity": "events_venue",
+        "building": "commercial",
+        "contact:facebook": "https://www.facebook.com/people/Bella-Vista-at-Sunset-Meadows/61564449211652/?_rdr",
+        "email": "bellavistavenue.bookings@gmail.com",
+        "name": "Bella Vista at Sunset Meadows",
+        "phone": "+1-330-691-0224",
+        "website": "https://bellavistavenue.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1424009618,
+      "center": {
+        "lat": 40.6449697,
+        "lon": -81.453518
+      },
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Marathon",
+        "brand:wikidata": "Q458363",
+        "building": "roof",
+        "layer": "1",
+        "name": "Marathon"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1424009619,
+      "center": {
+        "lat": 40.6452273,
+        "lon": -81.4533923
+      },
+      "tags": {
+        "brand": "BellStores",
+        "brand:wikidata": "Q111698204",
+        "building": "yes",
+        "name": "BellStores",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1426665846,
+      "center": {
+        "lat": 40.3917213,
+        "lon": -81.389156
+      },
+      "tags": {
+        "addr:city": "Uhrichsville",
+        "addr:housenumber": "5881",
+        "addr:postcode": "44683",
+        "addr:state": "OH",
+        "addr:street": "Hooker Drive Southeast",
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "building": "yes",
+        "name": "Dollar General",
+        "opening_hours": "Su-Sa 08:00-22:00",
+        "phone": "+1 740 673 0775",
+        "ref:shop:num": "17174",
+        "shop": "variety_store",
+        "website": "https://www.dollargeneral.com/store-directory/oh/uhrichsville/17174"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1432435728,
+      "center": {
+        "lat": 40.498543,
+        "lon": -81.407257
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "2397",
+        "addr:postcode": "44663",
+        "addr:state": "Ohio",
+        "addr:street": "State Route 39",
+        "building": "yes",
+        "craft": "electrician",
+        "name": "Joe Dump",
+        "phone": "+1-330-447-6352",
+        "website": "https://www.joedumpllc.com/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1447826455,
+      "center": {
+        "lat": 40.4910127,
+        "lon": -81.4419015
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:housenumber": "225",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "Fair Avenue Northeast",
+        "alt_name": "ABC, Inc",
+        "amenity": "doctors",
+        "building": "yes",
+        "description": "Applied Behavioral Connections’ promotes a learning environment where your child can grow and develop their abilities. ABC offers individualized and group learning, which are tailored to each child’s unique needs.",
+        "healthcare": "doctor",
+        "healthcare:speciality": "child_psychiatry",
+        "name": "Applied Behavioral Connections",
+        "opening_hours": "Mo,We,Fr 09:00-15:00; Tu,Th 09:00-18:00",
+        "operator": "Applied Behavioral Connections",
+        "phone": "+1-330-243-8770",
+        "website": "https://www.appliedbehavioralconnections.com/",
+        "wheelchair": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1466095065,
+      "center": {
+        "lat": 40.4718274,
+        "lon": -81.449725
+      },
+      "tags": {
+        "addr:city": "New Philadelphia",
+        "addr:country": "US",
+        "addr:housenumber": "1075",
+        "addr:postcode": "44663",
+        "addr:state": "OH",
+        "addr:street": "South Broadway Street",
+        "brand": "Dollar General",
+        "brand:wikidata": "Q145168",
+        "building": "yes",
+        "name": "Dollar General",
+        "post_office": "post_partner",
+        "post_office:brand": "FedEx OnSite",
+        "post_office:service_provider": "FedEx",
+        "post_office:website": "https://local.fedex.com/en-us/oh/new-philadelphia/phddh",
+        "shop": "variety_store",
+        "source": "microsoft/BuildingFootprints"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1503411490,
+      "center": {
+        "lat": 40.3539639,
+        "lon": -81.4341118
+      },
+      "tags": {
+        "building": "yes",
+        "museum": "history",
+        "name": "Gnadenhutten Museum",
+        "tourism": "museum"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525338184,
+      "center": {
+        "lat": 40.4005163,
+        "lon": -81.3482214
+      },
+      "tags": {
+        "addr:housenumber": "1103",
+        "addr:postcode": "44683",
+        "addr:street": "North Water Street",
+        "amenity": "fuel",
+        "brand": "Circle K",
+        "brand:wikidata": "Q3268010",
+        "building": "yes",
+        "name": "Circle K",
+        "opening_hours": "24/7",
+        "operator": "Circle K",
+        "phone": "+1-740-922-6925",
+        "website": "https://www.circlek.com/store-locator/US/uhrichsville/1103-n-water-st/4705566"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525338221,
+      "center": {
+        "lat": 40.409774,
+        "lon": -81.3485013
+      },
+      "tags": {
+        "brand": "Duchess",
+        "brand:wikidata": "Q111698565",
+        "building": "yes",
+        "name": "Duchess",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525338222,
+      "center": {
+        "lat": 40.4100007,
+        "lon": -81.3486032
+      },
+      "tags": {
+        "amenity": "fuel",
+        "brand": "BP",
+        "brand:wikidata": "Q152057",
+        "building": "roof",
+        "layer": "1",
+        "name": "BP"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525338223,
+      "center": {
+        "lat": 40.4099375,
+        "lon": -81.3479781
+      },
+      "tags": {
+        "amenity": "fast_food",
+        "brand": "Taco Bell",
+        "brand:wikidata": "Q752941",
+        "building": "yes",
+        "cuisine": "tex-mex",
+        "name": "Taco Bell",
+        "takeaway": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1525338225,
+      "center": {
+        "lat": 40.4882268,
+        "lon": -81.4462435
+      },
+      "tags": {
+        "addr:housenumber": "162",
+        "addr:street": "S Broadway St",
+        "amenity": "fuel",
+        "brand": "Shell",
+        "brand:wikidata": "Q110716465",
+        "building": "roof",
+        "layer": "1",
+        "name": "Shell",
+        "phone": "+1-330-343-2001",
+        "website": "https://find.shell.com/us/fuel/10083260-162-s-broadway-st"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1528922813,
+      "center": {
+        "lat": 40.4108332,
+        "lon": -81.3511691
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "american",
+        "name": "Jerry's"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1528922829,
+      "center": {
+        "lat": 40.4113354,
+        "lon": -81.351494
+      },
+      "tags": {
+        "brand": "Red Roof Inn",
+        "brand:wikidata": "Q7304949",
+        "building": "yes",
+        "name": "Red Roof Inn",
+        "tourism": "hotel"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1537479115,
+      "center": {
+        "lat": 40.5934301,
+        "lon": -81.5257221
+      },
+      "tags": {
+        "brand": "Family Dollar",
+        "brand:wikidata": "Q5433101",
+        "building": "yes",
+        "name": "Family Dollar",
+        "shop": "variety_store"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1537479193,
+      "center": {
+        "lat": 40.5941646,
+        "lon": -81.5261135
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "building": "yes",
+        "cuisine": "pizza",
+        "name": "Kraus' Pizza"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1551107695,
+      "center": {
+        "lat": 40.6117534,
+        "lon": -81.4216358
+      },
+      "tags": {
+        "addr:city": "Zoar",
+        "addr:housenumber": "91",
+        "addr:postcode": "44697",
+        "addr:state": "OH",
+        "addr:street": "East First Street",
+        "amenity": "ice_cream",
+        "building": "yes",
+        "contact:facebook": "https://www.facebook.com/p/Zoar-Creamery-61575064297946/",
+        "name": "Zoar Creamery",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 15514164,
+      "center": {
+        "lat": 40.5069028,
+        "lon": -81.4266614
+      },
+      "tags": {
+        "leisure": "golf_course",
+        "name": "Oak Shadows Golf Club",
+        "type": "multipolygon"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 19597721,
+      "center": {
+        "lat": 40.5667452,
+        "lon": -81.3976579
+      },
+      "tags": {
+        "access": "permit",
+        "addr:city": "Dover",
+        "addr:housenumber": "6066",
+        "addr:postcode": "44622",
+        "addr:state": "OH",
+        "addr:street": "Boy Scout Road Northeast",
+        "camp_site": "serviced",
+        "caravans": "no",
+        "fee": "yes",
+        "name": "Camp Tuscazoar",
+        "operator": "Camp Tuscazoar Foundation",
+        "static_caravans": "no",
+        "tents": "yes",
+        "tourism": "camp_site",
+        "type": "multipolygon",
+        "website": "https://tuscazoar.org/"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 21261289,
+      "center": {
+        "lat": 40.6184243,
+        "lon": -81.4217648
+      },
+      "tags": {
+        "addr:city": "Bolivar",
+        "addr:housenumber": "1669",
+        "addr:postcode": "44612",
+        "addr:state": "OH",
+        "addr:street": "Dover-Zoar Road",
+        "building": "yes",
+        "building:levels": "1",
+        "name": "Wilkshire Self Storage",
+        "roof:shape": "gabled",
+        "shop": "storage_rental",
+        "type": "multipolygon"
+      }
+    }
+  ]
+}
