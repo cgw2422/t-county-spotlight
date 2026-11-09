@@ -130,6 +130,15 @@ async function main() {
       console.log(`Created admin ${email}`);
     }
   }
+  // Community Pulse categories (created once; admins can rename, reorder or add more)
+  const PULSE_CATEGORIES = [
+    ["Food & Dining", "food-dining"], ["Automotive", "automotive"], ["Home Services", "home-services"], ["Shopping", "shopping"],
+    ["Entertainment", "entertainment"], ["Family & Kids", "family-kids"], ["Health & Wellness", "health-wellness"],
+    ["Things to Do", "things-to-do"], ["Community Favorites", "community-favorites"], ["Other", "other"],
+  ];
+  if ((await db.pulseCategory.count()) === 0) {
+    await db.pulseCategory.createMany({ data: PULSE_CATEGORIES.map(([name, slug], i) => ({ name, slug, sortOrder: i })) });
+  }
   await runBrandMigration(db);
   await runNamingMigration(db);
   console.log("Seed complete.");

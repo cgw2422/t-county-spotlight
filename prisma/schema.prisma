@@ -169,6 +169,7 @@ model Business {
   payments      Payment[]
   placements    Placement[]
   jobs          Job[]
+  pulseResults  PulseResult[]
   applications  BusinessApplication[]
 
   @@unique([wpType, wpId])
@@ -878,6 +879,7 @@ model Organization {
   opportunities VolunteerOpportunity[]
   events        Event[]
   claims        OrganizationClaim[]
+  pulseResults  PulseResult[]
 
   @@index([kind, status, deletedAt])
   @@index([ownershipStatus])
@@ -1215,4 +1217,104 @@ model NewsletterSend {
 
   @@unique([newsletterId, subscriberId]) // duplicate-send prevention
   @@index([newsletterId, status])
+}
+
+// ───────────────────────────── Community Pulse ─────────────────────────────
+// Community recommendations compiled manually (e.g. from a Facebook discussion).
+// Mention counts are community opinion, never ratings: no review/rating schema,
+// and never influenced by paid memberships.
+
+enum PulseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PulseSourceType {
+  FACEBOOK
+  COMMUNITY_SUBMISSION
+  SURVEY
+  EDITORIAL
+  OTHER
+}
+
+enum PulseDisplayMode {
+  RANKED_LIST     // numbered list with mention counts
+  BARS            // comparison bars sized by mentions
+  EDITORIAL_LIST  // no counts / ranking (curated list)
+}
+
+enum PulseSortMode {
+  MENTIONS_DESC
+  MANUAL
+}
+
+model PulseCategory {
+  id        String           @id @default(cuid())
+  name      String
+  slug      String           @unique
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  pulses    CommunityPulse[]
+}
+
+model CommunityPulse {
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  title              String
+  description        String?          // short summary for cards
+  intro              String?          // HTML (sanitized) longer introduction
+  featuredImageUrl   String?
+  featuredImageAlt   String?
+  categoryId         String?
+  category           PulseCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sourceType         PulseSourceType  @default(FACEBOOK)
+  sourceUrl          String?          // original discussion URL (Facebook post, survey, ...)
+  sourceLabel        String?          // e.g. "T County Connect Facebook group"
+  methodology        String?          // how counts were compiled (duplicates combined, etc.)
+  discussionDate     DateTime?        // when the conversation happened (editable)
+  resultsUpdatedAt   DateTime?        // public "results last updated" (editable)
+  publishedAt        DateTime?        // public publication date (editable)
+  status             PulseStatus      @default(DRAFT)
+  isFeatured         Boolean          @default(false)
+  displayMode        PulseDisplayMode @default(RANKED_LIST)
+  sortMode           PulseSortMode    @default(MENTIONS_DESC)
+  homepageLimit      Int              @default(3)
+  seoTitle           String?
+  seoDescription     String?
+  ogImageUrl         String?
+  // Internal, system-managed audit timestamps — never editable, never faked.
+  firstPublishedAt   DateTime?        // set once, the first time it goes public
+  resultsChangedAt   DateTime?        // set automatically whenever results change
+  createdById        String?
+  deletedAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  results PulseResult[]
+
+  @@index([status, publishedAt])
+  @@index([isFeatured])
+}
+
+model PulseResult {
+  id             String         @id @default(cuid())
+  pulseId        String
+  pulse          CommunityPulse @relation(fields: [pulseId], references: [id], onDelete: Cascade)
+  name           String
+  mentions       Int?           // null for editorial lists
+  description    String?
+  imageUrl       String?
+  websiteUrl     String?
+  businessId     String?
+  business       Business?      @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  sortOrder      Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([pulseId, sortOrder])
+  @@index([businessId])
+  @@index([organizationId])
 }

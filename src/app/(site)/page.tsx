@@ -26,7 +26,7 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
 async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>) {
   switch (s.type) {
     case "hero":
-      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} imageUrl={settings.heroImageUrl} />;
+      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={settings.heroImageUrl ? { imageUrl: settings.heroImageUrl } : null} />;
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
     case "weekend": {

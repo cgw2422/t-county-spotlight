@@ -1,19 +1,22 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { SmartImage } from "@/components/ui/smart-image";
+import { HeroBackground, type HeroAppearance } from "./hero-background";
+import { cn } from "@/lib/utils";
 
-export function Hero({ headline, sub, imageUrl }: { headline: string; sub: string; imageUrl?: string | null }) {
+/**
+ * Homepage hero. Left: headline, description, search, quick links.
+ * Right (desktop) / below quick links (mobile): optional `aside`, e.g. the
+ * featured Community Pulse card. Without an aside the original single-column
+ * layout is used. The background (admin-managed image or default gradient) is
+ * rendered by <HeroBackground>.
+ */
+export function Hero({ headline, sub, appearance, aside }: { headline: string; sub: string; appearance?: HeroAppearance | null; aside?: React.ReactNode }) {
   return (
     <section className="relative isolate overflow-hidden bg-navy-900">
-      {imageUrl ? (
-        <SmartImage src={imageUrl} alt="" fill priority sizes="100vw" className="-z-10 object-cover" />
-      ) : (
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(255,133,8,0.55),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(56,125,20,0.45),transparent_60%),linear-gradient(135deg,#061527,#0b2340_55%,#13305a)]" />
-      )}
-      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-navy-950/85 via-navy-950/55 to-navy-950/10" />
-      <div className="container-page py-16 sm:py-24 lg:py-32">
+      <HeroBackground appearance={appearance} />
+      <div className={cn("container-page py-14 sm:py-20 lg:py-28", aside && "grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-12")}>
         <div className="max-w-3xl">
-          <h1 className="font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl text-balance">{headline.replace(/\bT County\b/g, "T\u00a0County")}</h1>
+          <h1 className="font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl text-balance">{headline.replace(/\bT County\b/g, "T County")}</h1>
           <p className="mt-4 max-w-xl text-base text-white/90 sm:text-lg">{sub}</p>
           <form action="/search/" role="search" className="mt-8 flex max-w-xl items-center gap-2 rounded-xl bg-white p-1.5 shadow-xl">
             <label htmlFor="hero-q" className="sr-only">Search T County</label>
@@ -27,6 +30,7 @@ export function Hero({ headline, sub, imageUrl }: { headline: string; sub: strin
             ))}
           </div>
         </div>
+        {aside && <div className="min-w-0">{aside}</div>}
       </div>
     </section>
   );
