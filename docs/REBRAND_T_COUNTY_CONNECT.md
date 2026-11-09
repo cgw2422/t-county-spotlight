@@ -77,6 +77,25 @@ An optional **Icon mark** upload (`brandIconUrl`) takes priority over the automa
 6. **Search Console:** after deploy, request reindexing of the homepage. The URLs are unchanged.
 7. **Hero photo:** add properly licensed Tuscarawas County photography in Admin → Homepage → Hero image.
 
+## Domain move: tcountyspotlight.com → tcountyconnect.com (code ready; DNS is a manual step)
+The redirect is built into the app (`next.config.ts` → `redirects()`), so it works as soon as the old domain points at Railway:
+- `tcountyspotlight.com/*` and `www.tcountyspotlight.com/*` → **301** to `https://tcountyconnect.com/*`, keeping the same path, trailing slash and query string. A path without a trailing slash makes two permanent hops (slash added, then the domain changes).
+- `www.tcountyconnect.com/*` → 301 to `https://tcountyconnect.com/*`.
+- `/api/*` on the old domain is **not** redirected, so Stripe and Resend webhooks, cron and health checks keep working during the switch.
+
+### Steps
+1. **Back up first.** Write down the current DNS records for tcountyspotlight.com (for rollback).
+2. In **Railway** → web service → Settings → Networking → Custom Domain, add `tcountyconnect.com`, `www.tcountyconnect.com`, `tcountyspotlight.com` and `www.tcountyspotlight.com`. Railway shows a DNS target for each.
+3. At each **domain registrar / DNS host**, create the records Railway shows: a CNAME for `www`, and an ALIAS/ANAME/flattened CNAME (or the A record Railway gives) for the bare domain. Wait for Railway to show each domain as active (SSL issued).
+4. In Railway → Variables, set `APP_URL=https://tcountyconnect.com` and redeploy. Canonical URLs, sitemap, Open Graph tags and email links then use the new domain.
+5. **Verify:** `https://tcountyspotlight.com/business/<any>/` should answer 301 and land on the same page at tcountyconnect.com.
+6. **Google Search Console:** add tcountyconnect.com as a property, then on the old property use **Settings → Change of Address**. Submit `https://tcountyconnect.com/sitemap.xml`.
+7. **Webhooks:** change the Stripe webhook to `https://tcountyconnect.com/api/stripe/webhook/` and the Resend one to `https://tcountyconnect.com/api/newsletter/webhook/` (trailing slashes). Old ones keep working meanwhile.
+8. **Email:** sending stays on the currently verified domain. Switch the From address (and `SMTP_FROM` / `VAPID_SUBJECT`) to `@tcountyconnect.com` only **after** verifying that domain with SPF, DKIM and DMARC in Resend.
+9. Keep **both domains registered and auto-renewing** for at least 12 to 24 months. The old one carries your backlinks.
+
+**Pointing tcountyspotlight.com at Railway retires the old WordPress site at that address.** If you still need WordPress, for example to re-run the importer, keep it on a subdomain (such as `old.tcountyspotlight.com`) and set `WP_BASE_URL` to it.
+
 ## If the domain changes later (plan only, nothing done yet)
 1. Choose and register the domain. Add it to Railway as a second custom domain alongside tcountyspotlight.com.
 2. Verify email sending for the new domain (SPF, DKIM, DMARC) in Resend before switching the From address.
