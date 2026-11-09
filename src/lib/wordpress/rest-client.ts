@@ -222,7 +222,7 @@ export function normalizeRestMedia(m: Json): WpMedia {
     url,
     alt: typeof m.alt_text === "string" ? m.alt_text : undefined,
     caption: rendered(m.caption) || undefined,
-    title: rawOr(m.title) ?? (htmlToText(rendered(m.title)) || undefined),
+    title: (rawOr(m.title) !== undefined ? htmlToText(rawOr(m.title)) : htmlToText(rendered(m.title))) || undefined,
     mimeType: typeof m.mime_type === "string" ? m.mime_type : undefined,
     variants: [...variants].filter(Boolean),
     parentId: typeof m.post === "number" && m.post ? m.post : undefined,
@@ -266,7 +266,8 @@ export function normalizeRestItem(p: Json, typeName: string, taxByRestBase: Map<
     id: Number(p.id),
     type: typeName,
     status: String(p.status ?? "publish"),
-    title: rawOr(p.title) ?? htmlToText(rendered(p.title)),
+    // raw (edit-context) titles are stored HTML-encoded by WordPress ("&amp;"), so decode both forms
+    title: rawOr(p.title) !== undefined ? htmlToText(rawOr(p.title)) : htmlToText(rendered(p.title)),
     slug,
     link: typeof p.link === "string" ? p.link : undefined,
     content: rendered(p.content),

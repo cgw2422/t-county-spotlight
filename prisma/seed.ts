@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { runBrandMigration, runNamingMigration } from "../src/lib/brand-migration";
+import { runEntityRepair } from "../src/lib/data-repairs";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
@@ -149,6 +150,7 @@ async function main() {
   }
   await runBrandMigration(db);
   await runNamingMigration(db);
+  await runEntityRepair(db);
   console.log("Seed complete.");
 }
 

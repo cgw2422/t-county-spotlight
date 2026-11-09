@@ -40,6 +40,11 @@ model User {
   totpEnabled     Boolean    @default(false)
   notificationPrefs Json?
   lastLoginAt     DateTime?
+  firstName       String?
+  lastName        String?
+  /// Set for admin-issued temporary passwords: the user must choose a new password before using any dashboard.
+  mustChangePassword Boolean  @default(false)
+  passwordChangedAt  DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -61,6 +66,8 @@ model User {
   pledges           NeedPledge[]
   volunteerSignups  VolunteerSignup[]
   newsletterSubscriber NewsletterSubscriber?
+  invitations       AccountInvitation[] @relation("InvitedUser")
+  invitationsSent   AccountInvitation[] @relation("InvitedBy")
 }
 
 model Session {
@@ -1315,6 +1322,41 @@ model PulseResult {
   updatedAt      DateTime       @updatedAt
 
   @@index([pulseId, sortOrder])
+  @@index([businessId])
+  @@index([organizationId])
+}
+
+// ───────────────────────────── Listing access invitations ─────────────────────────────
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+/// Email invitation to manage a business or organization listing. The token is
+/// single-use and expiring; only its SHA-256 hash is stored.
+model AccountInvitation {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation("InvitedUser", fields: [userId], references: [id], onDelete: Cascade)
+  email          String
+  tokenHash      String           @unique
+  expiresAt      DateTime
+  status         InvitationStatus @default(PENDING)
+  acceptedAt     DateTime?
+  businessId     String?
+  organizationId String?
+  role           String           // "OWNER" | "MANAGER" (business) or OWNER | ADMIN | EDITOR (organization)
+  invitedById    String?
+  invitedBy      User?            @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  sendCount      Int              @default(1)
+  lastSentAt     DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([userId, status])
   @@index([businessId])
   @@index([organizationId])
 }

@@ -1,4 +1,5 @@
 import sanitizeHtml from "sanitize-html";
+import { decodePlainText } from "./text";
 
 const IFRAME_HOSTS = [
   "www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "player.vimeo.com",
@@ -61,7 +62,14 @@ export function sanitizeRichText(html: string | null | undefined) {
 }
 
 /** Plain text only (for titles, names, short fields). */
+/**
+ * Plain text only (names, titles, short fields). Tags are stripped and the
+ * value is stored as real characters ("&", "'", "é") — NOT HTML-encoded —
+ * because React escapes text when rendering. Storing "&amp;" made names show
+ * a literal "&amp;". Never render these values with dangerouslySetInnerHTML.
+ */
 export function sanitizePlain(input: string | null | undefined, max = 500) {
   if (!input) return "";
-  return sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }).trim().slice(0, max);
+  const stripped = sanitizeHtml(input, { allowedTags: [], allowedAttributes: {}, disallowedTagsMode: "discard" });
+  return decodePlainText(stripped).replace(/[<>]/g, "").trim().slice(0, max);
 }
