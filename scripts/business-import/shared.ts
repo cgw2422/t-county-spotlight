@@ -24,7 +24,7 @@ export const TUSC_ZIPS: Record<string, string> = {
 
 /** CSV columns, in order. Edit `approve` (yes/no) before importing. */
 export const COLUMNS = [
-  "approve", "review_flags", "name", "category", "category_slug", "address", "city", "state", "zip", "phone", "website",
+  "approve", "review_flags", "town_note", "name", "category", "category_slug", "address", "city", "state", "zip", "phone", "website",
   "missing_fields", "duplicate_of", "duplicate_reason", "source", "source_id", "source_url", "license", "osm_type",
 ] as const;
 export type Row = Record<(typeof COLUMNS)[number], string>;
@@ -79,8 +79,17 @@ export function categorize(t: Tags): { slug: string; label: string } {
   return { slug: "", label: "" };
 }
 
-/** National/regional chains (OSM brand tags). Flagged for review — this is a local-business directory. */
-export const isChain = (t: Tags) => !!(t["brand:wikidata"] || t.brand);
+/**
+ * National/regional chains: the business's own name IS a known brand (OSM brand
+ * tags). Local businesses that merely carry a brand (e.g. "Parkway Honda", a
+ * local dealer) are not flagged. Flagged for review — this is a local directory.
+ */
+export const isChain = (t: Tags) => {
+  const brand = normName(t.brand || "");
+  if (!brand || !(t["brand:wikidata"] || t.brand)) return false;
+  const name = normName(t.name || "");
+  return name === brand || name.startsWith(`${brand} `);
+};
 
 // ── duplicate detection against existing T County Connect businesses ──
 export type ExistingBiz = { id: string; slug: string; name: string; city: string | null; phone: string | null; website: string | null; address: string | null; wpMeta: unknown };
@@ -99,12 +108,18 @@ export function indexExisting(existing: ExistingBiz[]) {
   return { byName, byNameAny, byPhone, byHost, byAddr, bySource };
 }
 
+/** Shared corporate phones/websites only count when the name or town also agrees. */
+function sameNameOrTown(r: { name: string; city: string }, b: ExistingBiz | undefined) {
+  if (!b) return undefined;
+  return normName(b.name) === normName(r.name) || (r.city && normCity(b.city) === normCity(r.city)) ? b : undefined;
+}
+
 export function findExisting(r: Pick<Row, "name" | "city" | "phone" | "website" | "address" | "source_id">, ix: ReturnType<typeof indexExisting>): { reason: string; biz: ExistingBiz } | null {
   const checks: [string, ExistingBiz | undefined][] = [
     ["already imported from this source record", r.source_id ? ix.bySource.get(r.source_id) : undefined],
     ["same name and city", ix.byName.get(`${normName(r.name)}|${normCity(r.city)}`) ?? (r.city ? undefined : ix.byNameAny.get(normName(r.name)))],
-    ["same phone number", normPhone(r.phone) ? ix.byPhone.get(normPhone(r.phone)) : undefined],
-    ["same website", matchHost(r.website) ? ix.byHost.get(matchHost(r.website)) : undefined],
+    ["same phone number", sameNameOrTown(r, normPhone(r.phone) ? ix.byPhone.get(normPhone(r.phone)) : undefined)],
+    ["same website", sameNameOrTown(r, matchHost(r.website) ? ix.byHost.get(matchHost(r.website)) : undefined)],
     ["same street address", r.address ? ix.byAddr.get(`${normAddr(r.address)}|${normCity(r.city)}`) : undefined],
   ];
   const hit = checks.find(([, b]) => b);
@@ -112,3 +127,42 @@ export function findExisting(r: Pick<Row, "name" | "city" | "phone" | "website" 
 }
 
 export const EXISTING_SELECT = { id: true, slug: true, name: true, city: true, phone: true, website: true, address: true, wpMeta: true } as const;
+
+/** Approximate centers of Tuscarawas County towns, used only to SUGGEST a town for records with no address town (flagged for review). */
+export const TOWN_CENTERS: [string, number, number][] = [
+  ["New Philadelphia", 40.4898, -81.4457], ["Dover", 40.5206, -81.474], ["Uhrichsville", 40.3931, -81.3468],
+  ["Dennison", 40.3934, -81.3332], ["Sugarcreek", 40.5031, -81.641], ["Strasburg", 40.5948, -81.5265],
+  ["Bolivar", 40.6503, -81.4526], ["Zoar", 40.6142, -81.4226], ["Newcomerstown", 40.2723, -81.606],
+  ["Gnadenhutten", 40.3584, -81.4343], ["Port Washington", 40.327, -81.5193], ["Mineral City", 40.6014, -81.3637],
+  ["Baltic", 40.4406, -81.6987], ["Midvale", 40.4373, -81.3729], ["Tuscarawas", 40.3948, -81.4065],
+  ["Stone Creek", 40.3973, -81.5604], ["Ragersville", 40.4342, -81.6207], ["Dundee", 40.5884, -81.6007],
+];
+
+/** Nearest town within `maxKm` of a point, or null. */
+export function nearestTown(lat: number, lon: number, maxKm = 3) {
+  let best: { town: string; km: number } | null = null;
+  for (const [town, tlat, tlon] of TOWN_CENTERS) {
+    const dLat = ((tlat - lat) * Math.PI) / 180, dLon = ((tlon - lon) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((tlat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+    const km = 6371 * 2 * Math.asin(Math.sqrt(a));
+    if (km <= maxKm && (!best || km < best.km)) best = { town, km };
+  }
+  return best;
+}
+
+/**
+ * Same real-world place mapped twice in OpenStreetMap (e.g. a point and a
+ * building outline)? Requires the same name, plus a matching street address,
+ * or — when an address is missing on either side — the same town.
+ * Different locations of a chain (different addresses) are kept separate.
+ */
+export function sameOsmPlace(a: Row, b: Row) {
+  if (normName(a.name) !== normName(b.name)) return false;
+  const aa = normAddr(a.address), ba = normAddr(b.address);
+  if (aa && ba) return aa === ba;
+  const ac = normCity(a.city), bc = normCity(b.city);
+  if (ac && bc && ac !== bc) return false;
+  // one side has no address: same phone or same town is enough
+  if (normPhone(a.phone) && normPhone(a.phone) === normPhone(b.phone)) return true;
+  return !!(ac && bc && ac === bc);
+}

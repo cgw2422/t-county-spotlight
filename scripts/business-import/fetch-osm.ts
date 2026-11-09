@@ -12,8 +12,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { toCsv } from "../../src/lib/gives/csv";
 import {
-  COLUMNS, EXISTING_SELECT, OSM_LICENSE, TUSC_ZIPS, categorize, findExisting, fmtPhone, getDb, indexExisting, isChain, matchHost,
-  normCity, normName, normPhone, normWebsite, type Row,
+  COLUMNS, EXISTING_SELECT, OSM_LICENSE, TUSC_ZIPS, categorize, findExisting, fmtPhone, getDb, indexExisting, isChain,
+  nearestTown, normWebsite, sameOsmPlace, type Row,
 } from "./shared";
 
 const OVERPASS = process.env.OVERPASS_URL || "https://overpass-api.de/api/interpreter";
@@ -31,7 +31,7 @@ area["name"="Tuscarawas County"]["admin_level"="6"](area.oh)->.tc;
 );
 out center tags;`;
 
-type El = { type: "node" | "way" | "relation"; id: number; tags?: Record<string, string> };
+type El = { type: "node" | "way" | "relation"; id: number; tags?: Record<string, string>; lat?: number; lon?: number; center?: { lat: number; lon: number } };
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i > -1 ? process.argv[i + 1] : undefined; };
 
@@ -58,16 +58,23 @@ function toRow(el: El): Row | null {
   const cat = categorize(t);
   const street = [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" ");
   const zip = (t["addr:postcode"] || "").slice(0, 5);
-  const city = t["addr:city"] || (zip && TUSC_ZIPS[zip]) || "";
+  let city = t["addr:city"] || (zip && TUSC_ZIPS[zip]) || "";
+  const lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+  let inferred = "";
+  if (!city && lat != null && lon != null) {
+    const near = nearestTown(lat, lon);
+    if (near) { city = near.town; inferred = `town inferred from map location (${near.km.toFixed(1)} km from ${near.town} center) — please confirm`; }
+  }
   const phone = fmtPhone(t.phone || t["contact:phone"]);
   const website = normWebsite(t.website || t["contact:website"] || t.url);
   const flags: string[] = [];
   if (isChain(t)) flags.push("chain/brand (local directory?)");
   if (zip && !TUSC_ZIPS[zip]) flags.push(`ZIP ${zip} outside the Tuscarawas list`);
   if (!cat.slug) flags.push("no category match");
+  if (city === "Tuscarawas County") { city = ""; flags.push("town not given (address says Tuscarawas County)"); }
   const missing = [!street && "address", !city && "city", !zip && "zip", !phone && "phone", !website && "website"].filter(Boolean) as string[];
   return {
-    approve: "", review_flags: flags.join("; "), name, category: cat.label, category_slug: cat.slug, address: street, city,
+    approve: "", review_flags: flags.join("; "), town_note: inferred, name, category: cat.label, category_slug: cat.slug, address: street, city,
     state: "OH", zip, phone, website, missing_fields: missing.join(", "), duplicate_of: "", duplicate_reason: "",
     source: "OpenStreetMap", source_id: `${el.type}/${el.id}`, source_url: `https://www.openstreetmap.org/${el.type}/${el.id}`,
     license: OSM_LICENSE, osm_type: Object.entries(t).filter(([k]) => ["shop", "amenity", "craft", "office", "tourism", "leisure", "healthcare"].includes(k)).map(([k, v]) => `${k}=${v}`).join(" "),
@@ -79,16 +86,19 @@ async function main() {
   const rows = elements.map(toRow).filter((r): r is Row => !!r);
 
   // ── duplicates inside the OSM results (same place mapped as node + building, etc.) ──
-  const seen = new Map<string, Row>();
+  // Rows with an address are preferred as the kept record.
+  rows.sort((a, b) => Number(!!b.address) - Number(!!a.address));
+  const kept: Row[] = [];
   let internalDupes = 0;
   for (const r of rows) {
-    const keys = [`n:${normName(r.name)}|${normCity(r.city)}`, normPhone(r.phone) && `p:${normPhone(r.phone)}`, matchHost(r.website) && `w:${matchHost(r.website)}|${normName(r.name)}`].filter(Boolean) as string[];
-    const hit = keys.map((k) => seen.get(k)).find(Boolean);
+    const hit = kept.find((k) => sameOsmPlace(k, r));
     if (hit) {
-      r.duplicate_of = `OSM ${hit.source_id}`; r.duplicate_reason = "same business twice in OpenStreetMap"; internalDupes++;
+      r.duplicate_of = `OSM ${hit.source_id} (${hit.name}${hit.address ? `, ${hit.address}` : ""})`; r.duplicate_reason = "same place mapped twice in OpenStreetMap"; internalDupes++;
       for (const f of ["address", "city", "zip", "phone", "website"] as const) if (!hit[f] && r[f]) hit[f] = r[f];
-    } else keys.forEach((k) => seen.set(k, r));
+    } else kept.push(r);
   }
+  // recompute missing fields after merging
+  for (const r of kept) r.missing_fields = [!r.address && "address", !r.city && "city", !r.zip && "zip", !r.phone && "phone", !r.website && "website"].filter(Boolean).join(", ");
 
   // ── compare against existing T County Connect businesses (never modified) ──
   const db = getDb();
@@ -104,6 +114,7 @@ async function main() {
 
   // ── default approval: complete, local, non-duplicate records → yes; everything else → review ──
   for (const r of rows) {
+    // a suggested (inferred) town is OK for pre-approval but stays visible in town_note for review
     const ok = !r.duplicate_of && !r.review_flags && r.city && (r.address || r.phone || r.website);
     r.approve = ok ? "yes" : "no";
   }
@@ -132,6 +143,7 @@ Compared against ${existing.length} existing T County Connect businesses (databa
 | Chains / brands (flagged) | ${count((r) => r.review_flags.includes("chain"))} |
 | Missing address | ${count((r) => r.missing_fields.includes("address"))} |
 | Missing city | ${count((r) => r.missing_fields.includes("city"))} |
+| Town inferred from map location (please confirm) | ${count((r) => !!r.town_note)} |
 | Missing phone | ${count((r) => r.missing_fields.includes("phone"))} |
 | Missing website | ${count((r) => r.missing_fields.includes("website"))} |
 
