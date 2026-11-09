@@ -14,7 +14,7 @@ export function Hero({ headline, sub, appearance, aside }: { headline: string; s
   return (
     <section className="relative isolate overflow-hidden bg-navy-900">
       <HeroBackground appearance={appearance} />
-      <div className={cn("container-page py-14 sm:py-20 lg:py-28", aside && "grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-12")}>
+      <div className={cn("container-page py-14 sm:py-20 lg:py-28", !!aside && "grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-12")}>
         <div className="max-w-3xl">
           <h1 className="font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl text-balance">{headline.replace(/\bT County\b/g, "T County")}</h1>
           <p className="mt-4 max-w-xl text-base text-white/90 sm:text-lg">{sub}</p>
