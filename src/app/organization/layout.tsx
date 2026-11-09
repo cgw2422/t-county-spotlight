@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/admin/toast";
 
 export const metadata: Metadata = {
-  title: { default: "Organization dashboard", template: "%s · T-County Gives" },
+  title: { default: "Organization dashboard", template: "%s · T County Gives" },
   robots: { index: false, follow: false },
 };
 

@@ -76,7 +76,7 @@ async function main() {
     };
     const mkCampaign = async (subject: string) => {
       const content = emptyContent();
-      content.intro = "<p>Hello T-County!</p>";
+      content.intro = "<p>Hello T County!</p>";
       const nl = await db.newsletter.create({ data: { subject, content, status: "APPROVED", approvedAt: new Date() } });
       createdNl.push(nl.id);
       return nl;

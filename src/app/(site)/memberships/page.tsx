@@ -71,8 +71,8 @@ export default async function MembershipsPage() {
       <section id="giving-back" aria-labelledby="giving-back-title" className="mt-12 scroll-mt-24 border-y border-brand-100 bg-brand-50/60">
         <div className="container-page py-14 sm:py-16">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="eyebrow">T-County Gives</p>
-            <h2 id="giving-back-title" className="mt-2 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Giving Back to T-County</h2>
+            <p className="eyebrow">T County Gives</p>
+            <h2 id="giving-back-title" className="mt-2 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Giving Back to T County</h2>
             <p className="mt-3 text-lg text-slate-600">Supporting the organizations that make our community stronger.</p>
           </div>
           <div className="mx-auto mt-10 grid max-w-4xl gap-5 md:grid-cols-2">

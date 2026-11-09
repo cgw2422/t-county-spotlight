@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!o) return {};
   return buildMetadata({
     title: `Volunteer: ${o.title} — ${o.organization.name}`,
-    description: stripHtml(o.description) || `Volunteer with ${o.organization.name} in Tuscarawas County. Sign up on T-County Gives.`,
+    description: stripHtml(o.description) || `Volunteer with ${o.organization.name} in Tuscarawas County. Sign up on T County Gives.`,
     path: opportunityHref(o),
     image: o.organization.logoUrl,
     noindex: o.status !== "PUBLISHED",
@@ -66,7 +66,7 @@ export default async function VolunteerPage({ params }: Props) {
 
   return (
     <article className="container-page py-6 sm:py-10">
-      <Breadcrumbs items={[{ label: "T-County Gives", href: "/gives/" }, { label: "Volunteer", href: "/gives/volunteer/" }, { label: v.title }]} className="mb-5" />
+      <Breadcrumbs items={[{ label: "T County Gives", href: "/gives/" }, { label: "Volunteer", href: "/gives/volunteer/" }, { label: v.title }]} className="mb-5" />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-8">
           <header>
@@ -116,7 +116,7 @@ export default async function VolunteerPage({ params }: Props) {
             {!accepting ? (
               <div className="text-center">
                 <h2 id="signup-title" className="font-display text-xl font-semibold text-navy-900">{v.status === "CANCELLED" ? "This opportunity was cancelled" : "Sign-ups are closed"}</h2>
-                <p className="mt-2 text-sm text-slate-600">Find other ways to help with {org.name} and organizations across T-County.</p>
+                <p className="mt-2 text-sm text-slate-600">Find other ways to help with {org.name} and organizations across T County.</p>
                 <div className="mt-4 grid gap-2"><Link href={orgHref(org)} className="btn-primary">Visit {org.name}</Link><Link href="/gives/volunteer/" className="btn-secondary">More opportunities</Link></div>
               </div>
             ) : ext ? (

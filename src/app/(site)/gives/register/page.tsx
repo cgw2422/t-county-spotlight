@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
     title: "Register Your Nonprofit, Church or Community Group — Always Free",
-    description: "List your Tuscarawas County nonprofit, church or community group on T-County Gives for free. Share needs, find volunteers and promote events.",
+    description: "List your Tuscarawas County nonprofit, church or community group on T County Gives for free. Share needs, find volunteers and promote events.",
     path: "/gives/register/",
   });
 }
@@ -34,10 +34,10 @@ export default async function RegisterOrgPage({ searchParams }: { searchParams: 
   return (
     <>
       <PageHeader
-        eyebrow="T-County Gives · Always free"
+        eyebrow="T County Gives · Always free"
         title="Register your organization"
-        subtitle="Nonprofits, churches and community groups are always free on T-County Gives — no plans, no fees, ever."
-        crumbs={[{ label: "T-County Gives", href: "/gives/" }, { label: "Register" }]}
+        subtitle="Nonprofits, churches and community groups are always free on T County Gives — no plans, no fees, ever."
+        crumbs={[{ label: "T County Gives", href: "/gives/" }, { label: "Register" }]}
       />
       <div className="container-page py-8 sm:py-10">
         <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px]">

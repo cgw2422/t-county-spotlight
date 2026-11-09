@@ -73,7 +73,7 @@ export default async function VolunteerList({ searchParams }: { searchParams: Se
 
   return (
     <>
-      <PageHeader eyebrow="T-County Gives" title="Volunteer opportunities" subtitle="Give an hour, an afternoon or a regular shift. Local organizations need you." crumbs={[{ label: "T-County Gives", href: "/gives/" }, { label: "Volunteer" }]} />
+      <PageHeader eyebrow="T County Gives" title="Volunteer opportunities" subtitle="Give an hour, an afternoon or a regular shift. Local organizations need you." crumbs={[{ label: "T County Gives", href: "/gives/" }, { label: "Volunteer" }]} />
       <div className="container-page py-6 sm:py-8">
         <SearchBox action="/gives/volunteer/" defaultValue={q} placeholder="Search opportunities or organizations…" label="Search volunteer opportunities" hidden={{ when, kind: kind ? KIND_TO_PARAM[kind] : undefined, city, youth: youth ? "1" : undefined }} id="vol-q" />
         <nav aria-label="When" className="-mx-4 mt-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">

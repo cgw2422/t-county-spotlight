@@ -44,7 +44,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "T-County Gives",
+    title: "T County Gives",
     items: [
       { href: "/admin/organizations/", label: "Nonprofits & churches", icon: HeartHandshake, badge: "organizations" },
       { href: "/admin/needs/", label: "Community needs", icon: HandHelping },

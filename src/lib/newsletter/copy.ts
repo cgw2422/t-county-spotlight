@@ -36,7 +36,7 @@ export const TOPICS = [
   { key: "stories", label: "Community stories", help: "News and stories from around the county." },
   { key: "spotlights", label: "Business spotlights", help: "Meet the people behind local businesses." },
   { key: "specials", label: "Local specials", help: "Deals and offers from local businesses (may include sponsored content)." },
-  { key: "gives", label: "T-County Gives", help: "Community needs and local nonprofits." },
+  { key: "gives", label: "T County Gives", help: "Community needs and local nonprofits." },
 ] as const;
 export type TopicKey = (typeof TOPICS)[number]["key"];
 export type Preferences = Record<TopicKey, boolean>;

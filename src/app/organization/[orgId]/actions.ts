@@ -373,8 +373,8 @@ export async function addMemberAction(_p: ActionState, fd: FormData): Promise<Ac
   await audit(user.id, "organization.member_add", "Organization", org.id, { email: email.data, role });
   await sendEmail(
     email.data,
-    `You've been added to ${org.name} on T-County Gives`,
-    `${user.name || user.email} added you to ${org.name} on T-County Gives as ${role.toLowerCase()}.\n\n` +
+    `You've been added to ${org.name} on T County Gives`,
+    `${user.name || user.email} added you to ${org.name} on T County Gives as ${role.toLowerCase()}.\n\n` +
       `Sign in to help manage your organization's page: ${absoluteUrl(`/organization/${org.id}/`)}`,
   );
   revalidatePath(`/organization/${org.id}/team/`);

@@ -116,10 +116,10 @@ export default async function ClaimListingPage({ params, searchParams }: Props) 
   return (
     <>
       <PageHeader
-        eyebrow="T-County Gives · Always free"
+        eyebrow="T County Gives · Always free"
         title={claimed ? `Request to manage ${o.name}` : `Claim ${o.name}`}
         subtitle={`${KIND_LABEL[o.kind]}${o.city ? ` · ${o.city}` : ""}`}
-        crumbs={[{ label: "T-County Gives", href: "/gives/" }, { label: o.name, href: orgHref(o) }, { label: "Claim listing" }]}
+        crumbs={[{ label: "T County Gives", href: "/gives/" }, { label: o.name, href: orgHref(o) }, { label: "Claim listing" }]}
       />
       <div className="container-page py-8 sm:py-10">
         <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_300px]">

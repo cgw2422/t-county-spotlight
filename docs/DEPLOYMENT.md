@@ -1,4 +1,4 @@
-# Deploying TCountySpotlight on Railway
+# Deploying T County Connect on Railway
 
 ## 1. Create the project (staging first)
 1. In Railway: **New Project → Deploy from GitHub repo** → `cgw2422/t-county-spotlight`, branch `claude/great-cannon-8a3tog` (or `main` once merged).

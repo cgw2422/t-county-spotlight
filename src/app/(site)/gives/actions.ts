@@ -251,9 +251,9 @@ export async function registerOrgAction(_p: ActionState, fd: FormData): Promise<
     await sendEmail(
       settings.notifyAdminEmail,
       `New ${KIND_LABEL[d.kind].toLowerCase()} registration: ${name}`,
-      `${name} (${KIND_LABEL[d.kind]}${d.orgType ? ` · ${d.orgType}` : ""}) in ${cityClean} registered on T-County Gives.\n\nApplicant: ${user.name || ""} <${user.email}> — ${d.applicantRole}\nOrganization email: ${d.email}${d.phone ? `\nPhone: ${d.phone}` : ""}${website ? `\nWebsite: ${website}` : ""}${d.ein ? `\nEIN: ${d.ein}` : ""}\n\n${stripHtml(d.description)}\n\nReview: ${absoluteUrl(`/admin/organizations/${org.id}/`)}`,
+      `${name} (${KIND_LABEL[d.kind]}${d.orgType ? ` · ${d.orgType}` : ""}) in ${cityClean} registered on T County Gives.\n\nApplicant: ${user.name || ""} <${user.email}> — ${d.applicantRole}\nOrganization email: ${d.email}${d.phone ? `\nPhone: ${d.phone}` : ""}${website ? `\nWebsite: ${website}` : ""}${d.ein ? `\nEIN: ${d.ein}` : ""}\n\n${stripHtml(d.description)}\n\nReview: ${absoluteUrl(`/admin/organizations/${org.id}/`)}`,
     );
   }
-  await sendEmail(user.email, `We received your registration for ${name}`, `Thanks for registering ${name} on T-County Gives! Our team will review it, usually within a couple of days, and email you when it's approved.\n\nIn the meantime you can finish your profile and add needs or volunteer opportunities:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT-County Gives is always free for nonprofits, churches and community groups.`);
+  await sendEmail(user.email, `We received your registration for ${name}`, `Thanks for registering ${name} on T County Gives! Our team will review it, usually within a couple of days, and email you when it's approved.\n\nIn the meantime you can finish your profile and add needs or volunteer opportunities:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT County Gives is always free for nonprofits, churches and community groups.`);
   redirect(`/organization/${org.id}/?registered=1`);
 }

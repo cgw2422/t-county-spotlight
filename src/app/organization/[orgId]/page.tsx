@@ -115,7 +115,7 @@ export default async function OrgOverview({ params, searchParams }: { params: Pr
         <Link href={`${root}volunteer/new/`} className="btn-secondary min-h-14 text-base">Add a volunteer opportunity</Link>
         <Link href={`${root}updates/`} className="btn-secondary min-h-14 text-base">Share an update</Link>
       </section>
-      <p className="mt-8 text-center text-sm text-slate-500">T-County Gives is always free for nonprofits, churches and community groups.</p>
+      <p className="mt-8 text-center text-sm text-slate-500">T County Gives is always free for nonprofits, churches and community groups.</p>
     </>
   );
 }

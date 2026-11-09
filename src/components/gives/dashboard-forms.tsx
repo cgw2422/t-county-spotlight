@@ -94,7 +94,7 @@ export function OpportunityForm({ orgId, opp }: { orgId: string; opp: Opportunit
           <TextField name="minAge" label="Minimum age (optional)" type="number" min={1} max={99} inputMode="numeric" defaultValue={opp.minAge ?? ""} />
         </FormGrid>
         <TextField name="ageNotes" label="Age notes (optional)" defaultValue={opp.ageNotes ?? ""} maxLength={300} placeholder="e.g. Under 16 must come with an adult" />
-        <Checkbox name="registrationOpen" label="Accept sign-ups on T-County Gives" defaultChecked={opp.registrationOpen} help="Turn off to stop new sign-ups." />
+        <Checkbox name="registrationOpen" label="Accept sign-ups on T County Gives" defaultChecked={opp.registrationOpen} help="Turn off to stop new sign-ups." />
         <TextField name="externalSignupUrl" label="Or use your own sign-up page (optional)" defaultValue={opp.externalSignupUrl ?? ""} inputMode="url" placeholder="https://" help="If set, people are sent to this link instead of our form." />
         <SelectField name="status" label="Status" defaultValue={opp.status} options={OPPORTUNITY_STATUSES.map((s) => ({ value: s, label: OPPORTUNITY_STATUS_LABEL[s] }))} />
       </Section>

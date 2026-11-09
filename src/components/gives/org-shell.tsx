@@ -5,10 +5,10 @@ import { OrgMobileNav, OrgSidebarNav, OrgSwitcher, type OrgNavItem } from "./org
 
 function Brand() {
   return (
-    <Link href="/organization/" className="flex flex-col items-start gap-1 text-white" aria-label="T County Connect — T-County Gives organization dashboard">
+    <Link href="/organization/" className="flex flex-col items-start gap-1 text-white" aria-label="T County Connect — T County Gives organization dashboard">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/logo-white-sm.png" alt="T County Connect" className="h-8 w-auto max-w-[170px] object-contain" />
-      <span className="block text-xs text-slate-300">T-County <span className="font-semibold text-hillside-200">Gives</span> · Organization dashboard</span>
+      <span className="block text-xs text-slate-300">T County <span className="font-semibold text-hillside-200">Gives</span> · Organization dashboard</span>
     </Link>
   );
 }

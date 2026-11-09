@@ -11,7 +11,7 @@ import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return buildMetadata({ title: "Explore T-County", description: "Find local businesses, events, specials, jobs and stories across Tuscarawas County, Ohio.", path: "/explore/" });
+  return buildMetadata({ title: "Explore T County", description: "Find local businesses, events, specials, jobs and stories across Tuscarawas County, Ohio.", path: "/explore/" });
 }
 
 const QUICK = [
@@ -30,9 +30,9 @@ export default async function ExplorePage() {
     <>
       <div className="bg-gradient-to-br from-navy-900 to-navy-700">
         <div className="container-page py-8 sm:py-12">
-          <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">Explore T-County</h1>
+          <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">Explore T County</h1>
           <p className="mt-1 text-white/80">Businesses, events, deals and stories — all in one place.</p>
-          <div className="mt-5 max-w-2xl"><SearchBox action="/search/" placeholder="Search businesses, events, stories…" label="Search T-County" id="explore-q" size="lg" /></div>
+          <div className="mt-5 max-w-2xl"><SearchBox action="/search/" placeholder="Search businesses, events, stories…" label="Search T County" id="explore-q" size="lg" /></div>
         </div>
       </div>
 

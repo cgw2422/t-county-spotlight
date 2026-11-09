@@ -1,4 +1,4 @@
-# TCountySpotlight rebuild: audit, plan and architecture
+# T County Connect (formerly TCountySpotlight): original rebuild audit, plan and architecture
 
 ## 1. Audit of the current site (status: blocked, needs a re-run from Railway)
 The development sandbox's network policy blocked `tcountyspotlight.com`, its CDN and the Wayback Machine, so a live crawl was not possible. The only things confirmed so far:
@@ -52,7 +52,7 @@ Overview · Articles (editor, scheduling, revisions, trash) · Businesses (+ cat
 ## 8. Homepage
 These sections are fully configurable in Admin → Homepage (order, on/off, titles, limits, pinned records):
 1. Hero with search
-2. Explore T-County
+2. Explore T County
 3. This Weekend (auto-selected by date)
 4. Latest Business Spotlights
 5. Upcoming Events

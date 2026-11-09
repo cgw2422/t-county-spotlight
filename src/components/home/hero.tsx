@@ -16,7 +16,7 @@ export function Hero({ headline, sub, imageUrl }: { headline: string; sub: strin
           <h1 className="font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl text-balance">{headline.replace(/\bT County\b/g, "T\u00a0County")}</h1>
           <p className="mt-4 max-w-xl text-base text-white/90 sm:text-lg">{sub}</p>
           <form action="/search/" role="search" className="mt-8 flex max-w-xl items-center gap-2 rounded-xl bg-white p-1.5 shadow-xl">
-            <label htmlFor="hero-q" className="sr-only">Search T-County</label>
+            <label htmlFor="hero-q" className="sr-only">Search T County</label>
             <Search className="ml-2.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
             <input id="hero-q" name="q" type="search" placeholder="Search businesses, events, churches and more…" className="min-h-11 w-full min-w-0 bg-transparent px-1 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none" />
             <button className="btn-accent shrink-0">Search</button>

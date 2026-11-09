@@ -10,7 +10,7 @@ export function OrgStatusBadge({ status, className }: { status: string; classNam
 
 export function VerifiedBadge({ className, onDark }: { className?: string; onDark?: boolean }) {
   return (
-    <span className={cn("badge whitespace-nowrap", onDark ? "bg-white/95 text-brand-700 shadow-sm" : "bg-brand-50 text-brand-700 ring-1 ring-brand-200", className)} title="Verified by the T-County Gives team">
+    <span className={cn("badge whitespace-nowrap", onDark ? "bg-white/95 text-brand-700 shadow-sm" : "bg-brand-50 text-brand-700 ring-1 ring-brand-200", className)} title="Verified by the T County Gives team">
       <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> Verified
     </span>
   );

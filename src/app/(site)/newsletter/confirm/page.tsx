@@ -19,7 +19,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Prom
       <AuthShell title={`You're subscribed${r.firstName ? `, ${r.firstName}` : ""}!`} subtitle={`Thanks for confirming. Watch your inbox for the ${NEWSLETTER_NAME} — we just sent a welcome note.`}>
         <CheckCircle2 className="mx-auto mb-6 h-12 w-12 text-emerald-600" aria-hidden />
         <div className="grid gap-3">
-          <Link href="/explore/" className="btn-primary w-full">Explore T-County</Link>
+          <Link href="/explore/" className="btn-primary w-full">Explore T County</Link>
           <Link href={prefs} className="btn-secondary w-full">Choose your topics</Link>
         </div>
       </AuthShell>

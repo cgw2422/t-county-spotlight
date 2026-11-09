@@ -10,14 +10,14 @@ export const EXPLORE_ITEMS = [
   { label: "Jobs", href: "/jobs/", icon: Briefcase, color: "bg-orange-50 text-sunset-600" },
   { label: "Business Spotlights", href: "/spotlights/", icon: Star, color: "bg-brand-50 text-navy-900" },
   { label: "Community News", href: "/announcements/", icon: Megaphone, color: "bg-hillside-50 text-hillside-700" },
-  { label: "T-County Gives", href: "/gives/", icon: HeartHandshake, color: "bg-orange-50 text-sunset-600" },
+  { label: "T County Gives", href: "/gives/", icon: HeartHandshake, color: "bg-orange-50 text-sunset-600" },
   { label: "Churches", href: "/churches/", icon: Church, color: "bg-brand-50 text-navy-900" },
 ];
 
 export function ExploreGrid({ title }: { title?: string }) {
   return (
     <section aria-labelledby="explore-title" className="container-page py-10">
-      <h2 id="explore-title" className="sr-only">{title || "Explore T-County"}</h2>
+      <h2 id="explore-title" className="sr-only">{title || "Explore T County"}</h2>
       <ul className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-5 sm:gap-4 lg:grid-cols-10">
         {EXPLORE_ITEMS.map(({ label, href, icon: Icon, color }) => (
           <li key={label}>

@@ -1,5 +1,5 @@
 /**
- * WordPress → TCountySpotlight migration CLI.
+ * WordPress → T County Connect migration CLI.
  *
  *   npx tsx --conditions=react-server scripts/migrate-wordpress.ts [options]
  *

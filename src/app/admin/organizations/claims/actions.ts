@@ -60,7 +60,7 @@ export async function approveClaim(_p: ActionState, fd: FormData): Promise<Actio
   await sendEmail(
     claim.user.email,
     `You can now manage ${claim.organization.name} on T County Connect`,
-    `Hi ${claim.applicantName},\n\nGood news — your request to manage ${claim.organization.name} was approved. Sign in to update the page, post needs and volunteer opportunities, and share news:\n${absoluteUrl("/organization/")}\n\nPublic page: ${absoluteUrl(orgHref(claim.organization))}\n\nT-County Gives is always free for nonprofits, churches and community groups.`,
+    `Hi ${claim.applicantName},\n\nGood news — your request to manage ${claim.organization.name} was approved. Sign in to update the page, post needs and volunteer opportunities, and share news:\n${absoluteUrl("/organization/")}\n\nPublic page: ${absoluteUrl(orgHref(claim.organization))}\n\nT County Gives is always free for nonprofits, churches and community groups.`,
   );
   refresh(claim.organizationId);
   const others = await db.organizationClaim.count({ where: { organizationId: claim.organizationId, status: "PENDING" } });

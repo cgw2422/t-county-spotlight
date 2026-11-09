@@ -1,4 +1,4 @@
-# Release: T-County Gives, Churches, Google Reviews, T-County Weekly
+# Release: T County Gives, Churches, Google Reviews, T County Connect Weekly
 
 Status: **built on branch, not deployed.** It needs owner approval before production.
 
@@ -15,7 +15,7 @@ The migration is purely additive. It drops, renames and rewrites nothing. Existi
 | `Event` | `organizationId` (text, null; FK → Organization, on delete SET NULL) | Events hosted by a nonprofit or church |
 
 **New tables:**
-- **T-County Gives:**
+- **T County Gives:**
   - `Organization` (kind NONPROFIT, CHURCH or COMMUNITY_GROUP; church fields included; status and verification)
   - `OrganizationMember`, `OrganizationUpdate`
   - `CommunityNeed`, `NeedPledge` (personal data)
@@ -31,7 +31,7 @@ The migration is purely additive. It drops, renames and rewrites nothing. Existi
 
 **Seed (configuration only, runs on start):**
 - Adds homepage sections `gives` and `newsletter` at the end of your current order, if they are missing.
-- Adds menu links "T-County Gives" and "Churches" (header and mobile) and "T-County Weekly newsletter" (footer), each only if no link to that URL exists. You can remove or reorder them in Admin → Menus.
+- Adds menu links "T County Gives" and "Churches" (header and mobile) and "T County Connect Weekly newsletter" (footer), each only if no link to that URL exists. You can remove or reorder them in Admin → Menus.
 
 **How it is applied:** `prisma migrate deploy` on app start. Before deploying, take a backup: `pg_dump "$DATABASE_URL" -Fc -f pre-gives.dump`.
 

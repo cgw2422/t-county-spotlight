@@ -81,7 +81,7 @@ export function OrgProfileForm({ org, action, allowKind, extra, submitLabel = "S
         </div>
       </Section>
 
-      <Section title="Giving" description="Donations go directly to you through your own donation page — T-County Gives never handles money and is always free.">
+      <Section title="Giving" description="Donations go directly to you through your own donation page — T County Gives never handles money and is always free.">
         <TextField name="donationUrl" label="Donation page link" defaultValue={org.donationUrl ?? ""} inputMode="url" placeholder="https://" />
         <TextField name="wishlistUrl" label="Online wish list link" defaultValue={org.wishlistUrl ?? ""} inputMode="url" placeholder="e.g. an Amazon or Target wish list" />
         <TextField name="ein" label="EIN (tax ID)" defaultValue={org.ein ?? ""} maxLength={20} placeholder="12-3456789" help="Used only to verify your organization. It is never shown publicly." />

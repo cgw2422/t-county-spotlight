@@ -72,7 +72,7 @@ export default async function ChurchesPage({ searchParams }: { searchParams: Sea
   return (
     <>
       <PageHeader
-        eyebrow="Faith in T-County"
+        eyebrow="Faith in T County"
         title={city ? `Churches in ${city}` : "Find a church"}
         subtitle="Congregations across Tuscarawas County — service times, livestreams, ministries and a warm welcome."
         crumbs={[{ label: "Churches" }]}

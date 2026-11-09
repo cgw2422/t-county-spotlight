@@ -128,12 +128,12 @@ export async function setOrgStatus(_p: ActionState, fd: FormData): Promise<Actio
 
   if (status === "APPROVED" && org.status !== "APPROVED") {
     for (const to of await ownerEmails(org.id)) {
-      await sendEmail(to, `${org.name} is approved on T-County Gives`, `Good news! ${org.name} has been approved and your page is now live:\n${absoluteUrl(orgHref(org))}\n\nManage your needs, volunteer opportunities and updates here:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT-County Gives is always free for nonprofits, churches and community groups.`);
+      await sendEmail(to, `${org.name} is approved on T County Gives`, `Good news! ${org.name} has been approved and your page is now live:\n${absoluteUrl(orgHref(org))}\n\nManage your needs, volunteer opportunities and updates here:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT County Gives is always free for nonprofits, churches and community groups.`);
     }
   }
   if (status === "REJECTED") {
     for (const to of await ownerEmails(org.id)) {
-      await sendEmail(to, `About your T-County Gives registration for ${org.name}`, `Thank you for registering ${org.name}. Unfortunately we weren't able to approve it at this time.\n\nNote from our team: ${note}\n\nIf you have questions or more information, just reply to this email.`);
+      await sendEmail(to, `About your T County Gives registration for ${org.name}`, `Thank you for registering ${org.name}. Unfortunately we weren't able to approve it at this time.\n\nNote from our team: ${note}\n\nIf you have questions or more information, just reply to this email.`);
     }
   }
   refresh(org.id);
@@ -204,7 +204,7 @@ export async function adminAssignManager(_p: ActionState, fd: FormData): Promise
   const ownership = await recomputeOwnership(org.id);
   await audit(user.id, existing ? "organization.member_role" : "organization.member_add", "Organization", org.id, { email: target.email, role, from: existing?.role ?? null, by: "staff", ownership });
   if (fd.get("notify") === "on" && !existing) {
-    await sendEmail(target.email, `You can now manage ${org.name} on T-County Gives`, `Hi${target.name ? ` ${target.name}` : ""},\n\nThe T County Connect team gave your account ${ORG_ROLE_LABEL[role].toLowerCase()} access to ${org.name} on T-County Gives.\n\nSign in to manage the listing, needs, volunteer opportunities and updates:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT-County Gives is always free for nonprofits, churches and community groups.`);
+    await sendEmail(target.email, `You can now manage ${org.name} on T County Gives`, `Hi${target.name ? ` ${target.name}` : ""},\n\nThe T County Connect team gave your account ${ORG_ROLE_LABEL[role].toLowerCase()} access to ${org.name} on T County Gives.\n\nSign in to manage the listing, needs, volunteer opportunities and updates:\n${absoluteUrl(`/organization/${org.id}/`)}\n\nT County Gives is always free for nonprofits, churches and community groups.`);
   }
   refresh(org.id);
   return { ok: true, message: existing ? `${target.email} is now ${role.toLowerCase()}.` : `${target.email} added as ${role.toLowerCase()}.` };

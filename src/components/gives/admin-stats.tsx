@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { publicOrgWhere } from "@/lib/gives/queries";
 import { StatCard } from "@/components/admin/stat-card";
 
-/** T-County Gives counts for the admin dashboard. */
+/** T County Gives counts for the admin dashboard. */
 export async function GivesAdminStats() {
   const [pending, openNeeds, claims] = await Promise.all([
     db.organization.count({ where: { status: "PENDING", deletedAt: null } }),

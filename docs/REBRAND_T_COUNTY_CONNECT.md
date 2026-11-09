@@ -5,6 +5,13 @@ Tagline: *Explore local businesses, upcoming events, community news, specials, j
 
 This was a branding update to the existing platform. No records were deleted or recreated, and no URL or slug changed.
 
+## Naming rules
+- **T County Connect** — the brand (never "T-County Connect", "TCountySpotlight" or "T County Spotlight").
+- **T County Gives** — the nonprofit and church platform (formerly "T-County Gives").
+- **T County Connect Weekly** — the newsletter (formerly "The T-County Weekly").
+- **T County** — no hyphen in general references ("Explore T County", "Discover more of T County.").
+- Stored menu labels, homepage section titles and the free plan description that still had the seeded hyphenated text are renamed once on deploy (`runNamingMigration`); customized values are kept.
+
 ## Brand system
 | Token | Value | Use |
 |---|---|---|
@@ -36,10 +43,10 @@ An optional **Icon mark** upload (`brandIconUrl`) takes priority over the automa
 - **Settings and page content:** only values still **exactly equal** to the old defaults are changed, so customized values are kept. This covers:
   - site settings: site name, PWA name and short name, email From name, tagline, SEO title and description, theme color, background color, footer text
   - the seeded homepage hero headline
-  - the "T-County Weekly newsletter" menu label
+  - the "T County Connect Weekly newsletter" menu label
 - **Old logo and favicon:** the old-brand logo and favicon copied from WordPress (Media rows with a `sourceUrl`) are cleared from settings. Their previous values are saved under setting `preRebrandBranding`.
 - **Newsletter settings:**
-  - The sender name "T-County Weekly" becomes "T County Connect Weekly".
+  - The sender name "T County Connect Weekly" becomes "T County Connect Weekly".
   - `consentVersion` changes from 2026-10-v1 to 2026-11-tcc-v1 for **new** signups only.
 - Guarded by the `brandMigration` setting, so it runs once.
 

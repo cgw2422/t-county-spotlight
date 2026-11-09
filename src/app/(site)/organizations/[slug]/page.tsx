@@ -46,7 +46,7 @@ export default async function OrganizationPage({ params }: Props) {
   const tel = o.phone ? o.phone.replace(/[^\d+]/g, "") : null;
   const socials = safeSocials(o.socials);
   const claimed = o.ownershipStatus === "CLAIMED";
-  const crumbs = <Breadcrumbs items={[{ label: "T-County Gives", href: "/gives/" }, { label: "Organizations", href: "/gives/organizations/" }, { label: o.name }]} />;
+  const crumbs = <Breadcrumbs items={[{ label: "T County Gives", href: "/gives/" }, { label: "Organizations", href: "/gives/organizations/" }, { label: o.name }]} />;
 
   return (
     <article>
@@ -91,9 +91,9 @@ export default async function OrganizationPage({ params }: Props) {
             <DonateCard o={o} />
             <ContactCard o={o} />
             <div className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600 ring-1 ring-slate-200">
-              <p className="font-semibold text-navy-900">Part of T-County Gives</p>
+              <p className="font-semibold text-navy-900">Part of T County Gives</p>
               <p className="mt-1">Find more ways to help nonprofits, churches and community groups across Tuscarawas County.</p>
-              <Link href="/gives/" className="mt-3 inline-flex font-semibold text-brand-700 hover:underline">Explore T-County Gives →</Link>
+              <Link href="/gives/" className="mt-3 inline-flex font-semibold text-brand-700 hover:underline">Explore T County Gives →</Link>
             </div>
           </aside>
         </div>

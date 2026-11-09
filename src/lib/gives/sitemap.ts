@@ -5,7 +5,7 @@ import { absoluteUrl } from "@/lib/utils";
 import { needHref, opportunityHref, orgHref } from "./constants";
 import { openNeedWhere, openOpportunityWhere, publicOrgWhere } from "./queries";
 
-/** Public T-County Gives URLs for the sitemap (never includes pledge/volunteer data). */
+/** Public T County Gives URLs for the sitemap (never includes pledge/volunteer data). */
 export async function givesSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const [orgs, needs, opps] = await Promise.all([
     db.organization.findMany({ where: publicOrgWhere(), select: { slug: true, kind: true, updatedAt: true } }),

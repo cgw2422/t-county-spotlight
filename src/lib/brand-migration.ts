@@ -92,3 +92,47 @@ export async function runBrandMigration(db: PrismaClient, log: (m: string) => vo
   log(`[brand] T County Connect migration applied: ${changes.length ? changes.join(", ") : "nothing to change"}`);
   return { skipped: false, changes };
 }
+
+/**
+ * Step 2 (tcc-naming): "T County" is written without a hyphen. Renames stored
+ * configuration that still EXACTLY matches the old seeded text — menu labels,
+ * homepage section titles and the free plan description. Anything an admin
+ * customized is left alone. Content (articles, profiles) is never touched.
+ */
+const NAMING_MARKER = "brandMigrationNaming";
+const NAMING_VERSION = "tcc-naming-2026-11";
+
+export async function runNamingMigration(db: PrismaClient, log: (m: string) => void = console.log) {
+  const done = await db.setting.findUnique({ where: { key: NAMING_MARKER } });
+  if ((done?.value as { version?: string } | null)?.version === NAMING_VERSION) return { skipped: true };
+  const changes: string[] = [];
+
+  const menu = await db.menuItem.updateMany({ where: { label: "T-County Gives" }, data: { label: "T County Gives" } });
+  if (menu.count) changes.push(`menu label "T County Gives" ×${menu.count}`);
+  const weekly = await db.menuItem.updateMany({ where: { label: { in: ["T-County Weekly", "T-County Weekly newsletter"] } }, data: { label: "T County Connect Weekly" } });
+  if (weekly.count) changes.push(`menu label "T County Connect Weekly" ×${weekly.count}`);
+
+  const sections: [string, "title" | "subtitle", string, string][] = [
+    ["gives", "title", "T-County Gives", "T County Gives"],
+    ["explore", "title", "Explore T-County", "Explore T County"],
+    ["spotlights", "subtitle", "Stories of the people behind T-County businesses", "Stories of the people behind T County businesses"],
+  ];
+  for (const [key, field, oldV, newV] of sections) {
+    const r = await db.homepageSection.updateMany({ where: { key, [field]: oldV }, data: { [field]: newV } });
+    if (r.count) changes.push(`homepage ${key} ${field}`);
+  }
+
+  const plan = await db.membershipPlan.updateMany({
+    where: { slug: "free", description: "A standard profile in the T-County business directory." },
+    data: { description: "A standard profile in the T County business directory." },
+  });
+  if (plan.count) changes.push("free plan description");
+
+  await db.setting.upsert({
+    where: { key: NAMING_MARKER },
+    create: { key: NAMING_MARKER, value: { version: NAMING_VERSION, at: new Date().toISOString(), changes } },
+    update: { value: { version: NAMING_VERSION, at: new Date().toISOString(), changes } },
+  });
+  log(`[brand] T County naming update applied: ${changes.length ? changes.join(", ") : "nothing to change"}`);
+  return { skipped: false, changes };
+}

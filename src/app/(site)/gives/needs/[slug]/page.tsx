@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!n) return {};
   return buildMetadata({
     title: `${n.title} — ${n.organization.name}`,
-    description: stripHtml(n.description) || `${n.organization.name} needs help: ${n.title}. Pledge to help on T-County Gives.`,
+    description: stripHtml(n.description) || `${n.organization.name} needs help: ${n.title}. Pledge to help on T County Gives.`,
     path: needHref(n),
     image: n.organization.logoUrl,
     noindex: !["OPEN", "PARTIALLY_FULFILLED"].includes(n.status),
@@ -57,7 +57,7 @@ export default async function NeedPage({ params }: Props) {
 
   return (
     <article className="container-page py-6 sm:py-10">
-      <Breadcrumbs items={[{ label: "T-County Gives", href: "/gives/" }, { label: "Needs", href: "/gives/needs/" }, { label: n.title }]} className="mb-5" />
+      <Breadcrumbs items={[{ label: "T County Gives", href: "/gives/" }, { label: "Needs", href: "/gives/needs/" }, { label: n.title }]} className="mb-5" />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-8">
           <header>

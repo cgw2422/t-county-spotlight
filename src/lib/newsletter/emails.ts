@@ -44,7 +44,7 @@ export async function sendWelcomeEmail(sub: Sub) {
       `Thanks for confirming. The ${NEWSLETTER_NAME} brings you local events, community stories, business spotlights and things to do around Tuscarawas County. ${FREQUENCY_NOTE}`,
       "Some issues include clearly labeled promotional content from local businesses and sponsors.",
     ],
-    button: { label: "Explore T-County now", url: absoluteUrl("/explore/") },
+    button: { label: "Explore T County now", url: absoluteUrl("/explore/") },
     after: [`Choose topics on your <a href="${esc(links.preferencesUrl)}" style="color:#0B2340">preferences page</a>, or <a href="${esc(links.unsubscribeUrl)}" style="color:#0B2340">unsubscribe</a> at any time.`],
     footer,
   });

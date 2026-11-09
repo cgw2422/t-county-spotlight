@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
-    title: `T-County Gives — ${GIVES_TAGLINE}`,
+    title: `T County Gives — ${GIVES_TAGLINE}`,
     description: "Support Tuscarawas County nonprofits, churches and community groups. See urgent needs, pledge supplies, find volunteer opportunities and donate directly.",
     path: "/gives/",
   });
@@ -43,8 +43,8 @@ export default async function GivesLanding() {
       <section className="relative overflow-hidden bg-navy-900 text-white">
         <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,133,8,0.45),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(56,125,20,0.4),transparent_60%)]" />
         <div className="container-page relative py-12 sm:py-16 lg:py-20">
-          <Breadcrumbs items={[{ label: "T-County Gives" }]} invert className="mb-6" />
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-sunset-400"><HeartHandshake className="h-4 w-4" aria-hidden /> T-County Gives</p>
+          <Breadcrumbs items={[{ label: "T County Gives" }]} invert className="mb-6" />
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-sunset-400"><HeartHandshake className="h-4 w-4" aria-hidden /> T County Gives</p>
           <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold leading-tight text-balance sm:text-5xl lg:text-6xl">{GIVES_TAGLINE}</h1>
           <p className="mt-4 max-w-2xl text-lg text-white/85">Nonprofits, churches and community groups across Tuscarawas County share what they need. You choose how to help.</p>
           <form action="/gives/organizations/" role="search" className="mt-8 flex max-w-2xl items-center gap-2 rounded-xl bg-white p-1.5 shadow-lg">
@@ -117,7 +117,7 @@ export default async function GivesLanding() {
         <section className="container-page py-12">
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-12 text-center">
             <HeartHandshake className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
-            <p className="mt-3 font-semibold text-slate-800">T-County Gives is just getting started</p>
+            <p className="mt-3 font-semibold text-slate-800">T County Gives is just getting started</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">Local organizations are joining now. Check back soon for needs, volunteer opportunities and ways to help.</p>
           </div>
         </section>
@@ -128,7 +128,7 @@ export default async function GivesLanding() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="font-display text-3xl font-semibold">Is your organization listed?</h2>
-              <p className="mt-2 max-w-xl text-white/90">Nonprofits, churches and community groups join T-County Gives for free — always. Share your needs, find volunteers and promote your events.</p>
+              <p className="mt-2 max-w-xl text-white/90">Nonprofits, churches and community groups join T County Gives for free — always. Share your needs, find volunteers and promote your events.</p>
             </div>
             <Link href="/gives/register/" className="btn shrink-0 bg-white text-base text-navy-900 hover:bg-orange-50">Register free <ArrowRight className="h-4 w-4" aria-hidden /></Link>
           </div>

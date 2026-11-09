@@ -1,4 +1,4 @@
-/** Labels, links and small pure helpers for T-County Gives (safe in client + server code). */
+/** Labels, links and small pure helpers for T County Gives (safe in client + server code). */
 
 export const GIVES_TAGLINE = "Find a Cause. Meet a Need. Make a Difference.";
 

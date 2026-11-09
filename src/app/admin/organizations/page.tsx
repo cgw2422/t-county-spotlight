@@ -67,7 +67,7 @@ export default async function AdminOrganizationsPage({ searchParams }: { searchP
     <>
       <PageHeader
         title="Nonprofits & churches"
-        description="T-County Gives organizations. Always free — never attach memberships or payments to organizations."
+        description="T County Gives organizations. Always free — never attach memberships or payments to organizations."
         actions={
           <>
             <Link href="/admin/organizations/claims/" className="btn-secondary btn-sm"><Inbox className="h-4 w-4" /> Ownership claims ({pendingClaims} pending)</Link>

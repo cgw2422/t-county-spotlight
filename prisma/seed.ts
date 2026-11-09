@@ -8,7 +8,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { runBrandMigration } from "../src/lib/brand-migration";
+import { runBrandMigration, runNamingMigration } from "../src/lib/brand-migration";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
@@ -36,22 +36,22 @@ const EVENT_CATEGORIES = [
 
 const HOMEPAGE_SECTIONS = [
   { key: "hero", type: "hero", title: "Discover more of T County.", subtitle: null, limit: 0 },
-  { key: "explore", type: "explore", title: "Explore T-County", subtitle: null, limit: 8 },
+  { key: "explore", type: "explore", title: "Explore T County", subtitle: null, limit: 8 },
   { key: "weekend", type: "weekend", title: "What's Happening This Weekend", subtitle: "Events and activities across the county", limit: 4 },
-  { key: "spotlights", type: "spotlights", title: "Latest Business Spotlights", subtitle: "Stories of the people behind T-County businesses", limit: 3 },
+  { key: "spotlights", type: "spotlights", title: "Latest Business Spotlights", subtitle: "Stories of the people behind T County businesses", limit: 3 },
   { key: "events", type: "events", title: "Upcoming Community Events", subtitle: null, limit: 6 },
   { key: "businesses", type: "businesses", title: "Featured Local Businesses", subtitle: null, limit: 8 },
   { key: "specials", type: "specials", title: "Local Specials", subtitle: "Deals from participating businesses", limit: 4 },
   { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
   { key: "announcements", type: "announcements", title: "Community Announcements", subtitle: null, limit: 4 },
-  { key: "gives", type: "gives", title: "T-County Gives", subtitle: "Find a Cause. Meet a Need. Make a Difference.", limit: 3 },
+  { key: "gives", type: "gives", title: "T County Gives", subtitle: "Find a Cause. Meet a Need. Make a Difference.", limit: 3 },
   { key: "newsletter", type: "newsletter", title: "Love Local. Stay in the Loop.", subtitle: null, limit: 0 },
   { key: "cta", type: "cta", title: "Own a local business?", subtitle: "Get listed in the Tuscarawas County business directory — free.", limit: 0 },
 ];
 
 const MENU = [
   ["Home", "/"], ["Businesses", "/businesses/"], ["Events", "/events/"], ["Specials", "/specials/"],
-  ["Things to Do", "/things-to-do/"], ["T-County Gives", "/gives/"], ["Churches", "/churches/"], ["Jobs", "/jobs/"], ["Articles", "/articles/"],
+  ["Things to Do", "/things-to-do/"], ["T County Gives", "/gives/"], ["Churches", "/churches/"], ["Jobs", "/jobs/"], ["Articles", "/articles/"],
 ];
 const FOOTER = [
   ["List Your Business", "/list-your-business/"], ["Memberships", "/memberships/"], ["Submit an Event", "/events/submit/"],
@@ -75,7 +75,7 @@ async function main() {
   const isNewInstall = (await db.menuItem.count()) === 0;
   // New sections added after launch: add their menu links once, only if missing.
   if (!isNewInstall) {
-    for (const [label, href] of [["T-County Gives", "/gives/"], ["Churches", "/churches/"]]) {
+    for (const [label, href] of [["T County Gives", "/gives/"], ["Churches", "/churches/"]]) {
       for (const location of ["HEADER", "MOBILE"] as const) {
         if (!(await db.menuItem.findFirst({ where: { location, href } }))) {
           const last = await db.menuItem.aggregate({ where: { location }, _max: { sortOrder: true } });
@@ -95,7 +95,7 @@ async function main() {
   // Proposed plans — inactive until the owner approves pricing in Admin → Memberships.
   const plans = [
     { slug: "free", name: "Free Listing", priceCents: 0, interval: "FREE" as const, sortOrder: 0, isActive: true,
-      description: "A standard profile in the T-County business directory.",
+      description: "A standard profile in the T County business directory.",
       features: ["Standard business profile", "Basic contact information", "Business category", "Associated editorial articles"],
       entitlements: { promotions: false, events: true, updates: false, analytics: false, maxPhotos: 6 } },
     { slug: "business-insider", name: "Business Insider", priceCents: 2900, interval: "MONTH" as const, sortOrder: 1, isActive: false,
@@ -131,6 +131,7 @@ async function main() {
     }
   }
   await runBrandMigration(db);
+  await runNamingMigration(db);
   console.log("Seed complete.");
 }
 

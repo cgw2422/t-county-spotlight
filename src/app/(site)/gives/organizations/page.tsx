@@ -76,10 +76,10 @@ export default async function OrganizationsDirectory({ searchParams }: { searchP
   return (
     <>
       <PageHeader
-        eyebrow="T-County Gives"
+        eyebrow="T County Gives"
         title={kind ? `${KIND_PLURAL[kind]}${city ? ` in ${city}` : ""}` : city ? `Organizations in ${city}` : "Nonprofits, churches & community groups"}
         subtitle="The people and places making Tuscarawas County a better home. Find a cause you care about."
-        crumbs={[{ label: "T-County Gives", href: "/gives/" }, { label: "Organizations" }]}
+        crumbs={[{ label: "T County Gives", href: "/gives/" }, { label: "Organizations" }]}
       >
         <Link href="/gives/register/" className="btn-accent"><Plus className="h-4 w-4" aria-hidden /> Register free</Link>
       </PageHeader>

@@ -23,7 +23,7 @@ export async function GivesHomeSection({ title, subtitle, limit = 6, featuredIds
     <section className="bg-gradient-to-b from-orange-50/70 to-white py-12">
       <div className="container-page">
         <p className="eyebrow flex items-center gap-1.5"><HeartHandshake className="h-4 w-4" aria-hidden /> {GIVES_TAGLINE}</p>
-        <SectionHeader title={title || "T-County Gives"} subtitle={subtitle || "Local nonprofits, churches and community groups need your help."} href="/gives/" linkLabel="Explore T-County Gives" />
+        <SectionHeader title={title || "T County Gives"} subtitle={subtitle || "Local nonprofits, churches and community groups need your help."} href="/gives/" linkLabel="Explore T County Gives" />
         {needs.length > 0 && (
           <div>
             <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Needs right now</h3>

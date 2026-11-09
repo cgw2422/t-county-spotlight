@@ -66,7 +66,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   return (
     <div className="container-page py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
-        <h1 className="font-display text-3xl font-bold text-navy-900 sm:text-4xl">{q ? <>Results for &ldquo;{q}&rdquo;</> : "Search T-County"}</h1>
+        <h1 className="font-display text-3xl font-bold text-navy-900 sm:text-4xl">{q ? <>Results for &ldquo;{q}&rdquo;</> : "Search T County"}</h1>
         <div className="mt-5"><SearchBox action="/search/" defaultValue={q} placeholder="Search businesses, events, specials, stories…" label="Search the site" id="search-q" size="lg" /></div>
         {results && (
           <p className="mt-3 text-sm text-slate-600" aria-live="polite">{total === 0 ? "No results found." : <><span className="font-semibold text-slate-900">{total}</span> {total === 1 ? "result" : "results"}</>}</p>

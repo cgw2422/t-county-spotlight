@@ -77,10 +77,10 @@ export default async function NeedsBoard({ searchParams }: { searchParams: Searc
   return (
     <>
       <PageHeader
-        eyebrow="T-County Gives"
+        eyebrow="T County Gives"
         title={category ? `${NEED_CATEGORY_LABEL[category]} needed` : "Community needs board"}
         subtitle="What local organizations need right now. Pledge to help — no account needed."
-        crumbs={[{ label: "T-County Gives", href: "/gives/" }, { label: "Needs" }]}
+        crumbs={[{ label: "T County Gives", href: "/gives/" }, { label: "Needs" }]}
       />
       <div className="container-page py-6 sm:py-8">
         <SearchBox action="/gives/needs/" defaultValue={q} placeholder="Search needs or organizations…" label="Search needs" hidden={{ category: category?.toLowerCase(), urgency: urgency?.toLowerCase(), kind: kind ? KIND_TO_PARAM[kind] : undefined, city }} id="need-q" />

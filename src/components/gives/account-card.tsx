@@ -53,7 +53,7 @@ export async function GivesAccountCard({ user }: { user: { id: string; email: st
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sunset-500 text-white"><HeartHandshake className="h-5 w-5" aria-hidden /></span>
           <span className="min-w-0 flex-1">
             <span className="block font-semibold text-navy-900">{active.length === 1 ? `Manage ${active[0].name}` : "Organization dashboard"}</span>
-            <span className="block text-sm text-slate-500">T-County Gives — needs, volunteers &amp; updates</span>
+            <span className="block text-sm text-slate-500">T County Gives — needs, volunteers &amp; updates</span>
           </span>
           <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden />
         </Link>
