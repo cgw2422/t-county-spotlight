@@ -58,6 +58,7 @@ model User {
   tokens            VerificationToken[]
   businesses        BusinessOwner[]
   savedItems        SavedItem[]
+  recommendations   BusinessRecommendation[]
   follows           BusinessFollow[]
   redemptions       PromotionRedemption[]
   pushSubscriptions PushSubscription[]
@@ -156,6 +157,11 @@ model Business {
   status         PublishStatus @default(PUBLISHED)
   isFeatured     Boolean       @default(false)
   isSpotlighted  Boolean       @default(false) // editorial spotlight (never implied by payment)
+  /// Community recommendations (thumbs-up from signed-in members). Cached count, kept in sync in the same
+  /// transaction as BusinessRecommendation writes; never editable by owners or staff, never affected by membership.
+  recommendationCount     Int     @default(0)
+  /// Staff can switch recommendations off for a listing (existing rows are kept, hidden from the count while off)
+  recommendationsDisabled Boolean @default(false)
   seoTitle       String?
   seoDescription String?
   legacyPath     String?       @unique
@@ -181,6 +187,7 @@ model Business {
   events        Event[]
   promotions    Promotion[]
   updates       BusinessUpdate[]
+  recommendations BusinessRecommendation[]
   followers     BusinessFollow[]
   subscriptions Subscription[]
   payments      Payment[]
@@ -193,6 +200,7 @@ model Business {
 
   @@unique([wpType, wpId])
   @@index([status, deletedAt])
+  @@index([recommendationCount])
   @@index([city])
 }
 
@@ -1689,4 +1697,24 @@ model NotificationDelivery {
 
   @@unique([recipient, kind, refKey])
   @@index([kind, createdAt])
+}
+
+
+// ───────────────────────────── Community recommendations ─────────────────────────────
+
+/// One thumbs-up per member per business. Not a review: no rating, no text.
+model BusinessRecommendation {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  /// sha256(ip + server secret) — staff-only signal for spotting clusters; never shown publicly
+  ipHash     String?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, businessId])
+  @@index([businessId, createdAt])
+  @@index([createdAt])
+  @@index([ipHash])
 }
