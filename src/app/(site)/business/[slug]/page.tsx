@@ -26,6 +26,9 @@ import { followRedirectIfAny, isFollowing, isSaved } from "@/components/public/s
 import { DAY_NAMES, format12, nyNow, openStatus, openingHoursSpec, parseHours } from "@/components/public/hours";
 import { GoogleReviews } from "@/components/public/google-reviews";
 import { PulseMentions } from "@/components/pulse/pulse-mentions";
+import { BusinessOfferings } from "@/components/public/business-offerings";
+import { getBusinessEntitlements } from "@/lib/entitlements";
+import { publicGalleryPhotos } from "@/lib/listing-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +74,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: b.seoTitle || `${b.name} — ${b.categories[0]?.name ? `${b.categories[0].name} in ` : ""}${where}`,
     description: b.seoDescription || b.tagline || stripHtml(b.description) || `${b.name} in ${where}: hours, contact information, specials and events.`,
     path: businessHref(b),
-    image: b.coverUrl || b.logoUrl || b.photos[0]?.url,
+    image: b.coverUrl || b.logoUrl || publicGalleryPhotos(b.photos, (await getBusinessEntitlements(b.id)).entitlements.maxPhotos)[0]?.url,
     type: "profile",
     absoluteTitle: !!b.seoTitle,
   });
@@ -88,7 +91,7 @@ export default async function BusinessPage({ params }: Props) {
   }
 
   const now = new Date();
-  const [articles, rawEvents, specials, updates, saved, following] = await Promise.all([
+  const [articles, rawEvents, specials, updates, saved, following, { entitlements }, offerings] = await Promise.all([
     db.article.findMany({ where: publishedArticleWhere({ businesses: { some: { businessId: b.id } } }), orderBy: { publishedAt: "desc" }, take: 6, select: articleCardSelect }),
     db.event.findMany({ where: { AND: [upcomingEventWhere(now), { businessId: b.id }] }, select: eventCardSelect, take: 50 }),
     db.promotion.findMany({
@@ -99,7 +102,16 @@ export default async function BusinessPage({ params }: Props) {
     db.businessUpdate.findMany({ where: { businessId: b.id, status: "PUBLISHED" }, orderBy: { createdAt: "desc" }, take: 5 }),
     isSaved("BUSINESS", b.id),
     isFollowing(b.id),
+    getBusinessEntitlements(b.id),
+    db.businessOfferingSection.findMany({
+      where: { businessId: b.id },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { items: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+    }),
   ]);
+  // Membership limits: gallery shows only what the plan allows (nothing is deleted); Premium-only sections are hidden otherwise.
+  const photos = publicGalleryPhotos(b.photos, entitlements.maxPhotos);
+  const showOfferings = entitlements.servicesMenus && offerings.some((s) => s.items.length > 0 || s.description);
   const seen = new Set<string>();
   const events = expandOccurrences(rawEvents, now, new Date(now.getTime() + 365 * 86400_000))
     .filter((o) => (seen.has(o.id) ? false : (seen.add(o.id), true)))
@@ -115,7 +127,7 @@ export default async function BusinessPage({ params }: Props) {
   const showEmail = b.emailPublic && b.email;
   const addressLine2 = [b.city, [b.state, b.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const url = absoluteUrl(businessHref(b));
-  const cover = b.coverUrl || b.photos[0]?.url;
+  const cover = b.coverUrl || photos[0]?.url;
   const importSource = (b.wpMeta as { import?: { source?: string } } | null)?.import?.source;
   const track = (type: string) => ({ type, businessId: b.id, targetType: "BUSINESS", targetId: b.id });
   const description = sanitizeRichText(b.description);
@@ -214,14 +226,16 @@ export default async function BusinessPage({ params }: Props) {
               </section>
             )}
 
-            {b.photos.length > 0 && (
+            {showOfferings && <BusinessOfferings sections={offerings} />}
+
+            {photos.length > 0 && (
               <section aria-labelledby="photos-title">
                 <h2 id="photos-title" className="section-title">Photos</h2>
-                <div className="mt-4"><PhotoGallery photos={b.photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt, caption: p.caption }))} name={b.name} /></div>
+                <div className="mt-4"><PhotoGallery photos={photos.map((p) => ({ id: p.id, url: p.url, alt: p.alt, caption: p.caption }))} name={b.name} /></div>
               </section>
             )}
 
-            <GoogleReviews business={b} />
+            {entitlements.googleReviews && <GoogleReviews business={b} />}
 
             {articles.length > 0 && (
               <section aria-labelledby="stories-title">
@@ -313,7 +327,7 @@ export default async function BusinessPage({ params }: Props) {
           name: b.name,
           url,
           description: stripHtml(b.tagline || b.description) || undefined,
-          image: [b.coverUrl, ...b.photos.map((p) => p.url)].filter(Boolean).slice(0, 5).map((u) => absoluteUrl(u!)),
+          image: [b.coverUrl, ...photos.map((p) => p.url)].filter(Boolean).slice(0, 5).map((u) => absoluteUrl(u!)),
           logo: b.logoUrl ? absoluteUrl(b.logoUrl) : undefined,
           telephone: b.phone || undefined,
           email: showEmail ? b.email : undefined,

@@ -10,6 +10,8 @@ import { SUBSCRIPTION_STATUS_LABEL, formatPlanPrice } from "@/lib/plans";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { PageHeader, Panel } from "@/components/dashboard/shell";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { PlanLimits } from "@/components/dashboard/plan-limits";
+import { countListingEvents } from "@/lib/listing-limits";
 import { buySponsorshipAction, setCancelAtPeriodEndAction, startCheckoutAction } from "../actions";
 
 export const metadata: Metadata = { title: "Membership" };
@@ -32,12 +34,14 @@ export default async function MembershipPage({ params, searchParams }: { params:
   const { businessId } = await params;
   const sp = await searchParams;
   const { business } = await requireBusinessAccess(businessId);
-  const [{ plan: currentPlan }, settings, plans, subs, products] = await Promise.all([
+  const [{ plan: currentPlan, entitlements }, settings, plans, subs, products, photoCount, eventCount] = await Promise.all([
     getBusinessEntitlements(business.id),
     getSettings(),
     db.membershipPlan.findMany({ where: { isPublic: true }, orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] }),
     db.subscription.findMany({ where: { businessId: business.id }, include: { plan: true }, orderBy: { createdAt: "desc" }, take: 10 }),
     db.sponsorshipProduct.findMany({ where: { isActive: true }, orderBy: { priceCents: "asc" } }),
+    db.businessPhoto.count({ where: { businessId: business.id } }),
+    countListingEvents(business.id),
   ]);
   const canPay = settings.paymentsEnabled && stripeConfigured();
   const visibleSubs = subs.filter((s) => s.status !== "CANCELED" || s.updatedAt > daysAgo(90));
@@ -90,6 +94,8 @@ export default async function MembershipPage({ params, searchParams }: { params:
           </form>
         )}
       </Panel>
+
+      <div className="mb-6"><PlanLimits businessId={business.id} planName={currentPlan?.name ?? "Free Listing"} entitlements={entitlements} photos={photoCount} events={eventCount} /></div>
 
       {!canPay && (
         <p className="mb-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

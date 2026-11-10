@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Trash2 } from "lucide-react";
 import { MediaLibraryDialog } from "./media-picker";
 
-export type Photo = { url: string; alt: string; caption: string };
+export type Photo = { url: string; alt: string; caption: string; isPrimary?: boolean };
 
 /** Gallery editor: add from library/upload, remove, reorder, alt text + caption. */
 export function PhotoManager({ name, defaultValue = [] }: { name: string; defaultValue?: Photo[] }) {
@@ -21,7 +21,7 @@ export function PhotoManager({ name, defaultValue = [] }: { name: string; defaul
             <div className="relative aspect-[4/3] bg-slate-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={ph.url} alt={ph.alt} className="h-full w-full object-cover" />
-              <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">{i + 1}</span>
+              <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">{i + 1}{ph.isPrimary ? " · Primary" : ""}</span>
               <div className="absolute right-2 top-2 flex gap-1">
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="grid h-9 w-9 place-items-center rounded-full bg-white/95 shadow disabled:opacity-40" aria-label="Move earlier"><ChevronLeft className="h-4 w-4" /></button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === photos.length - 1} className="grid h-9 w-9 place-items-center rounded-full bg-white/95 shadow disabled:opacity-40" aria-label="Move later"><ChevronRight className="h-4 w-4" /></button>

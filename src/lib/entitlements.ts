@@ -1,4 +1,7 @@
 import { db } from "./db";
+import { descriptionLength } from "./description";
+
+export { descriptionLength };
 
 /**
  * Per-business-listing membership entitlements — the single source of truth
@@ -50,8 +53,12 @@ function activeSubscriptionWhere(businessId: string) {
 }
 
 export async function getBusinessEntitlements(businessId: string) {
-  const subs = await db.subscription.findMany({ where: activeSubscriptionWhere(businessId), include: { plan: true } });
-  let ent: Entitlements = { ...FREE_ENTITLEMENTS };
+  const [subs, freePlan] = await Promise.all([
+    db.subscription.findMany({ where: activeSubscriptionWhere(businessId), include: { plan: true } }),
+    db.membershipPlan.findFirst({ where: { interval: "FREE" }, orderBy: { sortOrder: "asc" }, select: { entitlements: true } }),
+  ]);
+  // Free limits stay admin-configurable through the Free plan's stored entitlements.
+  let ent: Entitlements = { ...FREE_ENTITLEMENTS, ...pick((freePlan?.entitlements ?? {}) as StoredEntitlements), tier: "FREE" };
   for (const s of subs) {
     if (s.plan.interval === "FREE") continue;
     const e = (s.plan.entitlements ?? {}) as StoredEntitlements;
@@ -82,7 +89,3 @@ function pick(e: StoredEntitlements): Partial<Entitlements> {
   return out;
 }
 
-/** Plain-text length used for description limits (HTML tags and entities don't count). */
-export function descriptionLength(html: string | null | undefined) {
-  return (html ?? "").replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim().length;
-}

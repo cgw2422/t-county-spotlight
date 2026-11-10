@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getGooglePlacesSettings, isPlacesApiActive, searchPlaces } from "@/lib/google-places";
+import { getBusinessEntitlements } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
       ? await db.businessOwner.findUnique({ where: { userId_businessId: { userId: user.id, businessId } }, select: { business: { select: { deletedAt: true, status: true } } } })
       : null;
     if (!link || link.business.deletedAt || link.business.status === "SUSPENDED") return NextResponse.json({ error: "Not allowed." }, { status: 403 });
+    // Google listing linking is a Premium feature for owners.
+    if (!(await getBusinessEntitlements(businessId)).entitlements.googleReviews) return NextResponse.json({ error: "Google reviews integration is included with Premium." }, { status: 403 });
   }
   if (!rateLimit(`gplaces-search:${user.id}`, 20, 60_000).ok) return NextResponse.json({ error: "Too many searches. Please wait a minute." }, { status: 429 });
   const settings = await getGooglePlacesSettings();

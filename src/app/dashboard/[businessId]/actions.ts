@@ -6,7 +6,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireBusinessAccess } from "@/lib/auth";
-import { getBusinessEntitlements } from "@/lib/entitlements";
+import { descriptionLength, getBusinessEntitlements } from "@/lib/entitlements";
+import { addPhotosWithinLimit, createEventWithinLimit, photoLimitMessage } from "@/lib/listing-limits";
+import { sanitizePlain } from "@/lib/sanitize";
 import { getSettings } from "@/lib/settings";
 import { audit } from "@/lib/audit";
 import { googleListingFromForm } from "@/lib/google-places";
@@ -90,8 +92,19 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
   const hasHours = hours.some((h) => h.closed || h.open || h.close);
   for (const h of hours) if (!h.closed && !!h.open !== !!h.close) fieldErrors.hours = `Please give both an opening and closing time for ${h.day} (or mark it closed).`;
 
-  const google = await googleListingFromForm(fd, business);
+  const { entitlements } = await getBusinessEntitlements(business.id);
+  // Google listing fields are a Premium feature: without it, submitted Google fields are ignored and stored values kept.
+  const google = entitlements.googleReviews ? await googleListingFromForm(fd, business) : ({ skip: true } as const);
   if (!google.skip && google.fieldErrors) Object.assign(fieldErrors, google.fieldErrors);
+
+  // Only rewrite the description when the owner actually changed the text (keeps imported formatting otherwise).
+  const norm = (v: FormDataEntryValue | null) => String(v ?? "").replace(/\r\n/g, "\n").trim();
+  const desc = norm(fd.get("description")).slice(0, 8000);
+  const descChanged = desc !== norm(fd.get("descriptionOriginal"));
+  const descHtml = desc ? textToHtml(desc) : null;
+  if (descChanged && descriptionLength(descHtml) > entitlements.descriptionLimit) {
+    fieldErrors.description = `Please shorten your description to ${entitlements.descriptionLimit.toLocaleString("en-US")} characters or fewer (it's ${descriptionLength(descHtml).toLocaleString("en-US")} now).`;
+  }
 
   if (Object.keys(fieldErrors).length) return { values: echoValues(fd), error: "Please fix the highlighted fields.", fieldErrors };
 
@@ -116,10 +129,7 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
     categories: { set: validCats },
     ...(!google.skip && !google.fieldErrors ? google.data : {}),
   };
-  // Only rewrite the description when the owner actually changed the text (keeps imported formatting otherwise).
-  const norm = (v: FormDataEntryValue | null) => String(v ?? "").replace(/\r\n/g, "\n").trim();
-  const desc = norm(fd.get("description")).slice(0, 8000);
-  if (desc !== norm(fd.get("descriptionOriginal"))) data.description = desc.trim() ? textToHtml(desc) : null;
+  if (descChanged) data.description = descHtml;
 
   await db.business.update({ where: { id: business.id }, data });
   await audit(user.id, "business.owner_update", "Business", business.id, { fields: Object.keys(data) });
@@ -130,26 +140,44 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
 }
 
 // ───────────── Photos ─────────────
+// Gallery photos only — the logo and cover photo never count toward the plan limit.
 
-export async function addPhotoAction(_p: FormState, fd: FormData): Promise<FormState> {
-  const { user, business } = await access(fd);
-  const url = imageUrl(opt(fd, "url", 500));
-  if (!url) return { values: echoValues(fd), error: "Please upload a photo first." };
+export type GalleryAddResult = { ok: boolean; added: number; rejected: number; error?: string; message?: string };
+
+/**
+ * Adds already-uploaded gallery photos (from the multi-photo uploader). Runs under a
+ * Business row lock so simultaneous uploads or replayed calls can't exceed the plan limit.
+ */
+export async function addGalleryPhotos(businessId: string, items: { url: string; alt?: string | null }[]): Promise<GalleryAddResult> {
+  if (typeof businessId !== "string" || !businessId) return { ok: false, added: 0, rejected: 0, error: "Missing listing." };
+  const { user, business } = await requireBusinessAccess(businessId);
+  const list = (Array.isArray(items) ? items : []).slice(0, 50);
+  const clean = list
+    .map((i) => ({ url: imageUrl(typeof i?.url === "string" ? i.url.slice(0, 500) : null), alt: sanitizePlain(typeof i?.alt === "string" ? i.alt : "", 200) || null }))
+    .filter((i): i is { url: string; alt: string | null } => !!i.url);
+  if (!clean.length) return { ok: false, added: 0, rejected: list.length, error: "Please upload a photo first." };
   const { entitlements } = await getBusinessEntitlements(business.id);
-  const count = await db.businessPhoto.count({ where: { businessId: business.id } });
-  if (count >= entitlements.maxPhotos) return { values: echoValues(fd), error: `Your plan includes up to ${entitlements.maxPhotos} photos. Remove one or upgrade your membership to add more.` };
-  const last = await db.businessPhoto.findFirst({ where: { businessId: business.id }, orderBy: { sortOrder: "desc" }, select: { sortOrder: true } });
-  await db.businessPhoto.create({ data: { businessId: business.id, url, alt: opt(fd, "alt", 200), caption: opt(fd, "caption", 300), sortOrder: (last?.sortOrder ?? 0) + 1 } });
-  await audit(user.id, "business.photo_add", "Business", business.id);
-  revalidatePath(`/dashboard/${business.id}/photos/`);
-  return { ok: true, message: "Photo added." };
+  const r = await addPhotosWithinLimit(business.id, entitlements.maxPhotos, clean);
+  if (r.added) await audit(user.id, "business.photo_add", "Business", business.id, { added: r.added, rejected: r.rejected, urls: clean.slice(0, r.added).map((c) => c.url) });
+  revalidatePath(`/dashboard/${business.id}/`, "layout");
+  revalidatePath(`/business/${business.slug}/`);
+  const limitMsg = photoLimitMessage(entitlements.maxPhotos, entitlements.tier === "PREMIUM");
+  if (!r.added) return { ok: false, added: 0, rejected: r.rejected, error: limitMsg };
+  const msg = `Added ${r.added} photo${r.added === 1 ? "" : "s"}.`;
+  return r.rejected
+    ? { ok: true, added: r.added, rejected: r.rejected, message: msg, error: `${r.rejected} photo${r.rejected === 1 ? " wasn't" : "s weren't"} added. ${limitMsg}` }
+    : { ok: true, added: r.added, rejected: 0, message: msg };
 }
 
 export async function deletePhotoAction(fd: FormData) {
   const { user, business } = await access(fd);
-  await db.businessPhoto.deleteMany({ where: { id: str(fd, "photoId"), businessId: business.id } });
-  await audit(user.id, "business.photo_delete", "Business", business.id);
-  revalidatePath(`/dashboard/${business.id}/photos/`);
+  const photo = await db.businessPhoto.findFirst({ where: { id: str(fd, "photoId"), businessId: business.id } });
+  if (photo) {
+    await db.businessPhoto.delete({ where: { id: photo.id } });
+    await audit(user.id, "business.photo_remove", "Business", business.id, { photoId: photo.id, url: photo.url });
+  }
+  revalidatePath(`/dashboard/${business.id}/`, "layout");
+  revalidatePath(`/business/${business.slug}/`);
 }
 
 export async function movePhotoAction(fd: FormData) {
@@ -161,6 +189,48 @@ export async function movePhotoAction(fd: FormData) {
   [photos[i], photos[j]] = [photos[j], photos[i]];
   await db.$transaction(photos.map((p, idx) => db.businessPhoto.update({ where: { id: p.id }, data: { sortOrder: idx } })));
   revalidatePath(`/dashboard/${business.id}/photos/`);
+  revalidatePath(`/business/${business.slug}/`);
+}
+
+/** Exactly one primary photo per listing (shown first and used when there's no cover photo). */
+export async function setPrimaryPhotoAction(fd: FormData) {
+  const { user, business } = await access(fd);
+  const photo = await db.businessPhoto.findFirst({ where: { id: str(fd, "photoId"), businessId: business.id } });
+  if (!photo) return;
+  await db.$transaction([
+    db.businessPhoto.updateMany({ where: { businessId: business.id, isPrimary: true }, data: { isPrimary: false } }),
+    db.businessPhoto.update({ where: { id: photo.id }, data: { isPrimary: true } }),
+  ]);
+  await audit(user.id, "business.photo_primary", "Business", business.id, { photoId: photo.id });
+  revalidatePath(`/dashboard/${business.id}/photos/`);
+  revalidatePath(`/business/${business.slug}/`);
+}
+
+export async function updatePhotoAltAction(_p: FormState, fd: FormData): Promise<FormState> {
+  const { business } = await access(fd);
+  const photo = await db.businessPhoto.findFirst({ where: { id: str(fd, "photoId"), businessId: business.id }, select: { id: true } });
+  if (!photo) return { error: "Photo not found." };
+  await db.businessPhoto.update({ where: { id: photo.id }, data: { alt: sanitizePlain(str(fd, "alt"), 200) || null } });
+  revalidatePath(`/dashboard/${business.id}/photos/`);
+  revalidatePath(`/business/${business.slug}/`);
+  return { ok: true, message: "Description saved." };
+}
+
+/** Over the plan limit (after a downgrade): the owner picks which photos stay public — at most maxPhotos. */
+export async function setVisiblePhotosAction(_p: FormState, fd: FormData): Promise<FormState> {
+  const { user, business } = await access(fd);
+  const { entitlements } = await getBusinessEntitlements(business.id);
+  const ids = [...new Set(fd.getAll("visible").map(String))];
+  if (ids.length > entitlements.maxPhotos) return { error: `Please choose no more than ${entitlements.maxPhotos} photos.` };
+  const owned = await db.businessPhoto.findMany({ where: { businessId: business.id, id: { in: ids } }, select: { id: true } });
+  await db.$transaction([
+    db.businessPhoto.updateMany({ where: { businessId: business.id }, data: { visibleOnFree: false } }),
+    db.businessPhoto.updateMany({ where: { businessId: business.id, id: { in: owned.map((o) => o.id) } }, data: { visibleOnFree: true } }),
+  ]);
+  await audit(user.id, "business.photo_visibility", "Business", business.id, { visible: owned.map((o) => o.id), maxPhotos: entitlements.maxPhotos });
+  revalidatePath(`/dashboard/${business.id}/photos/`);
+  revalidatePath(`/business/${business.slug}/`);
+  return { ok: true, message: owned.length ? `Saved — ${owned.length} photo${owned.length === 1 ? "" : "s"} will show on your listing.` : "Saved — your first photos will show on your listing." };
 }
 
 // ───────────── Events ─────────────
@@ -217,7 +287,10 @@ export async function saveEventAction(_p: FormState, fd: FormData): Promise<Form
     await audit(user.id, "event.owner_update", "Event", existing.id, { businessId: business.id, status });
   } else {
     const slug = await uniqueSlug(title, async (s) => !!(await db.event.findUnique({ where: { slug: s }, select: { id: true } })));
-    const ev = await db.event.create({ data: { ...data, slug, businessId: business.id, submittedById: user.id, submitterEmail: user.email } });
+    const created = await createEventWithinLimit(business.id, entitlements.maxEvents, (tx) =>
+      tx.event.create({ data: { ...data, slug, businessId: business.id, submittedById: user.id, submitterEmail: user.email } }));
+    if (!created.ok) return { values: echoValues(fd), error: created.error };
+    const ev = created.value;
     await audit(user.id, status === "PUBLISHED" ? "event.owner_publish" : "event.owner_submit", "Event", ev.id, { businessId: business.id });
   }
   revalidatePath(`/dashboard/${business.id}/events/`);
@@ -233,6 +306,23 @@ export async function withdrawEventAction(fd: FormData) {
   }
   revalidatePath(`/dashboard/${business.id}/events/`);
   redirect(`/dashboard/${business.id}/events/`);
+}
+
+/**
+ * Remove an event from the listing (any status). Soft delete: the row stays for history
+ * (deletedAt + ARCHIVED), disappears from the public calendar and frees an event slot.
+ */
+export async function removeEventAction(fd: FormData) {
+  const { user, business } = await access(fd);
+  const ev = await db.event.findFirst({ where: { id: str(fd, "eventId"), businessId: business.id, deletedAt: null } });
+  if (ev) {
+    await db.event.update({ where: { id: ev.id }, data: { deletedAt: new Date(), status: "ARCHIVED" } });
+    await audit(user.id, "event.owner_remove", "Event", ev.id, { businessId: business.id, from: ev.status, title: ev.title });
+  }
+  revalidatePath(`/dashboard/${business.id}/`, "layout");
+  revalidatePath(`/business/${business.slug}/`);
+  revalidatePath("/events/");
+  redirect(`/dashboard/${business.id}/events/?saved=removed`);
 }
 
 // ───────────── Specials (promotions) ─────────────

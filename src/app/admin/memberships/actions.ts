@@ -15,7 +15,10 @@ const priceId = zOpt(100).refine((v) => !v || /^price_[A-Za-z0-9]+$/.test(v), "S
 const planSchema = z.object({
   id: z.string().optional(), name: zReq("Name", 80), slug: zSlugOpt, description: zOpt(1000), price: dollars,
   interval: z.enum(["FREE", "MONTH", "YEAR"]), stripePriceId: priceId, isActive: zBool, isPublic: zBool, sortOrder: zInt(0, 0, 1000),
-  promotions: zBool, events: zBool, updates: zBool, analytics: zBool, maxPhotos: zInt(6, 0, 200),
+  promotions: zBool, events: zBool, updates: zBool, analytics: zBool, maxPhotos: zInt(3, 0, 200),
+  // Blank = unlimited events.
+  maxEvents: z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number({ error: "Enter a whole number, or leave blank for unlimited" }).int().min(0).max(10_000).nullable()),
+  descriptionLimit: zInt(500, 50, 20_000), googleReviews: zBool, servicesMenus: zBool,
 });
 
 export async function savePlan(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -29,7 +32,10 @@ export async function savePlan(_: ActionState, fd: FormData): Promise<ActionStat
   const data = {
     name: d.name, slug: d.slug || slugify(d.name), description: d.description, priceCents: d.interval === "FREE" ? 0 : Math.round(d.price * 100), interval: d.interval,
     stripePriceId: d.stripePriceId, isActive: d.isActive, isPublic: d.isPublic, sortOrder: d.sortOrder, features,
-    entitlements: { promotions: d.promotions, events: d.events, updates: d.updates, analytics: d.analytics, maxPhotos: d.maxPhotos },
+    entitlements: {
+      promotions: d.promotions, events: d.events, updates: d.updates, analytics: d.analytics, maxPhotos: d.maxPhotos,
+      maxEvents: d.maxEvents, descriptionLimit: d.descriptionLimit, googleReviews: d.googleReviews, servicesMenus: d.servicesMenus,
+    },
   };
   const before = d.id ? await db.membershipPlan.findUnique({ where: { id: d.id } }) : null;
   let id = d.id;
@@ -41,7 +47,7 @@ export async function savePlan(_: ActionState, fd: FormData): Promise<ActionStat
     throw e;
   }
   await audit(user.id, before ? "membership.plan_update" : "membership.plan_create", "MembershipPlan", id, {
-    name: d.name, priceCents: data.priceCents, interval: d.interval, isActive: d.isActive, ...(before && before.isActive !== d.isActive ? { activeChanged: true } : {}),
+    name: d.name, priceCents: data.priceCents, interval: d.interval, isActive: d.isActive, entitlements: data.entitlements, ...(before && before.isActive !== d.isActive ? { activeChanged: true } : {}),
   });
   revalidatePath("/admin/memberships");
   revalidatePath("/", "layout");

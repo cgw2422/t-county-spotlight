@@ -63,8 +63,8 @@ export default async function MembershipsPage() {
           </div>
         )}
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-slate-600">
-          Are you a nonprofit organization or church?{" "}
-          <a href="#giving-back" className="font-semibold text-brand-700 hover:underline">Your listing and community tools are always free.</a>
+          Eligible churches and nonprofits participate free.{" "}
+          <a href="#giving-back" className="font-semibold text-brand-700 hover:underline">See Giving Back to T County</a>
         </p>
       </section>
 

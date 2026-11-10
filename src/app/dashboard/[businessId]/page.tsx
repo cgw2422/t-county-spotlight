@@ -6,6 +6,8 @@ import { getBusinessEntitlements } from "@/lib/entitlements";
 import { businessHref } from "@/lib/links";
 import { PageHeader, Panel, StatusBadge } from "@/components/dashboard/shell";
 import { readHours } from "@/components/dashboard/text";
+import { PlanLimits } from "@/components/dashboard/plan-limits";
+import { countListingEvents } from "@/lib/listing-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
   const { user, business } = await requireBusinessAccess(businessId);
   const root = `/dashboard/${business.id}/`;
   const since = daysAgo(30);
-  const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement] = await Promise.all([
+  const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement, eventCount] = await Promise.all([
     getBusinessEntitlements(business.id),
     db.business.findUnique({ where: { id: business.id }, include: { categories: { select: { id: true } }, _count: { select: { photos: true } } } }),
     db.businessFollow.count({ where: { businessId: business.id } }),
@@ -35,6 +37,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
     db.promotion.count({ where: { businessId: business.id, status: "PENDING", deletedAt: null } }),
     db.businessUpdate.count({ where: { businessId: business.id, status: "PENDING" } }),
     db.engagementEvent.groupBy({ by: ["type"], where: { businessId: business.id, createdAt: { gte: since } }, _count: { _all: true } }),
+    countListingEvents(business.id),
   ]);
   const b = full!;
   const count = (t: string) => engagement.find((e) => e.type === t)?._count._all ?? 0;
@@ -50,7 +53,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
     { done: !!(b.address && b.city), label: "Add your address", href: `${root}profile/#contact` },
     { done: !!b.website || Object.keys((b.socials as object) ?? {}).length > 0, label: "Link your website or social page", href: `${root}profile/#contact` },
     { done: hours.some((h) => h.closed || h.open), label: "Add your hours", href: `${root}profile/#hours` },
-    { done: b._count.photos >= 3, label: "Upload at least 3 photos", href: `${root}photos/` },
+    { done: b._count.photos >= Math.min(3, entitlements.maxPhotos), label: `Upload at least ${Math.min(3, entitlements.maxPhotos)} photos`, href: `${root}photos/` },
   ];
   const doneCount = checklist.filter((c) => c.done).length;
   const pct = Math.round((doneCount / checklist.length) * 100);
@@ -84,6 +87,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
           </Link>
         ))}
       </div>
+
+      <PlanLimits compact businessId={business.id} planName={plan?.name ?? "Free Listing"} entitlements={entitlements} photos={b._count.photos} events={eventCount} />
 
       {(pendingEvents > 0 || pendingSpecials > 0 || pendingUpdates > 0) && (
         <Panel title="Waiting for review">

@@ -3,13 +3,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, CalendarDays, CreditCard, Gauge, Images, Lock, Megaphone, Menu, PencilLine, Receipt, Tag, X,
+  ArrowLeft, CalendarDays, CreditCard, Gauge, Images, ListChecks, Lock, Megaphone, Menu, PencilLine, Receipt, Tag, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/account/logout-button";
 
-const ICONS = { overview: Gauge, profile: PencilLine, photos: Images, events: CalendarDays, specials: Tag, updates: Megaphone, membership: CreditCard, invoices: Receipt };
-export type DashNavItem = { key: keyof typeof ICONS; href: string; label: string; locked?: boolean };
+const ICONS = { overview: Gauge, profile: PencilLine, photos: Images, services: ListChecks, events: CalendarDays, specials: Tag, updates: Megaphone, membership: CreditCard, invoices: Receipt };
+export type DashNavItem = { key: keyof typeof ICONS; href: string; label: string; locked?: boolean; badge?: string };
 
 function isActive(path: string, href: string, root: string) {
   const p = path.endsWith("/") ? path : path + "/";
@@ -30,6 +30,7 @@ function NavList({ items, root, onNavigate }: { items: DashNavItem[]; root: stri
                 active ? "bg-white text-navy-900 shadow-sm" : "text-slate-200 hover:bg-white/10 hover:text-white")}>
               <Icon className="h-5 w-5 shrink-0" aria-hidden />
               <span className="flex-1">{i.label}</span>
+              {i.badge && <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide", active ? "bg-amber-100 text-amber-900" : "bg-white/10 text-sunset-400")}>{i.badge}</span>}
               {i.locked && <Lock className="h-4 w-4 opacity-60" aria-label="Upgrade required" />}
             </Link>
           </li>

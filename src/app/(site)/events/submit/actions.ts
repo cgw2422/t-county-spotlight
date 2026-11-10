@@ -11,6 +11,8 @@ import { audit } from "@/lib/audit";
 import { absoluteUrl, fromDateInput, slugify } from "@/lib/utils";
 import type { ActionState } from "@/components/ui/form-message";
 import { nyDateKey } from "@/components/public/dates";
+import { getBusinessEntitlements } from "@/lib/entitlements";
+import { createEventWithinLimit } from "@/lib/listing-limits";
 
 const optionalUrl = z.string().trim().max(500).optional().transform((v) => v || undefined)
   .refine((v) => !v || /^https?:\/\/[^\s]+\.[^\s]+/i.test(v), "Enter a full link starting with https://");
@@ -88,9 +90,12 @@ export async function submitEvent(_prev: ActionState, fd: FormData): Promise<Act
 
   // Only owners/staff may link an event to a business.
   let businessId: string | null = null;
+  // Event limit for the attached listing (staff are not limited).
+  let maxEvents: number | null = null;
   if (d.businessId && user) {
     const ok = isStaff(user) || (await db.businessOwner.findUnique({ where: { userId_businessId: { userId: user.id, businessId: d.businessId } } }));
     if (ok) businessId = d.businessId;
+    if (ok && !isStaff(user)) maxEvents = (await getBusinessEntitlements(d.businessId)).entitlements.maxEvents;
   }
   // Only members (or staff) may link an event to an approved organization.
   let organizationId: string | null = null;
@@ -113,23 +118,26 @@ export async function submitEvent(_prev: ActionState, fd: FormData): Promise<Act
   if (await db.event.findUnique({ where: { slug }, select: { id: true } })) slug = `${slug}-${crypto.randomBytes(3).toString("hex")}`;
 
   try {
-    const ev = await db.event.create({
-      data: {
-        slug, title, dedupeKey, startAt, endAt, allDay: d.allDay,
-        description: d.description ? toHtml(sanitizePlain(d.description, 5000)) : null,
-        locationName: sanitizePlain(d.locationName, 150) || null,
-        address: sanitizePlain(d.address, 200) || null,
-        city,
-        organizer: sanitizePlain(d.organizer, 150) || null,
-        ticketUrl: d.ticketUrl ?? null,
-        isFree: d.isFree,
-        price: d.isFree ? null : sanitizePlain(d.price, 80) || null,
-        imageUrl, businessId, organizationId, categoryId,
-        status: publish ? "PUBLISHED" : "PENDING",
-        submittedById: user?.id ?? null,
-        submitterEmail: email ?? null,
-      },
-    });
+    const data = {
+      slug, title, dedupeKey, startAt, endAt, allDay: d.allDay,
+      description: d.description ? toHtml(sanitizePlain(d.description, 5000)) : null,
+      locationName: sanitizePlain(d.locationName, 150) || null,
+      address: sanitizePlain(d.address, 200) || null,
+      city,
+      organizer: sanitizePlain(d.organizer, 150) || null,
+      ticketUrl: d.ticketUrl ?? null,
+      isFree: d.isFree,
+      price: d.isFree ? null : sanitizePlain(d.price, 80) || null,
+      imageUrl, businessId, organizationId, categoryId,
+      status: publish ? "PUBLISHED" : "PENDING",
+      submittedById: user?.id ?? null,
+      submitterEmail: email ?? null,
+    } as const;
+    const created = businessId
+      ? await createEventWithinLimit(businessId, maxEvents, (tx) => tx.event.create({ data }))
+      : { ok: true as const, value: await db.event.create({ data }) };
+    if (!created.ok) return { error: `${created.error} You can manage your events in your business dashboard.`, fieldErrors: { businessId: "This listing has no event slots left" } };
+    const ev = created.value;
     await audit(user?.id, publish ? "event.publish" : "event.submit", "Event", ev.id, { title, source: "public_form" });
     if (settings.notifyAdminEmail && !publish) {
       await sendEmail(settings.notifyAdminEmail, `New event submitted: ${title}`, `${title}\n${nyDateKey(startAt)} · ${city}\nSubmitted by: ${email ?? "unknown"}\n\nReview it in the admin: ${absoluteUrl("/admin/events/")}`);

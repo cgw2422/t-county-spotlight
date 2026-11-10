@@ -8,7 +8,7 @@ type B = { id: string; name: string; city: string | null; address: string | null
 export async function GoogleListingAdminCard({ b }: { b: B }) {
   const settings = await getGooglePlacesSettings();
   return (
-    <Card title="Google listing" description="Link this business to its Google Maps listing to show a Google reviews card on the profile.">
+    <Card title="Google listing" description="Link this business to its Google Maps listing to show a Google reviews card on the profile. Staff can always edit these fields; the card only displays publicly while the listing has Premium.">
       <GoogleListingFields
         key={`${b?.googlePlaceId ?? ""}|${b?.googleMapsUrl ?? ""}|${b?.googlePlaceVerifiedAt?.toISOString() ?? ""}`}
         businessId={b?.id}

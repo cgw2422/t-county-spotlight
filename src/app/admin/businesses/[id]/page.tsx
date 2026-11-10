@@ -15,6 +15,8 @@ import { SelectField, TextField } from "@/components/admin/form-field";
 import { BusinessForm } from "../business-form";
 import { ListingAccessPanel } from "@/components/admin/listing-access-panel";
 import { listingAccessRows } from "@/lib/listing-access";
+import { getBusinessEntitlements } from "@/lib/entitlements";
+import { countListingEvents } from "@/lib/listing-limits";
 import { grantMembership, revokeMembership, saveBusinessArticles, savePhotos, setBusinessStatus, trashBusiness } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -36,11 +38,15 @@ export default async function EditBusinessPage({ params, searchParams }: { param
     },
   });
   if (!b) notFound();
-  const [categories, plans, accessRows] = await Promise.all([
+  const [categories, plans, accessRows, { entitlements }, offerings, eventCount] = await Promise.all([
     db.businessCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     isAdmin ? db.membershipPlan.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true, isActive: true } }) : [],
     listingAccessRows({ kind: "business", id }),
+    getBusinessEntitlements(id),
+    db.businessOfferingSection.findMany({ where: { businessId: id }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { items: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } } }),
+    countListingEvents(id),
   ]);
+  const tierLabel = entitlements.tier === "PREMIUM" ? "Premium" : "Free";
   const now = new Date();
   const activeSubs = b.subscriptions.filter((s) => ["ACTIVE", "TRIALING"].includes(s.status) && (!s.currentPeriodEnd || s.currentPeriodEnd >= now));
 
@@ -66,12 +72,30 @@ export default async function EditBusinessPage({ params, searchParams }: { param
           {
             id: "photos", label: "Photos", badge: b.photos.length,
             content: (
-              <Card title="Photo gallery" description="Drag order matters: the first photo is shown first. Add alt text for accessibility.">
+              <Card title="Photo gallery" description="Order matters: the owner's primary photo is shown first, then this order. Add alt text for accessibility.">
+                <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700" data-testid="admin-photo-counter">
+                  <strong>Photos: {b.photos.length} of {entitlements.maxPhotos}</strong> on this listing&apos;s {tierLabel} plan. Staff aren&apos;t limited, but the public profile only shows {entitlements.maxPhotos} photo{entitlements.maxPhotos === 1 ? "" : "s"} while the listing is on this plan (owner&apos;s choices first). Logo and cover don&apos;t count.
+                </p>
                 <ActionForm action={savePhotos}>
                   <input type="hidden" name="id" value={b.id} />
-                  <PhotoManager name="photos" defaultValue={b.photos.map((p) => ({ url: p.url, alt: p.alt ?? "", caption: p.caption ?? "" }))} />
+                  <PhotoManager name="photos" defaultValue={b.photos.map((p) => ({ url: p.url, alt: p.alt ?? "", caption: p.caption ?? "", isPrimary: p.isPrimary }))} />
                   <div className="mt-4"><Submit pendingText="Saving…">Save gallery</Submit></div>
                 </ActionForm>
+              </Card>
+            ),
+          },
+          {
+            id: "services", label: "Services & menus", badge: offerings.length,
+            content: (
+              <Card title="Services & menus" description={`${entitlements.servicesMenus ? "Shown on the public profile." : "Hidden publicly — this listing isn't on Premium. Data is kept."} Staff can manage them from the owner dashboard (staff override).`}>
+                {offerings.length ? (
+                  <ul className="space-y-3 text-sm">
+                    {offerings.map((s) => (
+                      <li key={s.id}><p className="font-medium text-slate-900">{s.title} <span className="badge-gray ml-1">{s.kind === "MENU" ? "Menu" : "Services"}</span></p><p className="text-slate-500">{s.items.length} item{s.items.length === 1 ? "" : "s"}{s.items.length ? `: ${s.items.slice(0, 4).map((i) => i.name).join(", ")}${s.items.length > 4 ? "…" : ""}` : ""}</p></li>
+                    ))}
+                  </ul>
+                ) : <p className="text-sm text-slate-500">No services or menus yet.</p>}
+                <a href={`/dashboard/${b.id}/services/`} className="btn-secondary btn-sm mt-4">Manage services &amp; menus</a>
               </Card>
             ),
           },
@@ -133,7 +157,7 @@ export default async function EditBusinessPage({ params, searchParams }: { param
         ]}
       />
       <div className="mt-8 grid gap-4 text-sm text-slate-500 sm:grid-cols-2">
-        <p>{b._count.events} events · {b._count.promotions} specials · {b._count.followers} followers · Updated {formatDateTime(b.updatedAt)}</p>
+        <p>{b._count.events} events ({eventCount} counted toward the {entitlements.maxEvents === null ? "unlimited" : `${entitlements.maxEvents}-event`} plan limit; staff aren&apos;t limited) · {b._count.promotions} specials · {b._count.followers} followers · Updated {formatDateTime(b.updatedAt)}</p>
         {isAdmin && !b.deletedAt && (
           <div className="sm:text-right">
             <ConfirmButton action={trashBusiness} fields={{ id: b.id }} title={`Delete ${b.name}?`} body="The business is removed from the directory and admin lists (soft delete). It can be restored from the “Deleted” filter." confirmLabel="Delete business">

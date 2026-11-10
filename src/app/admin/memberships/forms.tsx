@@ -3,11 +3,13 @@ import { Card, Notice } from "@/components/admin/page-header";
 import { Checkbox, FormGrid, SelectField, TextArea, TextField } from "@/components/admin/form-field";
 import { TokenInput } from "@/components/admin/token-input";
 import type { MembershipPlan, SponsorshipProduct } from "@/generated/prisma/client";
-import type { Entitlements } from "@/lib/entitlements";
+import { FREE_ENTITLEMENTS, PREMIUM_ENTITLEMENTS, type Entitlements } from "@/lib/entitlements";
 import { savePlan, saveProduct } from "./actions";
 
 export function PlanForm({ p }: { p: MembershipPlan | null }) {
   const e = (p?.entitlements ?? {}) as Partial<Entitlements>;
+  // Unset values fall back to the built-in defaults for the plan type (see src/lib/entitlements.ts).
+  const d = p?.interval === "FREE" ? FREE_ENTITLEMENTS : p ? PREMIUM_ENTITLEMENTS : FREE_ENTITLEMENTS;
   return (
     <ActionForm action={savePlan} warnUnsaved className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {p && <input type="hidden" name="id" value={p.id} />}
@@ -26,12 +28,18 @@ export function PlanForm({ p }: { p: MembershipPlan | null }) {
         </Card>
         <Card title="Entitlements" description="What this plan unlocks in the business dashboard. Granted only from verified subscription records.">
           <div className="grid gap-1 sm:grid-cols-2">
-            <Checkbox name="promotions" label="Post specials" defaultChecked={e.promotions} />
+            <Checkbox name="promotions" label="Post specials" defaultChecked={e.promotions ?? d.promotions} />
             <Checkbox name="events" label="Post events" defaultChecked={e.events ?? true} />
-            <Checkbox name="updates" label="Post business updates" defaultChecked={e.updates} />
-            <Checkbox name="analytics" label="Listing analytics" defaultChecked={e.analytics} />
+            <Checkbox name="updates" label="Post business updates" defaultChecked={e.updates ?? d.updates} />
+            <Checkbox name="analytics" label="Listing analytics" defaultChecked={e.analytics ?? d.analytics} />
+            <Checkbox name="googleReviews" label="Google reviews integration" defaultChecked={e.googleReviews ?? d.googleReviews} />
+            <Checkbox name="servicesMenus" label="Services & menus" defaultChecked={e.servicesMenus ?? d.servicesMenus} />
           </div>
-          <TextField name="maxPhotos" type="number" min={0} max={200} label="Max gallery photos" defaultValue={e.maxPhotos ?? 6} wrapClassName="mt-3 max-w-[200px]" />
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <TextField name="maxPhotos" type="number" min={0} max={200} label="Max gallery photos" defaultValue={e.maxPhotos ?? d.maxPhotos} help="Logo and cover don't count." />
+            <TextField name="maxEvents" type="number" min={0} max={10000} label="Max events" defaultValue={"maxEvents" in e ? e.maxEvents ?? "" : d.maxEvents ?? ""} help="Leave blank for unlimited." />
+            <TextField name="descriptionLimit" type="number" min={50} max={20000} label="Description limit" defaultValue={e.descriptionLimit ?? d.descriptionLimit} help="Characters (plain text)." />
+          </div>
         </Card>
       </div>
       <aside className="min-w-0 space-y-6 lg:sticky lg:top-20 lg:self-start">

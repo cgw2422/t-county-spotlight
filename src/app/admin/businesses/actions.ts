@@ -117,13 +117,28 @@ export async function savePhotos(_: ActionState, fd: FormData): Promise<ActionSt
   const photos = jsonField<{ url: string; alt?: string; caption?: string }[]>(fd, "photos", [])
     .filter((x) => typeof x.url === "string" && (x.url.startsWith("/") || /^https?:\/\//.test(x.url)))
     .slice(0, 60);
+  // Staff aren't limited by the listing's plan; keep each photo's primary / public-visibility choice.
+  const before = await db.businessPhoto.findMany({ where: { businessId: id }, select: { url: true, isPrimary: true, visibleOnFree: true } });
+  const flags = new Map(before.map((x) => [x.url, x]));
+  let primarySeen = false;
   await db.$transaction([
     db.businessPhoto.deleteMany({ where: { businessId: id } }),
     db.businessPhoto.createMany({
-      data: photos.map((x, i) => ({ businessId: id, url: x.url.slice(0, 2000), alt: x.alt?.slice(0, 300) || null, caption: x.caption?.slice(0, 500) || null, sortOrder: i })),
+      data: photos.map((x, i) => {
+        const url = x.url.slice(0, 2000);
+        const prev = flags.get(url);
+        const isPrimary = !!prev?.isPrimary && !primarySeen;
+        if (isPrimary) primarySeen = true;
+        return { businessId: id, url, alt: x.alt?.slice(0, 300) || null, caption: x.caption?.slice(0, 500) || null, sortOrder: i, isPrimary, visibleOnFree: !!prev?.visibleOnFree };
+      }),
     }),
   ]);
-  await audit(user.id, "business.update", "Business", id, { name: b.name, photos: photos.length });
+  const beforeUrls = new Set(before.map((x) => x.url));
+  const afterUrls = new Set(photos.map((x) => x.url.slice(0, 2000)));
+  await audit(user.id, "business.photos_admin_save", "Business", id, {
+    name: b.name, photos: photos.length,
+    added: [...afterUrls].filter((u) => !beforeUrls.has(u)).length, removed: [...beforeUrls].filter((u) => !afterUrls.has(u)).length,
+  });
   revalidatePath(`/admin/businesses/${id}`);
   revalidatePath("/", "layout");
   return { ok: true, message: `Gallery saved (${photos.length} photo${photos.length === 1 ? "" : "s"}).` };

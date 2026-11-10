@@ -1,12 +1,15 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { descriptionLength } from "@/lib/description";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { BusinessCoverField } from "@/components/ui/cover-photo-field";
 import { updateProfileAction } from "@/app/dashboard/[businessId]/actions";
-import { Checkbox, FormSection, TextArea, TextField, echoed, echoedChecked } from "./fields";
-import { DAY_NAMES, type HoursRow } from "./text";
+import { Checkbox, FormSection, TextField, echoed, echoedChecked } from "./fields";
+import { DAY_NAMES, textToHtml, type HoursRow } from "./text";
 import { GoogleListingFields, type GoogleListingValues } from "@/components/business/google-listing-fields";
 
 export type ProfileValues = {
@@ -19,7 +22,34 @@ const SOCIALS = [
   ["facebook", "Facebook page"], ["instagram", "Instagram"], ["x", "X (Twitter)"], ["tiktok", "TikTok"], ["youtube", "YouTube"], ["linkedin", "LinkedIn"],
 ] as const;
 
-export function ProfileForm({ businessId, values, categories, cities, google }: { businessId: string; values: ProfileValues; categories: { id: string; name: string }[]; cities: string[]; google?: GoogleListingValues & { searchAvailable: boolean; defaultQuery: string } }) {
+/** "About your business" with a live plain-text counter that matches the server's descriptionLength(). */
+function DescriptionField({ defaultValue, original, limit, error }: { defaultValue: string; original: string; limit: number; error?: string }) {
+  const [text, setText] = useState(defaultValue);
+  const count = descriptionLength(textToHtml(text));
+  const originalOver = descriptionLength(textToHtml(original)) > limit;
+  const over = count > limit;
+  const changed = text.replace(/\r\n/g, "\n").trim() !== original.replace(/\r\n/g, "\n").trim();
+  return (
+    <div>
+      <label htmlFor="f-description" className="label">About your business <span className="font-normal text-slate-400">(optional)</span></label>
+      {originalOver && (
+        <p className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="description-over-notice">
+          Your description is longer than your plan&apos;s {limit.toLocaleString("en-US")}-character limit. It still shows in full on your listing, and you can save other changes without touching it — but please shorten it before editing.
+        </p>
+      )}
+      <textarea id="f-description" name="description" value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={8000}
+        className={cn("input min-h-32 leading-relaxed", (error || (over && changed)) && "border-red-400")} aria-invalid={error ? true : undefined} aria-describedby="f-description-d f-description-c" />
+      <div className="mt-1 flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <p id="f-description-d" className={error ? "text-sm text-red-600" : "help text-sm"}>{error || "Tell people what makes you special. Leave a blank line between paragraphs."}</p>
+        <p id="f-description-c" aria-live="polite" className={cn("shrink-0 text-sm tabular-nums", over ? "font-semibold text-red-600" : "text-slate-500")} data-testid="description-counter">
+          {count.toLocaleString("en-US")} / {limit.toLocaleString("en-US")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function ProfileForm({ businessId, values, categories, cities, google, descriptionLimit, googleLocked }: { businessId: string; values: ProfileValues; categories: { id: string; name: string }[]; cities: string[]; google?: GoogleListingValues & { searchAvailable: boolean; defaultQuery: string }; descriptionLimit: number; googleLocked?: boolean }) {
   const [state, action] = useActionState(updateProfileAction, null);
   const fe = state?.fieldErrors ?? {};
   const ev = state?.values;
@@ -31,8 +61,7 @@ export function ProfileForm({ businessId, values, categories, cities, google }: 
       <FormSection id="basics" title="The basics" description="This is what people see first.">
         <TextField label="Business name" name="name" defaultValue={echoed(ev, "name", values.name)} required maxLength={120} error={fe.name} />
         <TextField label="Tagline" name="tagline" defaultValue={echoed(ev, "tagline", values.tagline)} maxLength={160} hint="One short line, like “Family-owned bakery since 1952”." />
-        <TextArea label="About your business" name="description" defaultValue={echoed(ev, "description", values.description)} rows={8} maxLength={8000}
-          hint="Tell people what makes you special. Leave a blank line between paragraphs." />
+        <DescriptionField key={ev ? `e-${String(ev.description ?? "").length}-${state?.error ?? ""}` : "orig"} defaultValue={echoed(ev, "description", values.description)} original={values.description} limit={descriptionLimit} error={fe.description} />
         <fieldset>
           <legend className="label">Categories <span className="font-normal text-slate-400">(pick up to 5)</span></legend>
           <div className="grid max-h-64 gap-x-4 overflow-y-auto rounded-xl border border-slate-200 p-3 sm:grid-cols-2">
@@ -95,6 +124,12 @@ export function ProfileForm({ businessId, values, categories, cities, google }: 
             }}
           />
         </FormSection>
+      )}
+
+      {googleLocked && (
+        <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600" data-testid="google-upgrade-note">
+          Google reviews integration is included with Premium. <Link href={`/dashboard/${businessId}/membership/`} className="font-semibold text-brand-700 hover:underline">Learn more</Link>
+        </p>
       )}
 
       <FormSection id="hours" title="Opening hours" description="Leave a day blank if your hours vary. Tick “Closed” for days you're closed.">

@@ -8,7 +8,7 @@ import { LogoutButton } from "@/components/account/logout-button";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_TO = ["membership", "profile", "photos", "events", "specials", "updates", "invoices"];
+const ALLOWED_TO = ["membership", "profile", "photos", "services", "events", "specials", "updates", "invoices"];
 
 export default async function DashboardHome({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const user = await requireUser("/dashboard/");
