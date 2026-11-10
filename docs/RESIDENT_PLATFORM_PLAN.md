@@ -20,6 +20,11 @@
 | Unified submissions queue | Partial: separate queues → **Phase 1 central queue** |
 | Town pages, Explore collections, New and Coming Soon | Missing → Phase 3 |
 
+### Owner decisions (2026-11-10)
+- Business import (OpenStreetMap CSV): **on hold — do not import.**
+- Sponsored placements: **undecided — left as is.**
+- Footer: **keep navy.**
+
 ### Needs your decision
 - **Sponsored placements** (Admin → Sponsored placements, the "Sponsored" label on homepage businesses, weekend guide and specials) are paid placements. The ad-free direction says no paid placement on resident-facing community features. Nothing has been removed; decide whether to retire them.
 - **Footer color.** The brief says "all-white logo in the green footer", but you later asked to change the footer back to navy. The navy footer is kept.
