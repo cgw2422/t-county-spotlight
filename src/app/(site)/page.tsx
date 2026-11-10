@@ -25,12 +25,21 @@ import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { getFeaturedPulse, getRecentPulses } from "@/lib/pulse";
 import { PulseHeroCard } from "@/components/pulse/pulse-hero-card";
 import { PulseCard } from "@/components/pulse/pulse-card";
+import { getCommunityPreference, getSpecialsWithCity, splitByCommunity } from "@/lib/my-t-county";
+import { CommunityBar } from "@/components/my-t-county/community-bar";
+import { CommunityGroups } from "@/components/my-t-county/community-groups";
 
 export const dynamic = "force-dynamic";
 
 type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
 
-async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>) {
+/**
+ * `community` (the visitor's chosen town, or null for All of Tuscarawas County)
+ * only reorders the today / weekend / food trucks / garage sales / specials
+ * sections — local items first, countywide items still shown. With null, every
+ * section renders exactly as before.
+ */
+async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null) {
   switch (s.type) {
     case "hero": {
       const pulse = await getFeaturedPulse();
@@ -39,10 +48,11 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
     case "today":
-      return <TodaySection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} />;
+      return <TodaySection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} community={community} />;
     case "weekend": {
       const { start, end } = weekendWindow();
-      const items = await getUpcomingOccurrences({ from: start, to: end, limit: s.limit, featuredIds: s.featuredIds });
+      const items = await getUpcomingOccurrences({ from: start, to: end, limit: community ? undefined : s.limit, featuredIds: s.featuredIds });
+      const groups = community && items.length ? splitByCommunity(items, (e) => e.city, community, s.limit || 4) : null;
       const sponsor = (await getActivePlacements("weekend_guide"))[0];
       return (
         <section key={s.id} className="container-page py-10">
@@ -50,7 +60,11 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
           {sponsor && (
             <p className="mb-4 text-sm text-slate-600"><span className="badge-sponsored mr-2">{settings.sponsoredLabel}</span>Weekend guide presented by {sponsor.business ? <Link className="font-semibold text-brand-700" href={`/business/${sponsor.business.slug}/`}>{sponsor.business.name}</Link> : sponsor.title}</p>
           )}
-          {items.length ? (
+          {groups && community ? (
+            <CommunityGroups community={community} local={groups.local} rest={groups.rest} testId="home-weekend-groups"
+              gridClassName="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" nothingLocal={`No ${community} events listed for this weekend yet.`}
+              render={(e) => <EventCard key={e.id} e={e} />} />
+          ) : items.length ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{items.map((e) => <EventCard key={e.id} e={e} />)}</div>
           ) : (
             <EmptyState icon={CalendarDays} title="No events listed for this weekend yet">Know of something happening? <Link href="/events/submit/" className="font-semibold text-brand-700">Submit an event</Link>.</EmptyState>
@@ -110,6 +124,19 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       );
     }
     case "specials": {
+      if (community) {
+        const all = await getSpecialsWithCity(60, s.featuredIds);
+        if (!all.length) return null;
+        const groups = splitByCommunity(all, (p) => p.business.city, community, s.limit || 4);
+        return (
+          <section key={s.id} className="container-page py-12">
+            <SectionHeader title={s.title} subtitle={s.subtitle} href="/specials/" />
+            <CommunityGroups community={community} local={groups.local} rest={groups.rest} testId="home-specials-groups"
+              gridClassName="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4" nothingLocal={`No current specials from ${community} businesses yet.`}
+              render={(p) => <SpecialCard key={p.id} p={p} />} />
+          </section>
+        );
+      }
       const items = await getActiveSpecials(s.limit, s.featuredIds);
       if (!items.length) return null;
       return (
@@ -171,9 +198,9 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       );
     }
     case "food_trucks":
-      return <FoodTrucksHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} />;
+      return <FoodTrucksHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     case "garage_sales":
-      return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} />;
+      return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     default:
       return null;
   }
@@ -192,11 +219,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       }
     }
   }
-  const [settings, sections] = await Promise.all([
+  const [settings, sections, pref] = await Promise.all([
     getSettings(),
     db.homepageSection.findMany({ where: { isEnabled: true }, orderBy: { sortOrder: "asc" } }),
+    getCommunityPreference(),
   ]);
-  const rendered = await Promise.all(sections.map((s) => renderSection(s, settings)));
+  const rendered = await Promise.all(sections.map((s) => renderSection(s, settings, pref.active)));
+  // Community prompt / switcher sits right below the hero (or at the top when there is no hero).
+  const heroAt = sections.findIndex((s) => s.type === "hero");
+  rendered.splice(heroAt + 1, 0, <CommunityBar key="community-bar" community={pref.community} active={pref.active} showPrompt={pref.showPrompt} className="pt-6" />);
   const brand = await getBrandAssetUrls();
   const socials = Object.values(settings.socials || {}).filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
   return (

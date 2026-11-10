@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, UserRound } from "lucide-react";
+import { MapPin, Search, UserRound } from "lucide-react";
 import { getSettings } from "@/lib/settings";
 import { getSessionUser, isStaff } from "@/lib/auth";
 import { Logo } from "./logo";
@@ -29,6 +29,10 @@ export async function SiteHeader() {
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <Link href="/search" className="btn-ghost px-3" aria-label="Search">
               <Search className="h-5 w-5" />
+            </Link>
+            {/* Phones/tablets reach My T County from the bottom nav. */}
+            <Link href="/my-t-county/" className="btn-ghost hidden px-3 lg:inline-flex" aria-label="My T County" title="My T County">
+              <MapPin className="h-5 w-5" />
             </Link>
             {user ? (
               <Link href={accountHref} className="btn-ghost hidden px-3 sm:inline-flex">

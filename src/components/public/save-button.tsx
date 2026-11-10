@@ -1,30 +1,72 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, BellRing, Heart } from "lucide-react";
+import { Bell, BellRing, Heart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { SavedKind } from "@/lib/saved-shared";
+import { getMemberSavedState, noteMemberSaved, setLocalSaved, takeGuestHint, useLocalSaved } from "@/lib/saved-local";
 
-export type SaveKind = "BUSINESS" | "EVENT" | "PROMOTION" | "ARTICLE" | "BUSINESS_FOLLOW";
+export type SaveKind = SavedKind | "BUSINESS_FOLLOW";
+
+/** Set once the server tells us this visitor has no account (saves go to the device). */
+let knownGuest = false;
 
 /**
- * Optimistic save / follow toggle. Unauthenticated visitors are sent to
- * /login/?next=<current page>. Pass `type="BUSINESS_FOLLOW"` to follow a business.
+ * Optimistic save / follow toggle.
+ * - Members: saved to the account (`initial` from the server; omit it on cards and
+ *   the state is fetched once per page).
+ * - Guests: saved on this device (localStorage) with a one-time hint to create an account.
+ * - Following a business (`type="BUSINESS_FOLLOW"`) needs an account: guests go to /login/.
  */
-export function SaveButton({ type, targetId, initial = false, label, savedLabel, className, compact = false }: {
-  type: SaveKind; targetId: string; initial?: boolean; label?: string; savedLabel?: string; className?: string; compact?: boolean;
+export function SaveButton({ type, targetId, initial, label, savedLabel, className, wrapperClassName, compact = false }: {
+  type: SaveKind; targetId: string; initial?: boolean; label?: string; savedLabel?: string; className?: string; wrapperClassName?: string; compact?: boolean;
 }) {
-  const [saved, setSaved] = useState(initial);
+  const follow = type === "BUSINESS_FOLLOW";
+  const local = useLocalSaved();
+  const localHas = !follow && local.some((e) => e.type === type && e.targetId === targetId);
+  const [fetched, setFetched] = useState<boolean | null>(null);
+  const [override, setOverride] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState(false);
   const [pending, start] = useTransition();
   const path = usePathname();
   const router = useRouter();
-  const follow = type === "BUSINESS_FOLLOW";
+
+  // Cards don't pass server state: ask once per page whether the member saved it.
+  useEffect(() => {
+    if (initial !== undefined) return;
+    let live = true;
+    void getMemberSavedState().then((s) => {
+      if (!s.signedIn) knownGuest = true;
+      if (live) setFetched(s.keys.has(`${type}:${targetId}`));
+    });
+    return () => { live = false; };
+  }, [initial, type, targetId]);
+
+  useEffect(() => {
+    if (!hint) return;
+    const t = setTimeout(() => setHint(false), 9000);
+    return () => clearTimeout(t);
+  }, [hint]);
+
+  const saved = override ?? ((initial ?? fetched ?? false) || localHas);
   const text = saved ? (savedLabel ?? (follow ? "Following" : "Saved")) : (label ?? (follow ? "Follow" : "Save"));
   const Icon = follow ? (saved ? BellRing : Bell) : Heart;
 
+  function saveOnDevice(next: boolean) {
+    if (!setLocalSaved(type as SavedKind, targetId, next)) {
+      setOverride(!next);
+      setError("Couldn't save on this device. Sign in to save.");
+      return;
+    }
+    setOverride(next);
+    if (next && takeGuestHint()) setHint(true);
+  }
+
   function toggle() {
     const next = !saved;
-    setSaved(next);
+    setOverride(next);
     setError(null);
     start(async () => {
       try {
@@ -34,22 +76,39 @@ export function SaveButton({ type, targetId, initial = false, label, savedLabel,
           body: JSON.stringify({ type, targetId, action: follow ? (next ? "follow" : "unfollow") : next ? "save" : "unsave" }),
         });
         if (res.status === 401) {
-          setSaved(!next);
+          setOverride(!next);
           router.push(`/login/?next=${encodeURIComponent(path || "/")}`);
           return;
         }
+        if (res.status === 404) {
+          // Not public any more (or the event/sale is over). Unsaving locally still works.
+          setOverride(!next);
+          setError("This can't be saved right now.");
+          return;
+        }
         if (!res.ok) throw new Error();
-        const json = (await res.json()) as { saved: boolean };
-        setSaved(json.saved);
+        const json = (await res.json()) as { saved: boolean; guest?: boolean };
+        if (json.guest) {
+          knownGuest = true;
+          saveOnDevice(json.saved);
+          return;
+        }
+        setOverride(json.saved);
+        if (!follow) {
+          noteMemberSaved(type, targetId, json.saved);
+          if (!json.saved && localHas) setLocalSaved(type as SavedKind, targetId, false);
+        }
       } catch {
-        setSaved(!next);
+        // Offline guest: unsaving on the device always works.
+        if (knownGuest && !follow && !next) { saveOnDevice(false); return; }
+        setOverride(!next);
         setError("Couldn't update. Try again.");
       }
     });
   }
 
   return (
-    <span className={cn("inline-flex flex-col", className?.includes("w-full") && "w-full")}>
+    <span className={cn("inline-flex flex-col", className?.includes("w-full") && "w-full", wrapperClassName)}>
       <button
         type="button"
         onClick={toggle}
@@ -57,6 +116,7 @@ export function SaveButton({ type, targetId, initial = false, label, savedLabel,
         aria-pressed={saved}
         aria-label={compact ? text : undefined}
         title={compact ? text : undefined}
+        data-testid="save-button"
         className={cn(
           compact ? "btn-secondary px-3" : "btn-secondary",
           saved && "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100",
@@ -68,6 +128,22 @@ export function SaveButton({ type, targetId, initial = false, label, savedLabel,
         {!compact && <span>{text}</span>}
       </button>
       {error && <span role="alert" className="mt-1 text-xs text-red-600">{error}</span>}
+      {hint && (
+        <span
+          role="status"
+          data-testid="guest-save-hint"
+          className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-navy-900 px-4 py-3 text-left text-sm text-white shadow-lg lg:bottom-6"
+        >
+          <span className="flex-1">
+            Saved on this device.{" "}
+            <Link href={`/register/?next=${encodeURIComponent("/saved/")}`} className="font-semibold underline underline-offset-2">Create a free account</Link>{" "}
+            to keep your saves on all your devices.
+          </span>
+          <button type="button" onClick={() => setHint(false)} className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-white/80 hover:text-white" aria-label="Dismiss">
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </span>
+      )}
     </span>
   );
 }

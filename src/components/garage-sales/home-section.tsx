@@ -6,24 +6,32 @@ import { getUpcomingGarageSales, todayKey } from "@/lib/garage-sales";
 import { SectionHeader } from "@/components/home/section-header";
 import { EventCard } from "@/components/cards/event-card";
 import { GarageSaleCard } from "./garage-sale-card";
+import { CommunityGroups } from "@/components/my-t-county/community-groups";
+import { splitByCommunity } from "@/lib/my-t-county-shared";
 
 /**
  * Homepage "Garage Sales & Community Markets": garage sales running in the
  * next 7 days, plus upcoming market events (category "markets" or tag
  * "market") as a small secondary list. Renders nothing when both are empty.
  */
-export async function GarageSalesHomeSection({ title, subtitle, limit }: { title: string; subtitle?: string | null; limit: number }) {
+export async function GarageSalesHomeSection({ title, subtitle, limit, community = null }: { title: string; subtitle?: string | null; limit: number; community?: string | null }) {
   const now = new Date();
   const weekEnd = endOfNyDay(addDaysKey(todayKey(now), 6));
   const [sales, markets] = await Promise.all([
-    getUpcomingGarageSales({ now, limit: 200 }).then((all) => all.filter((s) => s.startDate <= weekEnd).slice(0, limit || 4)),
+    getUpcomingGarageSales({ now, limit: 200 }).then((all) => all.filter((s) => s.startDate <= weekEnd).slice(0, community ? undefined : limit || 4)),
     getUpcomingOccurrences({ from: now, to: weekEnd, limit: 3, where: { OR: [{ category: { slug: "markets" } }, { tags: { has: "market" } }] } }),
   ]);
   if (!sales.length && !markets.length) return null;
+  // With a chosen community: its sales first, countywide sales still shown.
+  const groups = community && sales.length ? splitByCommunity(sales, (s) => s.city, community, limit || 4) : null;
   return (
     <section className="container-page py-12" aria-labelledby="home-garage-sales">
       <div id="home-garage-sales"><SectionHeader title={title || "Garage Sales & Community Markets"} subtitle={subtitle} href="/garage-sales/" linkLabel="All garage sales" /></div>
-      {sales.length > 0 ? (
+      {groups && community ? (
+        <CommunityGroups community={community} local={groups.local} rest={groups.rest} testId="home-garage-sales-groups"
+          gridClassName="grid gap-5 sm:grid-cols-2 lg:grid-cols-4" nothingLocal={`No garage sales listed in ${community} this week yet.`}
+          render={(s) => <GarageSaleCard key={s.id} s={s} compact />} />
+      ) : sales.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{sales.map((s) => <GarageSaleCard key={s.id} s={s} compact />)}</div>
       ) : (
         <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">No garage sales listed for this week yet. <Link href="/garage-sales/submit/" className="font-semibold text-brand-700">List yours for free</Link>.</p>

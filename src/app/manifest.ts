@@ -25,9 +25,11 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       { src: b.maskable512, sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Events", short_name: "Events", url: "/events/?source=pwa-shortcut", icons: [{ src: b.icon192, sizes: "192x192" }] },
+      // Android shows up to four shortcuts.
+      { name: "Today's events", short_name: "Today", url: "/events/?when=today&source=pwa-shortcut", icons: [{ src: b.icon192, sizes: "192x192" }] },
+      { name: "Food trucks", short_name: "Food trucks", url: "/food-trucks/?source=pwa-shortcut", icons: [{ src: b.icon192, sizes: "192x192" }] },
+      { name: "My T County", short_name: "My T County", url: "/my-t-county/?source=pwa-shortcut", icons: [{ src: b.icon192, sizes: "192x192" }] },
       { name: "Specials", short_name: "Specials", url: "/specials/?source=pwa-shortcut", icons: [{ src: b.icon192, sizes: "192x192" }] },
-      { name: "Businesses", short_name: "Businesses", url: "/businesses/?source=pwa-shortcut", icons: [{ src: b.icon192, sizes: "192x192" }] },
     ],
   };
 }

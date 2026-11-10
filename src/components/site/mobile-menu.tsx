@@ -33,6 +33,7 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
               ))}
             </ul>
             <div className="mt-6 grid gap-3">
+              <Link href="/my-t-county/" className="btn-secondary w-full">My T County</Link>
               {signedIn ? (
                 <Link href={accountHref} className="btn-primary w-full">My Account</Link>
               ) : (

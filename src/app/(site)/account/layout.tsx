@@ -12,6 +12,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { OhioMark } from "@/components/site/logo";
 import { resendVerificationAction } from "./actions";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
+import { GuestPrefsMerge } from "@/components/my-t-county/guest-prefs-merge";
 
 export const metadata: Metadata = { title: "My account", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -96,6 +97,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         </div>
       )}
 
+      <GuestPrefsMerge userId={user.id} />
       <div className="mt-6"><AccountTabs /></div>
       <div className="mt-6">{children}</div>
 

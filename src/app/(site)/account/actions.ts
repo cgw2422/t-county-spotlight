@@ -10,7 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { homeForRole, sendVerificationEmail } from "@/lib/tokens";
 import { postLoginHome } from "@/lib/gives/access";
 import { audit } from "@/lib/audit";
-import { NOTIFICATION_KEYS, enabledCategories, type NotificationPrefs } from "@/lib/notification-categories";
+import { NOTIFICATION_KEYS, PLANNED_EMAIL_KEYS, enabledCategories, type NotificationPrefs } from "@/lib/notification-categories";
 import type { ActionState } from "@/components/ui/form-message";
 
 async function me() {
@@ -106,7 +106,10 @@ export async function resendVerificationAction(): Promise<ActionState> {
 
 export async function saveNotificationPrefsAction(_p: ActionState, fd: FormData): Promise<ActionState> {
   const user = await me();
-  const prefs: NotificationPrefs = { categories: Object.fromEntries(NOTIFICATION_KEYS.map((k) => [k, fd.get(k) === "on"])) as NotificationPrefs["categories"] };
+  const prefs: NotificationPrefs = {
+    categories: Object.fromEntries(NOTIFICATION_KEYS.map((k) => [k, fd.get(k) === "on"])) as NotificationPrefs["categories"],
+    planned: Object.fromEntries(PLANNED_EMAIL_KEYS.map((k) => [k, fd.get(`planned_${k}`) === "on"])) as NotificationPrefs["planned"],
+  };
   await db.user.update({ where: { id: user.id }, data: { notificationPrefs: prefs } });
   // Keep this user's push subscriptions in step with their choices.
   await db.pushSubscription.updateMany({ where: { userId: user.id }, data: { categories: enabledCategories(prefs) } });

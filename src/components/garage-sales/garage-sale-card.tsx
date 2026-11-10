@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, Clock, MapPin, Navigation, Tag } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
+import { SaveButton } from "@/components/public/save-button";
 import { cn, truncate } from "@/lib/utils";
 import { categoryLabel, directionsUrl, formatHours, formatSaleDates, saleTypeLabel } from "@/lib/garage-sales-shared";
 import type { PublicGarageSale } from "@/lib/garage-sales";
@@ -39,6 +40,7 @@ export function GarageSaleCard({ s, compact = false }: { s: PublicGarageSale; co
         <div className="mt-auto flex flex-wrap gap-2 pt-4">
           <Link href={href} className="btn-secondary btn-sm">Details</Link>
           <a href={directionsUrl(s)} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm text-brand-700"><Navigation className="h-4 w-4" aria-hidden /> Directions</a>
+          <SaveButton type="GARAGE_SALE" targetId={s.id} compact wrapperClassName="ml-auto" />
         </div>
       </div>
     </article>

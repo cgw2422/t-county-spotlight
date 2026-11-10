@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import { NOTIFICATION_CATEGORIES, readNotificationPrefs } from "@/lib/notification-categories";
+import { NOTIFICATION_CATEGORIES, PLANNED_EMAIL_UPDATES, readNotificationPrefs } from "@/lib/notification-categories";
 import { ActionForm } from "@/components/account/action-form";
 import { PushToggle } from "@/components/account/push-toggle";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -31,6 +31,23 @@ export default async function NotificationsPage() {
               </li>
             ))}
           </ul>
+          <div data-testid="planned-email-updates">
+            <h3 className="text-base font-semibold text-navy-900">Planned email updates</h3>
+            <p className="mt-1 text-xs text-slate-500">These emails aren&apos;t being sent yet. Opt in now and they&apos;ll start once each one is available. They&apos;re always off unless you turn them on, and every email will have an unsubscribe link.</p>
+            <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
+              {PLANNED_EMAIL_UPDATES.map((c) => (
+                <li key={c.key}>
+                  <label className="flex min-h-14 cursor-pointer items-start gap-3 px-4 py-3">
+                    <input type="checkbox" name={`planned_${c.key}`} defaultChecked={prefs.planned[c.key]} className="mt-1 h-5 w-5 shrink-0 accent-brand-600" />
+                    <span>
+                      <span className="block text-sm font-semibold text-navy-900">{c.label}</span>
+                      <span className="block text-xs text-slate-500">{c.help}</span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
           <SubmitButton className="btn-primary w-full sm:w-auto" pendingText="Saving…">Save preferences</SubmitButton>
         </ActionForm>
       </section>

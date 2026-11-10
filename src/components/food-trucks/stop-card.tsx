@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarClock, CheckCircle2, Clock, ExternalLink, Globe, MapPin, Navigation, Truck, UtensilsCrossed } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
 import { TrackedLink } from "@/components/public/track";
+import { SaveButton } from "@/components/public/save-button";
 import { businessHref } from "@/lib/links";
 import { formatDate } from "@/lib/utils";
 import { directionsHref, facebookUrl, safeHttpUrl, shortTime, stopLabel, type PublicStop } from "@/lib/food-trucks";
@@ -50,6 +51,7 @@ export function FoodTruckStopCard({ stop, extras, compact = false, now = new Dat
           {t.cuisine && <p className="flex items-center gap-1 text-sm text-slate-600"><UtensilsCrossed className="h-3.5 w-3.5" aria-hidden /> {t.cuisine}</p>}
           <div className="mt-1.5"><StopBadge stop={stop} now={now} /></div>
         </div>
+        <SaveButton type="BUSINESS" targetId={t.id} compact label="Save food truck" savedLabel="Saved food truck" />
       </div>
       <div className="mt-3 space-y-1 text-sm text-slate-700">
         <p className="flex items-start gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden />

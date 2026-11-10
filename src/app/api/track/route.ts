@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
+import { ALL_COUNTY, communitySlug } from "@/lib/my-t-county-shared";
 
 /**
  * Records real engagement (views + outbound clicks). Never stores raw IPs:
@@ -17,8 +18,12 @@ const ALLOWED = new Set([
   "view_garage_sale",
   // Food trucks: page views (no target) and directions clicks (targetType "BUSINESS" = the truck)
   "view_food_trucks", "click_food_truck_directions",
+  // Saved page views (no target; aggregate only)
+  "view_saved",
+  // My T County: page views (no target) and community choices (targetType "COMMUNITY", targetId = community slug or "all"; aggregate only)
+  "view_my_t_county", "set_community",
 ]);
-const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE"]);
+const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY"]);
 const BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
 
 const schema = z.object({
@@ -69,6 +74,12 @@ export async function POST(req: Request) {
     if (body.targetType !== "GARAGE_SALE" || !body.targetId) return new NextResponse(null, { status: 400 });
     const sale = await db.garageSale.findFirst({ where: { id: body.targetId, status: "PUBLISHED" }, select: { id: true } });
     if (!sale) return new NextResponse(null, { status: 204 });
+  }
+
+  // Community choices must name a known community (or "all"); nothing personal is stored.
+  if (body.type === "set_community" || body.targetType === "COMMUNITY") {
+    if (body.type !== "set_community" || body.targetType !== "COMMUNITY" || !body.targetId) return new NextResponse(null, { status: 400 });
+    if (body.targetId !== ALL_COUNTY && communitySlug(body.targetId) !== body.targetId) return new NextResponse(null, { status: 400 });
   }
 
   const day = new Date().toISOString().slice(0, 10);

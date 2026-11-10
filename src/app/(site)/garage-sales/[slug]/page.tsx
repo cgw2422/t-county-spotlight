@@ -12,6 +12,8 @@ import { PhotoGallery } from "@/components/public/photo-gallery";
 import { JsonLd } from "@/components/public/json-ld";
 import { TrackView } from "@/components/public/track";
 import { ShareButtons } from "@/components/public/share-buttons";
+import { SaveButton } from "@/components/public/save-button";
+import { isSaved } from "@/components/public/server";
 import { buildMetadata } from "@/components/public/seo";
 import { EmptyState } from "@/components/ui/empty-state";
 import { garageSaleCardSelect, garageSaleHref, isSaleEnded, toPublicSale } from "@/lib/garage-sales";
@@ -62,7 +64,7 @@ export default async function GarageSalePage({ params }: { params: Promise<{ slu
     );
   }
 
-  const settings = await getSettings();
+  const [settings, saved] = await Promise.all([getSettings(), isSaved("GARAGE_SALE", sale.id)]);
   const reportTo = settings.contactEmail || settings.emailFromAddress || "";
   const where = [sale.locationLine, sale.city].filter(Boolean).join(", ");
   const directions = directionsUrl(sale);
@@ -100,6 +102,7 @@ export default async function GarageSalePage({ params }: { params: Promise<{ slu
                 </p>
               )}
               <a href={directions} target="_blank" rel="noopener noreferrer" className="btn-primary w-full"><Navigation className="h-4 w-4" aria-hidden /> Get directions</a>
+              <SaveButton type="GARAGE_SALE" targetId={sale.id} initial={saved} className="w-full" />
             </div>
             <ShareButtons url={absoluteUrl(garageSaleHref(sale))} title={sale.title} />
             <p className="text-sm text-slate-500">

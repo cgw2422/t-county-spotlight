@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getRelatedPulses, pulseHref, publicPulseWhere } from "@/lib/pulse";
 import { PulseView, pulseViewInclude } from "@/components/pulse/pulse-view";
 import { buildMetadata } from "@/components/public/seo";
-import { followRedirectIfAny } from "@/components/public/server";
+import { followRedirectIfAny, isSaved } from "@/components/public/server";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +36,6 @@ export default async function PulsePage({ params }: Props) {
     await followRedirectIfAny(`/community-pulse/${slug}/`);
     notFound();
   }
-  const related = await getRelatedPulses(p);
-  return <PulseView p={p} related={related} />;
+  const [related, saved] = await Promise.all([getRelatedPulses(p), isSaved("PULSE", p.id)]);
+  return <PulseView p={p} related={related} saved={saved} />;
 }

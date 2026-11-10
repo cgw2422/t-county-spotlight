@@ -10,6 +10,7 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { Breadcrumbs } from "@/components/public/breadcrumbs";
 import { JsonLd } from "@/components/public/json-ld";
 import { ShareButtons } from "@/components/public/share-buttons";
+import { SaveButton } from "@/components/public/save-button";
 import { TrackView, TrackedLink } from "@/components/public/track";
 import { PulseResults } from "./pulse-results";
 import { PulseCard } from "./pulse-card";
@@ -32,7 +33,7 @@ export function sourceLine(p: { sourceType: string; sourceLabel: string | null }
   }
 }
 
-export function PulseView({ p, related, preview = false }: { p: PulseViewData; related: PulseCardData[]; preview?: boolean }) {
+export function PulseView({ p, related, preview = false, saved = false }: { p: PulseViewData; related: PulseCardData[]; preview?: boolean; saved?: boolean }) {
   const rows = orderResults(p.results, p.sortMode);
   const url = absoluteUrl(pulseHref(p));
   const intro = sanitizeRichText(p.intro);
@@ -59,6 +60,7 @@ export function PulseView({ p, related, preview = false }: { p: PulseViewData; r
             {p.discussionDate && <div className="flex items-center gap-1.5"><dt className="sr-only">Discussion date</dt><MessagesSquare className="h-4 w-4 text-slate-400" aria-hidden /><dd>Discussion {formatDate(p.discussionDate)}</dd></div>}
             {p.resultsUpdatedAt && <div className="flex items-center gap-1.5"><dt className="sr-only">Results last updated</dt><RefreshCw className="h-4 w-4 text-slate-400" aria-hidden /><dd>Results last updated {formatDate(p.resultsUpdatedAt)}</dd></div>}
           </dl>
+          {!preview && <div className="mt-5"><SaveButton type="PULSE" targetId={p.id} initial={saved} /></div>}
           {archived && <p className="mt-4 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">This Community Pulse entry is archived. Results reflect the conversation at the time and are no longer updated.</p>}
         </div>
       </header>
