@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { FormMessage, type ActionState } from "@/components/ui/form-message";
 import { TOPICS, type Preferences } from "@/lib/newsletter/copy";
+import { COMMUNITIES } from "@/lib/my-t-county-shared";
 import { savePreferencesByTokenAction, unsubscribeByTokenAction, accountPreferencesAction, accountUnsubscribeAction, accountSubscribeAction } from "./actions";
 
 const REASONS = ["Too many emails", "Not relevant to me", "I never signed up", "I moved away from the area", "Other"];
@@ -72,8 +73,49 @@ export function TopicFields({ prefs }: { prefs: Preferences }) {
   );
 }
 
-export function PreferencesForm({ token, prefs, firstName }: { token?: string; prefs: Preferences; firstName?: string | null }) {
+/**
+ * Communities for the "Around your community" block. None picked = the whole
+ * county (no block). `fallback` = a member's My T County communities, used
+ * when nothing is picked here.
+ */
+export function CommunityFields({ selected, fallback, onChange }: { selected: string[]; fallback?: string[]; onChange?: (picked: string[]) => void }) {
+  const toggle = (name: string, on: boolean) => onChange?.(on ? [...selected.filter((x) => x !== name), name] : selected.filter((x) => x !== name));
+  const main = COMMUNITIES.filter((c) => c.main);
+  const more = COMMUNITIES.filter((c) => !c.main);
+  const box = (c: { slug: string; name: string }) => (
+    <label key={c.slug} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm text-slate-800 hover:bg-slate-50">
+      <input type="checkbox" name="community" value={c.name} defaultChecked={selected.includes(c.name)} onChange={(e) => toggle(c.name, e.target.checked)} className="h-5 w-5 shrink-0 accent-brand-600" />
+      {c.name}
+    </label>
+  );
+  return (
+    <fieldset>
+      <input type="hidden" name="communities_present" value="1" />
+      <legend className="label">My communities <span className="font-normal text-slate-400">(optional, up to 8)</span></legend>
+      <p className="help mb-2">
+        Pick your towns to get a short &ldquo;Around your community&rdquo; section with this week&rsquo;s events, food trucks, garage sales and more there.
+        {fallback?.length
+          ? <> Leave all unchecked to use your My T County communities ({fallback.join(", ")}).</>
+          : <> Leave all unchecked for the whole county.</>}
+      </p>
+      <div className="grid grid-cols-2 gap-x-2 rounded-xl border border-slate-200 p-2 sm:grid-cols-3">{main.map(box)}</div>
+      {more.length > 0 && (
+        <details className="mt-2 rounded-xl border border-slate-200 p-2" open={selected.some((n) => more.some((c) => c.name === n))}>
+          <summary className="flex min-h-11 cursor-pointer items-center px-2 text-sm font-semibold text-brand-700">More communities</summary>
+          <div className="grid grid-cols-2 gap-x-2 sm:grid-cols-3">{more.map(box)}</div>
+        </details>
+      )}
+    </fieldset>
+  );
+}
+
+export function PreferencesForm({ token, prefs, firstName, communities, fallbackCommunities }: { token?: string; prefs: Preferences; firstName?: string | null; communities?: string[]; fallbackCommunities?: string[] }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(token ? savePreferencesByTokenAction : accountPreferencesAction, null);
+  // React resets the form after a save; remount the community boxes (key) with the latest choices.
+  const [picked, setPicked] = useState<string[]>(communities ?? []);
+  const [saves, setSaves] = useState(0);
+  const [seen, setSeen] = useState(state);
+  if (state !== seen) { setSeen(state); setSaves((n) => n + 1); }
   return (
     <form action={action} className="space-y-4">
       {token && <input type="hidden" name="token" value={token} />}
@@ -84,6 +126,7 @@ export function PreferencesForm({ token, prefs, firstName }: { token?: string; p
         </div>
       )}
       <TopicFields prefs={prefs} />
+      {communities && <CommunityFields key={saves} selected={picked} onChange={setPicked} fallback={fallbackCommunities} />}
       <FormMessage state={state} />
       <Btn pending={pending} className="btn-primary w-full sm:w-auto">Save preferences</Btn>
     </form>

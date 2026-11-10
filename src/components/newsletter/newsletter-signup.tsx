@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { ActionState } from "@/components/ui/form-message";
 import { PRIVACY_PATH, SIGNUP_BUTTON, SIGNUP_DESCRIPTION, SIGNUP_DISCLAIMER, SIGNUP_HEADLINE, type SignupSource } from "@/lib/newsletter/copy";
 import { subscribeAction } from "./actions";
+import { COMMUNITIES } from "@/lib/my-t-county-shared";
 
 type Props = {
   source: Exclude<SignupSource, "admin_invite">;
@@ -140,6 +141,16 @@ export function NewsletterSignup({ source, variant = "card", tone = "light", tit
                 </div>
               )}
               {emailInput}
+              {showName && (
+                <div>
+                  <label htmlFor={`${id}-community`} className="label">Your community <span className="font-normal text-slate-400">(optional)</span></label>
+                  <select id={`${id}-community`} name="community" className="input" defaultValue="">
+                    <option value="">All of Tuscarawas County</option>
+                    {COMMUNITIES.map((c) => <option key={c.slug} value={c.name}>{c.name}</option>)}
+                  </select>
+                  <p className="mt-1 text-xs text-slate-500">Adds a short section about what&rsquo;s happening there each week.</p>
+                </div>
+              )}
               {error}
               {submit}
               {disclaimer}

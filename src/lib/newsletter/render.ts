@@ -7,6 +7,8 @@ import type { NewsletterContent, NLItem } from "./content";
 /** Replaced per recipient at send time. */
 export const UNSUBSCRIBE_PLACEHOLDER = "%%UNSUBSCRIBE_URL%%";
 export const PREFERENCES_PLACEHOLDER = "%%PREFERENCES_URL%%";
+/** Where the per-recipient "Around your community" block goes (removed when there is none). */
+export const COMMUNITY_BLOCK_PLACEHOLDER = "%%COMMUNITY_BLOCK%%";
 
 export function recipientLinks(unsubscribeToken: string) {
   const t = encodeURIComponent(unsubscribeToken);
@@ -26,8 +28,9 @@ export function listUnsubscribeHeaders(unsubscribeToken: string, mailto?: string
   };
 }
 
-export function personalize(s: string, links: { unsubscribeUrl: string; preferencesUrl: string }) {
-  return s.split(UNSUBSCRIBE_PLACEHOLDER).join(links.unsubscribeUrl).split(PREFERENCES_PLACEHOLDER).join(links.preferencesUrl);
+export function personalize(s: string, links: { unsubscribeUrl: string; preferencesUrl: string }, communityBlock = "") {
+  // An empty block removes its line entirely, so countywide emails render exactly as before.
+  return s.split(`${COMMUNITY_BLOCK_PLACEHOLDER}\n`).join(communityBlock ? `${communityBlock}\n` : "").split(COMMUNITY_BLOCK_PLACEHOLDER).join(communityBlock).split(UNSUBSCRIBE_PLACEHOLDER).join(links.unsubscribeUrl).split(PREFERENCES_PLACEHOLDER).join(links.preferencesUrl);
 }
 
 export function esc(s: string | null | undefined) {
@@ -42,10 +45,13 @@ function abs(url: string | null | undefined) {
 }
 
 // ── Palette: T County Connect brand (County Navy / Hillside Green / Sunrise Orange / Off White) ──
-const C = { navy: "#0B2340", brand: "#0B2340", green: "#387D14", sunset: "#FF8508", text: "#1e293b", muted: "#5b6472", line: "#e2e8f0", bg: "#F7F8F5", card: "#ffffff", cream: "#F7F8F5" };
+export const EMAIL_COLORS = { navy: "#0B2340", brand: "#0B2340", green: "#387D14", sunset: "#FF8508", text: "#1e293b", muted: "#5b6472", line: "#e2e8f0", bg: "#F7F8F5", card: "#ffffff", cream: "#F7F8F5" };
 // Brand fonts with email-safe fallbacks (most email clients use the fallback).
-const FONT = "'Open Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-const SERIF = "Montserrat,'Segoe UI',Helvetica,Arial,sans-serif"; // headings
+export const EMAIL_FONT = "'Open Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+export const EMAIL_SERIF = "Montserrat,'Segoe UI',Helvetica,Arial,sans-serif"; // headings
+const C = EMAIL_COLORS;
+const FONT = EMAIL_FONT;
+const SERIF = EMAIL_SERIF;
 
 /** Email-safe rich text: small tag allowlist, inline styles, absolute links/images. */
 export function emailRichText(html: string) {
@@ -76,7 +82,7 @@ function button(label: string, url: string, color = C.brand) {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 4px"><tr><td style="border-radius:8px;background:${color}" bgcolor="${color}"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;font-family:${FONT};font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:8px">${esc(label)}</a></td></tr></table>`;
 }
 
-function itemBlock(i: NLItem, sponsoredLabel: string) {
+export function itemBlock(i: NLItem, sponsoredLabel: string) {
   const url = abs(i.url);
   const img = abs(i.imageUrl);
   const title = url ? `<a href="${esc(url)}" style="color:${C.navy};text-decoration:none">${esc(i.title)}</a>` : esc(i.title);
@@ -150,7 +156,7 @@ ${pre ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font
   <h1 style="margin:0 0 14px;font-family:${SERIF};font-size:28px;line-height:1.2;color:${C.navy}">${esc(nl.subject)}</h1>
   ${intro}
 </td></tr>
-${sections.map((s) => `<tr><td class="nl-pad" style="padding:8px 32px 6px;font-family:${FONT}">
+${nl.content.communityBlock ? `${COMMUNITY_BLOCK_PLACEHOLDER}\n` : ""}${sections.map((s) => `<tr><td class="nl-pad" style="padding:8px 32px 6px;font-family:${FONT}">
   <h2 style="margin:12px 0 14px;padding:0 0 8px;border-bottom:2px solid ${C.green};font-family:${SERIF};font-size:22px;color:${C.navy}">${esc(s.title)}</h2>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${s.items.map((i) => itemBlock(i, sponsored)).join("\n")}</table>
 </td></tr>`).join("\n")}
@@ -173,6 +179,7 @@ ${outro ? `<tr><td class="nl-pad" style="padding:8px 32px 8px;font-family:${FONT
   if (pre) lines.push(pre, "");
   const introText = htmlToText(nl.content.intro);
   if (introText) lines.push(introText, "");
+  if (nl.content.communityBlock) lines.push(COMMUNITY_BLOCK_PLACEHOLDER);
   for (const s of sections) {
     lines.push(s.title.toUpperCase(), "-".repeat(Math.min(40, s.title.length)));
     for (const i of s.items) {
@@ -203,7 +210,7 @@ export function htmlToText(html: string) {
 }
 
 /** Small branded layout for transactional mail (confirmation, welcome). */
-export function renderSimpleEmail(o: { siteName: string; logoUrl?: string | null; title: string; paragraphs: string[]; button?: { label: string; url: string }; after?: string[]; footer: string[] }) {
+export function renderSimpleEmail(o: { siteName: string; logoUrl?: string | null; title: string; paragraphs: string[]; /** Trusted, already-escaped HTML placed after the paragraphs. */ html?: string; button?: { label: string; url: string }; after?: string[]; footer: string[] }) {
   const logo = abs(o.logoUrl);
   const p = (t: string) => `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:${C.text}">${t}</p>`;
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${esc(o.title)}</title></head>
@@ -214,6 +221,7 @@ export function renderSimpleEmail(o: { siteName: string; logoUrl?: string | null
 <tr><td style="padding:28px;font-family:${FONT}">
 <h1 style="margin:0 0 14px;font-family:${SERIF};font-size:24px;line-height:1.25;color:${C.navy}">${esc(o.title)}</h1>
 ${o.paragraphs.map(p).join("")}
+${o.html ?? ""}
 ${o.button ? button(o.button.label, o.button.url) : ""}
 ${(o.after ?? []).map((t) => `<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:${C.muted}">${t}</p>`).join("")}
 </td></tr></table>

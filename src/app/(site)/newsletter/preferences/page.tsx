@@ -7,6 +7,8 @@ import { AuthShell } from "@/components/account/auth-shell";
 import { PreferencesForm } from "@/components/newsletter/token-forms";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { maskEmail } from "@/components/newsletter/mask";
+import { db } from "@/lib/db";
+import { subscriberCommunities } from "@/lib/newsletter/community-block";
 
 export const metadata: Metadata = { title: "Email preferences", robots: { index: false, follow: false }, referrer: "no-referrer" };
 export const dynamic = "force-dynamic";
@@ -29,10 +31,13 @@ export default async function PreferencesPage({ searchParams }: { searchParams: 
       </AuthShell>
     );
   }
+  // Linked members: My T County communities are used when none are picked here.
+  const member = sub.userId ? await db.user.findUnique({ where: { id: sub.userId }, select: { homeCommunity: true, extraCommunities: true } }) : null;
+  const fallback = member ? subscriberCommunities({ communities: [], user: member }) : [];
   return (
     <AuthShell title="Email preferences" subtitle={<>For {maskEmail(sub.email)}. {FREQUENCY_NOTE}</>}
       footer={<>Don&rsquo;t want the newsletter? <Link href={`/newsletter/unsubscribe/?token=${encodeURIComponent(sub.unsubscribeToken)}`} className="font-semibold text-brand-700 hover:underline">Unsubscribe</Link></>}>
-      <PreferencesForm token={sub.unsubscribeToken} prefs={readPreferences(sub.preferences)} firstName={sub.firstName} />
+      <PreferencesForm token={sub.unsubscribeToken} prefs={readPreferences(sub.preferences)} firstName={sub.firstName} communities={sub.communities} fallbackCommunities={fallback} />
     </AuthShell>
   );
 }

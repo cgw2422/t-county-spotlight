@@ -12,6 +12,7 @@ import { TUSCARAWAS_CITIES, cn, formatDate, formatTime } from "@/lib/utils";
 import { EventCard } from "@/components/cards/event-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/public/page-header";
+import { TrackView } from "@/components/public/track";
 import { Pagination } from "@/components/public/pagination";
 import { FilterPanel } from "@/components/public/filter-panel";
 import { buildMetadata, pageParam, param, qs, type SearchParams } from "@/components/public/seo";
@@ -216,6 +217,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Searc
 
   return (
     <>
+      <TrackView type="view_events_list" targetType="EVENTS_VIEW" targetId={view === "calendar" ? "calendar" : from || to ? "range" : when || "all"} />
       <PageHeader
         eyebrow="What’s happening"
         title={title}
@@ -234,10 +236,21 @@ export default async function EventsPage({ searchParams }: { searchParams: Searc
                   const active = !from && !to && when === w.key;
                   return (
                     <li key={w.key}>
-                      <Link href={listHref({ when: w.key || undefined, from: undefined, to: undefined, page: undefined })} aria-current={active ? "page" : undefined} className={cn("inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium ring-1", active ? "bg-navy-800 text-white ring-navy-800" : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50")}>{w.label}</Link>
+                      <Link href={listHref({ when: w.key || undefined, from: undefined, to: undefined, page: undefined })} aria-current={active ? "page" : undefined} className={cn("inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 text-sm font-medium ring-1", active ? "bg-navy-800 text-white ring-navy-800" : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50")}>{w.label}</Link>
                     </li>
                   );
                 })}
+                {/* One-tap toggles for the most common resident filters (also in the filter panel). */}
+                {[
+                  { label: "Family-friendly", on: attrs.includes("family"), href: listHref({ attr: toggleAttr("family"), page: undefined }) },
+                  { label: "Free", on: free, href: listHref({ free: free ? undefined : "1", page: undefined }) },
+                ].map((t, i) => (
+                  <li key={t.label} className={i === 0 ? "ml-1 border-l border-slate-200 pl-3" : undefined}>
+                    <Link href={t.href} className={cn("relative inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-full px-4 text-sm font-medium ring-1", t.on ? "bg-hillside-600 text-white ring-hillside-600" : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50")}>
+                      {t.label}{t.on && <><X className="h-3.5 w-3.5" aria-hidden /><span className="sr-only"> (on, tap to remove)</span></>}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </nav>
           ) : <div />}

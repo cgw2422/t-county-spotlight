@@ -24,6 +24,11 @@ export type NewsletterContent = {
   intro: string; // sanitized HTML
   sections: NLSection[];
   outro: string; // sanitized HTML
+  /**
+   * Adds an "Around your community" block for subscribers who picked
+   * communities (computed per recipient at send time; omitted when empty).
+   */
+  communityBlock: boolean;
 };
 
 export const SECTION_DEFAULTS: Record<NLSectionKey, { title: string; help: string; ref: NonNullable<NLItem["refType"]> }> = {
@@ -39,6 +44,7 @@ export function emptyContent(): NewsletterContent {
     intro: "",
     sections: SECTION_KEYS.map((key) => ({ key, title: SECTION_DEFAULTS[key].title, enabled: true, items: [] })),
     outro: "",
+    communityBlock: true,
   };
 }
 
@@ -52,6 +58,7 @@ export function normalizeContent(raw: unknown): NewsletterContent {
   return {
     intro: str(o.intro, 50_000),
     outro: str(o.outro, 50_000),
+    communityBlock: o.communityBlock !== false,
     sections: SECTION_KEYS.map((key) => {
       const s = sections.find((x) => x && x.key === key);
       const items = s && Array.isArray(s.items) ? (s.items as Record<string, unknown>[]) : [];

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { findMemberSubscriber } from "@/lib/newsletter/subscribers";
 import { FREQUENCY_NOTE, NEWSLETTER_NAME, readPreferences, SIGNUP_DESCRIPTION } from "@/lib/newsletter/copy";
 import { formatDate } from "@/lib/utils";
+import { subscriberCommunities } from "@/lib/newsletter/community-block";
 import { AccountSubscribeForm, PreferencesForm, UnsubscribeForm } from "@/components/newsletter/token-forms";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +50,9 @@ export default async function AccountNewsletterPage() {
       {active && (
         <>
           <section className="card p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-navy-900">Topics</h2>
+            <h2 className="text-lg font-semibold text-navy-900">Topics &amp; communities</h2>
             <p className="mt-1 text-sm text-slate-600">Tell us what you&rsquo;d like to see most.</p>
-            <div className="mt-4"><PreferencesForm prefs={readPreferences(sub!.preferences)} /></div>
+            <div className="mt-4"><PreferencesForm prefs={readPreferences(sub!.preferences)} communities={sub!.communities} fallbackCommunities={sub!.userId === user.id ? subscriberCommunities({ communities: [], user }) : []} /></div>
           </section>
           <section className="card p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-navy-900">Unsubscribe</h2>

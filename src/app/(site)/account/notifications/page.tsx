@@ -1,5 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
-import { NOTIFICATION_CATEGORIES, PLANNED_EMAIL_UPDATES, readNotificationPrefs } from "@/lib/notification-categories";
+import Link from "next/link";
+import { NOTIFICATION_CATEGORIES, EMAIL_UPDATES, readNotificationPrefs } from "@/lib/notification-categories";
+import { memberCommunities } from "@/lib/notifications/run";
 import { ActionForm } from "@/components/account/action-form";
 import { PushToggle } from "@/components/account/push-toggle";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -11,6 +13,7 @@ export default async function NotificationsPage() {
   const user = await getCurrentUser();
   if (!user) return null;
   const prefs = readNotificationPrefs(user.notificationPrefs);
+  const hasCommunities = memberCommunities(user).length > 0;
   return (
     <div className="space-y-6">
       <section className="card p-5 sm:p-6">
@@ -31,17 +34,25 @@ export default async function NotificationsPage() {
               </li>
             ))}
           </ul>
-          <div data-testid="planned-email-updates">
-            <h3 className="text-base font-semibold text-navy-900">Planned email updates</h3>
-            <p className="mt-1 text-xs text-slate-500">These emails aren&apos;t being sent yet. Opt in now and they&apos;ll start once each one is available. They&apos;re always off unless you turn them on, and every email will have an unsubscribe link.</p>
+          <div data-testid="email-updates">
+            <h3 className="text-base font-semibold text-navy-900">Email updates</h3>
+            <p className="mt-1 text-xs text-slate-500">Short emails to {user.email}, only if you turn them on. Each one has a one-click link to turn it off, and they never include ads or sponsored listings. App alerts below are separate and optional.</p>
+            {!user.emailVerifiedAt && (
+              <p className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">Please confirm your email address first — we only send these to confirmed addresses.</p>
+            )}
             <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
-              {PLANNED_EMAIL_UPDATES.map((c) => (
+              {EMAIL_UPDATES.map((c) => (
                 <li key={c.key}>
                   <label className="flex min-h-14 cursor-pointer items-start gap-3 px-4 py-3">
                     <input type="checkbox" name={`planned_${c.key}`} defaultChecked={prefs.planned[c.key]} className="mt-1 h-5 w-5 shrink-0 accent-brand-600" />
                     <span>
                       <span className="block text-sm font-semibold text-navy-900">{c.label}</span>
                       <span className="block text-xs text-slate-500">{c.help}</span>
+                      {c.key === "new_in_my_communities" && !hasCommunities && (
+                        <span className="mt-1 block text-xs font-medium text-amber-800" data-testid="needs-community">
+                          Needs at least one community — pick yours on <Link href="/my-t-county/" className="underline">My T County</Link>. Until then this email isn&rsquo;t sent.
+                        </span>
+                      )}
                     </span>
                   </label>
                 </li>

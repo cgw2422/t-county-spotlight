@@ -44,8 +44,8 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
 async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null) {
   switch (s.type) {
     case "hero": {
-      const pulse = await getFeaturedPulse();
-      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={await getHeroAppearance()} aside={pulse ? <PulseHeroCard pulse={pulse} /> : null} />;
+      const [pulse, appearance] = await Promise.all([getFeaturedPulse(), getHeroAppearance()]);
+      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={appearance} aside={pulse ? <PulseHeroCard pulse={pulse} /> : null} />;
     }
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
@@ -53,9 +53,12 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       return <TodaySection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} community={community} />;
     case "weekend": {
       const { start, end } = weekendWindow();
-      const items = await getUpcomingOccurrences({ from: start, to: end, limit: community ? undefined : s.limit, featuredIds: s.featuredIds });
+      const [items, placements] = await Promise.all([
+        getUpcomingOccurrences({ from: start, to: end, limit: community ? undefined : s.limit, featuredIds: s.featuredIds }),
+        getActivePlacements("weekend_guide"),
+      ]);
       const groups = community && items.length ? splitByCommunity(items, (e) => e.city, community, s.limit || 4) : null;
-      const sponsor = (await getActivePlacements("weekend_guide"))[0];
+      const sponsor = placements[0];
       return (
         <section key={s.id} className="container-page py-10">
           <SectionHeader title={s.title} subtitle={s.subtitle} href="/events/?when=weekend" />
@@ -224,16 +227,16 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       }
     }
   }
-  const [settings, sections, pref] = await Promise.all([
+  const [settings, sections, pref, brand] = await Promise.all([
     getSettings(),
     db.homepageSection.findMany({ where: { isEnabled: true }, orderBy: { sortOrder: "asc" } }),
     getCommunityPreference(),
+    getBrandAssetUrls(),
   ]);
   const rendered = await Promise.all(sections.map((s) => renderSection(s, settings, pref.active)));
   // Community prompt / switcher sits right below the hero (or at the top when there is no hero).
   const heroAt = sections.findIndex((s) => s.type === "hero");
   rendered.splice(heroAt + 1, 0, <CommunityBar key="community-bar" community={pref.community} active={pref.active} showPrompt={pref.showPrompt} className="pt-6" />);
-  const brand = await getBrandAssetUrls();
   const socials = Object.values(settings.socials || {}).filter((v): v is string => typeof v === "string" && /^https?:\/\//.test(v));
   return (
     <>

@@ -15,6 +15,8 @@ import { addSuppression, normalizeEmail, requestSubscription, unsubscribe } from
 import { broadcastReadiness, kickOffProcessing, sendTest, startCampaign } from "@/lib/newsletter/send";
 import { saveNewsletterSettings } from "@/lib/newsletter/settings";
 import { NEWSLETTER_NAME } from "@/lib/newsletter/copy";
+import { emailUpdateLabel, isEmailUpdateKey } from "@/lib/notification-categories";
+import { sendTestUpdate } from "@/lib/notifications/run";
 
 const id = (fd: FormData) => String(fd.get("id") ?? "");
 const EDITABLE = ["DRAFT", "APPROVED", "SCHEDULED"] as const;
@@ -264,4 +266,20 @@ export async function saveNewsletterSettingsAction(_: ActionState, fd: FormData)
   await audit(user.id, "newsletter.settings", "Setting", "newsletter", p.data);
   refresh();
   return { ok: true, message: "Newsletter settings saved." };
+}
+
+// ───────── Member email updates ─────────
+
+/** "Send a test to me": one update to the signed-in admin's own address, ignoring send windows. */
+export async function sendTestEmailUpdateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin();
+  const kind = String(fd.get("kind") ?? "");
+  if (!isEmailUpdateKey(kind)) return { error: "Unknown email update." };
+  if (!rateLimit(`upd-test:${user.id}`, 20, 3600_000).ok) return { error: "Test send limit reached. Try again later." };
+  const r = await sendTestUpdate(kind, user);
+  await audit(user.id, "notifications.test_send", "User", user.id, { kind, outcome: r.outcome });
+  refresh();
+  if (r.outcome === "sent") return { ok: true, message: `Test “${emailUpdateLabel(kind)}” sent to ${user.email}.` };
+  if (r.outcome === "logged") return { ok: true, message: "No email provider is configured, so the test was written to the server log." };
+  return { error: "The test couldn't be sent. Check the email provider settings and try again." };
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CalendarPlus, ChevronRight, Compass, HandHelping, HeartHandshake, Megaphone, ShieldCheck, Sparkles, Store, Tag, Users } from "lucide-react";
 import { PageHeader } from "@/components/public/page-header";
 import { buildMetadata } from "@/components/public/seo";
+import { TrackView } from "@/components/public/track";
 
 export async function generateMetadata(): Promise<Metadata> {
   return buildMetadata({
@@ -27,6 +28,7 @@ const CARDS = [
 export default function SubmitHubPage() {
   return (
     <>
+      <TrackView type="view_submit" />
       <PageHeader eyebrow="Get involved" title="Share something with T County" subtitle="Help neighbors find what's happening. Everything here is free to share." crumbs={[{ label: "Share something" }]} />
       <div className="container-page py-8 sm:py-10">
         <p className="mb-6 flex items-start gap-3 rounded-xl bg-brand-50 px-4 py-3 text-sm text-navy-900">

@@ -9,6 +9,7 @@ import { newsletterSender } from "./settings";
 import { normalizeContent, type NewsletterContent } from "./content";
 import { listUnsubscribeHeaders, personalize, recipientLinks, renderNewsletter } from "./render";
 import { readPreferences, type TopicKey } from "./copy";
+import { createCommunityBlockRenderer, subscriberCommunities } from "./community-block";
 
 export type Readiness = { ok: boolean; problems: string[]; provider: "resend" | "smtp" | null };
 
@@ -127,12 +128,14 @@ export async function processCampaign(newsletterId: string, opts: { maxPerRun?: 
     const { html, text } = await renderCampaign(nl);
     const sender = await newsletterSender();
     if (!sender.from) throw new Error("No sending address configured");
+    // "Around your community": computed once per distinct community set for this run.
+    const communityBlock = normalizeContent(nl.content).communityBlock ? createCommunityBlockRenderer(new Date()) : null;
     while (res.processed < maxPerRun) {
       const current = await db.newsletter.findUnique({ where: { id: nl.id }, select: { status: true } });
       if (current?.status !== "SENDING") { res.stoppedReason = "status changed"; break; }
       const batch = await db.newsletterSend.findMany({
         where: { newsletterId: nl.id, status: "QUEUED" }, orderBy: { id: "asc" }, take: Math.min(batchSize, maxPerRun - res.processed),
-        include: { subscriber: { select: { id: true, email: true, status: true, unsubscribeToken: true } } },
+        include: { subscriber: { select: { id: true, email: true, status: true, unsubscribeToken: true, preferences: true, communities: true, user: { select: { homeCommunity: true, extraCommunities: true } } } } },
       });
       if (!batch.length) break;
       // Re-check suppression / status right before sending.
@@ -145,15 +148,16 @@ export async function processCampaign(newsletterId: string, opts: { maxPerRun?: 
       }
       const go = batch.filter((b) => !skip.includes(b));
       if (!go.length) continue;
-      const msgs: OutgoingEmail[] = go.map((b) => {
+      const msgs: OutgoingEmail[] = await Promise.all(go.map(async (b) => {
         const links = recipientLinks(b.subscriber.unsubscribeToken);
+        const block = communityBlock ? await communityBlock(subscriberCommunities(b.subscriber), readPreferences(b.subscriber.preferences)) : { html: "", text: "" };
         return {
           from: sender.from, to: b.subscriber.email, replyTo: sender.replyTo, subject: nl.subject,
-          html: personalize(html, links), text: personalize(text, links),
+          html: personalize(html, links, block.html), text: personalize(text, links, block.text),
           headers: listUnsubscribeHeaders(b.subscriber.unsubscribeToken),
           tags: [{ name: "category", value: "newsletter" }, { name: "newsletter_id", value: nl.id }],
         };
-      });
+      }));
       const idemKey = `nl-${nl.id}-${crypto.createHash("sha256").update(go.map((b) => b.id).join(",")).digest("hex").slice(0, 40)}`;
       let results;
       try {

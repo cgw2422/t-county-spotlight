@@ -25,8 +25,8 @@ export function Hero({ headline, sub, appearance, aside }: { headline: string; s
             <button className="btn-accent shrink-0">Search</button>
           </form>
           <div className="mt-5 flex flex-wrap gap-2 text-sm">
-            {[["Today", "/events/?when=today"], ["This weekend", "/events/?when=weekend"], ["Food trucks", "/food-trucks/"], ["Garage sales", "/garage-sales/"], ["Volunteer", "/gives/volunteer/"]].map(([l, h]) => (
-              <Link key={h} href={h} className="rounded-full bg-white/15 px-3 py-1.5 font-medium text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/25">{l}</Link>
+            {[["Today", "/events/?when=today"], ["This weekend", "/events/?when=weekend"], ["Food trucks", "/food-trucks/"], ["Garage sales", "/garage-sales/"], ["New businesses", "/new/"], ["Volunteer", "/gives/volunteer/"]].map(([l, h]) => (
+              <Link key={h} href={h} className="inline-flex min-h-11 items-center rounded-full bg-white/15 px-3.5 font-medium text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/25">{l}</Link>
             ))}
           </div>
         </div>

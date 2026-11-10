@@ -10,6 +10,7 @@ import { buildMetadata, param, qs, type SearchParams } from "@/components/public
 import { activeSaleWhere, getUpcomingGarageSales, type SaleView } from "@/lib/garage-sales";
 import { GARAGE_SALE_CATEGORIES, GARAGE_SALE_TYPES } from "@/lib/garage-sales-shared";
 import { GarageSaleCard } from "@/components/garage-sales/garage-sale-card";
+import { TrackView } from "@/components/public/track";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function GarageSalesPage({ searchParams }: { searchParams: 
 
   return (
     <>
+      <TrackView type="view_garage_sales" />
       <PageHeader
         eyebrow="Community"
         title="Garage Sales"

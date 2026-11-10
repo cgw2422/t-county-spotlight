@@ -6,6 +6,8 @@ import { formatDateTime, toDateInput } from "@/lib/utils";
 import { normalizeContent } from "@/lib/newsletter/content";
 import { broadcastReadiness, computeStats, renderCampaign } from "@/lib/newsletter/send";
 import { personalize, recipientLinks } from "@/lib/newsletter/render";
+import { blockSource, pickBlockItems, renderCommunityBlock } from "@/lib/newsletter/community-block";
+import { COMMUNITIES, communityName, communitySlug } from "@/lib/my-t-county-shared";
 import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { ActionButton, ConfirmButton } from "@/components/admin/action-button";
@@ -31,9 +33,10 @@ function Stat({ label, value, hint }: { label: string; value: number | string; h
   );
 }
 
-export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CampaignPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ community?: string }> }) {
   await requireAdmin();
   const { id } = await params;
+  const previewCommunity = communityName((await searchParams).community);
   const nl = await db.newsletter.findUnique({ where: { id } });
   if (!nl) notFound();
   const [ready, stats, rendered, approver, eligible] = await Promise.all([
@@ -44,8 +47,13 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
     db.newsletterSubscriber.count({ where: { status: "ACTIVE", confirmedAt: { not: null } } }),
   ]);
   const sample = recipientLinks("preview-sample-token");
-  const html = personalize(rendered.html, sample);
-  const text = personalize(rendered.text, sample);
+  const content = normalizeContent(nl.content);
+  // Preview the "Around your community" block for one community (all topics on), as of now.
+  const block = previewCommunity && content.communityBlock
+    ? renderCommunityBlock(pickBlockItems(await blockSource([previewCommunity]), null), [previewCommunity])
+    : { html: "", text: "" };
+  const html = personalize(rendered.html, sample, block.html);
+  const text = personalize(rendered.text, sample, block.text);
   const editable = ["DRAFT", "APPROVED", "SCHEDULED"].includes(nl.status);
   const started = !!nl.sendStartedAt;
   const lastError = (nl.stats as { lastError?: string } | null)?.lastError;
@@ -145,7 +153,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           )}
 
           {editable ? (
-            <CampaignEditor id={nl.id} subject={nl.subject} preheader={nl.preheader ?? ""} content={normalizeContent(nl.content)} status={nl.status} />
+            <CampaignEditor id={nl.id} subject={nl.subject} preheader={nl.preheader ?? ""} content={content} status={nl.status} />
           ) : (
             <Notice tone="info">This campaign {nl.status === "SENT" ? "was sent" : "has started sending"}, so its content is locked.</Notice>
           )}
@@ -153,6 +161,18 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
         <div className="min-w-0 space-y-6">
           <Card title="Preview" description="Saved version. Unsubscribe and preferences links are personalized for each recipient.">
+            <form method="get" className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end" data-testid="community-preview">
+              <div className="flex-1">
+                <label htmlFor="pv-community" className="label">Preview as a subscriber in</label>
+                <select id="pv-community" name="community" defaultValue={previewCommunity ? communitySlug(previewCommunity) ?? "" : ""} className="input" disabled={!content.communityBlock}>
+                  <option value="">Countywide (no community picked)</option>
+                  {COMMUNITIES.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                </select>
+              </div>
+              <button className="btn-secondary" disabled={!content.communityBlock}>Update preview</button>
+            </form>
+            {!content.communityBlock && <p className="mb-3 text-sm text-slate-500">The personalized community block is turned off for this campaign.</p>}
+            {previewCommunity && content.communityBlock && !block.html && <p className="mb-3 text-sm text-slate-600">Nothing is listed in {previewCommunity} this week, so subscribers there get the countywide email without a community block.</p>}
             <EmailPreview html={html} text={text} />
           </Card>
           <Card title="Send a test" description="Goes only to the addresses you enter, with “[TEST]” in the subject.">

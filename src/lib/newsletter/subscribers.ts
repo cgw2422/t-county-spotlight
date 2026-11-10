@@ -5,6 +5,7 @@ import { hashToken, randomToken } from "./tokens";
 import type { Prisma } from "@/generated/prisma/client";
 import { CONSENT_TEXT, readPreferences, type Preferences, type SignupSource } from "./copy";
 import { getNewsletterSettings } from "./settings";
+import { cleanCommunities } from "@/lib/my-t-county-shared";
 import { sendAlreadySubscribedEmail, sendConfirmationEmail, sendWelcomeEmail } from "./emails";
 
 export const CONFIRM_TTL_MS = 48 * 3600_000;
@@ -42,7 +43,7 @@ function newConfirmToken() {
   return { token, hash: hashToken(token), expiresAt: new Date(Date.now() + CONFIRM_TTL_MS) };
 }
 
-export type SubscribeInput = { email: string; firstName?: string | null; source: SignupSource; userId?: string | null; ip?: string };
+export type SubscribeInput = { email: string; firstName?: string | null; source: SignupSource; userId?: string | null; ip?: string; /** Optional "Your community" (validated names). Never changes an already-active subscription. */ communities?: string[] };
 export type SubscribeOutcome = "confirmation_sent" | "confirmation_resent" | "resubscribe_sent" | "already_active" | "throttled";
 
 /**
@@ -53,6 +54,7 @@ export async function requestSubscription(input: SubscribeInput): Promise<Subscr
   const email = normalizeEmail(input.email);
   if (!email) throw new Error("invalid email");
   const firstName = input.firstName?.trim().slice(0, 80) || null;
+  const communities = cleanCommunities(input.communities ?? []);
   const settings = await getNewsletterSettings();
   const consent = { consentAt: new Date(), consentText: CONSENT_TEXT, consentVersion: settings.consentVersion };
   const [existing, suppression] = await Promise.all([
@@ -87,7 +89,7 @@ export async function requestSubscription(input: SubscribeInput): Promise<Subscr
     // Status stays as-is (e.g. UNSUBSCRIBED) until the new consent is confirmed.
     sub = await db.newsletterSubscriber.update({
       where: { id: existing.id },
-      data: { ...consent, source: existing.status === "PENDING" ? existing.source : input.source, firstName: firstName ?? existing.firstName, confirmTokenHash: t.hash, confirmExpiresAt: t.expiresAt, ...(userId && !existing.userId ? { userId } : {}) },
+      data: { ...consent, source: existing.status === "PENDING" ? existing.source : input.source, firstName: firstName ?? existing.firstName, confirmTokenHash: t.hash, confirmExpiresAt: t.expiresAt, ...(userId && !existing.userId ? { userId } : {}), ...(communities.length ? { communities } : {}) },
     });
     await logEvent(sub.id, resubscribe ? "resubscribe_requested" : "signup_repeat", { source: input.source });
   } else {
@@ -95,7 +97,7 @@ export async function requestSubscription(input: SubscribeInput): Promise<Subscr
       data: {
         email, firstName, status: "PENDING", source: input.source, ...consent,
         confirmTokenHash: t.hash, confirmExpiresAt: t.expiresAt, unsubscribeToken: randomToken(32),
-        preferences: readPreferences(null), userId,
+        preferences: readPreferences(null), userId, communities,
       },
     });
     await logEvent(sub.id, resubscribe ? "resubscribe_requested" : "signup", { source: input.source, consentVersion: settings.consentVersion });
@@ -163,12 +165,13 @@ export async function unsubscribe(subscriberId: string, opts: { reason?: string 
   return sub;
 }
 
-export async function updatePreferences(subscriberId: string, prefs: Preferences, firstName?: string | null) {
+export async function updatePreferences(subscriberId: string, prefs: Preferences, firstName?: string | null, communities?: string[]) {
+  const comms = communities === undefined ? undefined : cleanCommunities(communities);
   await db.newsletterSubscriber.update({
     where: { id: subscriberId },
-    data: { preferences: prefs, ...(firstName !== undefined ? { firstName: firstName?.trim().slice(0, 80) || null } : {}) },
+    data: { preferences: prefs, ...(firstName !== undefined ? { firstName: firstName?.trim().slice(0, 80) || null } : {}), ...(comms ? { communities: comms } : {}) },
   });
-  await logEvent(subscriberId, "preferences", prefs);
+  await logEvent(subscriberId, "preferences", { ...prefs, ...(comms ? { communities: comms } : {}) });
 }
 
 /** Bounce / complaint from the provider: suppress permanently and stop queued sends. */

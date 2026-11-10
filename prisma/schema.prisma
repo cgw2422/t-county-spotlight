@@ -613,6 +613,8 @@ model EngagementEvent {
 
   @@index([businessId, type, createdAt])
   @@index([targetType, targetId])
+  @@index([type, createdAt])
+  @@index([createdAt])
 }
 
 // ───────────────────────────── Site management ─────────────────────────────

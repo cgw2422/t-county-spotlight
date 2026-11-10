@@ -31,6 +31,8 @@ export async function POST(req: Request) {
   let body: z.infer<typeof schema>;
   try { body = schema.parse(await req.json()); } catch { return NextResponse.json({ error: "Invalid request" }, { status: 400 }); }
   const { type, targetId, action } = body;
+  // Aggregate "save" counts are skipped under Global Privacy Control / Do Not Track (the save itself still works).
+  const countable = req.headers.get("sec-gpc") !== "1" && req.headers.get("dnt") !== "1";
 
   const isFollow = type === "BUSINESS_FOLLOW";
   if (isFollow !== (action === "follow" || action === "unfollow")) return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
   }
 
   if (!user) {
-    if (action === "save") {
+    if (action === "save" && countable) {
       // Aggregate count only; never stores the IP (same hashing as /api/track).
       const ua = req.headers.get("user-agent") || "";
       const visitorHash = crypto.createHash("sha256").update(`${ip}|${ua}|${new Date().toISOString().slice(0, 10)}`).digest("hex");
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
     const existing = await db.savedItem.findUnique({ where: { userId_type_targetId: { userId: user.id, type, targetId } } });
     if (!existing) {
       await db.savedItem.create({ data: { userId: user.id, type, targetId } });
-      await db.engagementEvent.create({ data: { type: "save", businessId, targetType: type, targetId } }).catch(() => {});
+      if (countable) await db.engagementEvent.create({ data: { type: "save", businessId, targetType: type, targetId } }).catch(() => {});
     }
   } else {
     await db.savedItem.deleteMany({ where: { userId: user.id, type, targetId } });

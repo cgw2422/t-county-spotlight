@@ -1,7 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MapPin, X } from "lucide-react";
+import { ChevronRight, MapPin, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sendTrack } from "@/components/public/track";
 import { ALL_COUNTY, ALL_COUNTY_LABEL, ALL_COUNTY_SHORT, COMMUNITIES, communitySlug } from "@/lib/my-t-county-shared";
@@ -96,6 +97,11 @@ export function CommunityBar({ community, active, showPrompt = false, className 
           <CommunitySelect id="cs-community" label={community ? "Change your community" : "Choose your community"}
             value={community ? communitySlug(community)! : ALL_COUNTY} onChange={choose} disabled={pending} />
         </span>
+        {community && (
+          <Link href={`/communities/${communitySlug(community)}/`} className="inline-flex min-h-11 items-center gap-0.5 font-semibold text-brand-700 hover:text-brand-600" data-testid="community-page-link">
+            {community} page <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        )}
       </div>
     </div>
   );

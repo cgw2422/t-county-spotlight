@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { BottomNav } from "@/components/site/bottom-nav";
 import { InstallPrompt } from "@/components/site/install-prompt";
 import { GuestSavesSync } from "@/components/saved/guest-saves-sync";
+import { UsageSignals } from "@/components/site/usage-signals";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <InstallPrompt />
       <BottomNav />
       <GuestSavesSync userId={user?.id ?? null} />
+      <UsageSignals />
     </>
   );
 }

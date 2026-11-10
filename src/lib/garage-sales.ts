@@ -2,7 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
-import { hashToken, randomToken } from "./auth";
+import { hashToken, randomToken } from "./newsletter/tokens"; // same algorithms as ./auth, without next/navigation (runs from scripts/cron)
 import { sendEmail } from "./email";
 import { absoluteUrl, slugify } from "./utils";
 import { addDaysKey, nyDateKey, startOfNyDay } from "@/components/public/dates";

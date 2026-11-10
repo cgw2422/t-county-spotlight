@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Ban, Clock, MailCheck, Plus, Users } from "lucide-react";
+import { Ban, Clock, MailCheck, Plus, Send, Users } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
@@ -8,7 +8,10 @@ import { broadcastReadiness } from "@/lib/newsletter/send";
 import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { createCampaignAction } from "./actions";
+import { createCampaignAction, sendTestEmailUpdateAction } from "./actions";
+import { ActionButton } from "@/components/admin/action-button";
+import { emailUpdateLabel } from "@/lib/notification-categories";
+import { emailUpdateStatus } from "@/lib/notifications/run";
 import { EVENT_LABELS } from "./labels";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +29,7 @@ export default async function NewsletterOverview() {
     broadcastReadiness(),
     db.newsletter.findFirst({ where: { status: { in: ["SCHEDULED", "SENDING"] } }, orderBy: { scheduledFor: "asc" } }),
   ]);
+  const updates = await emailUpdateStatus(7);
   const n = (s: string) => byStatus.find((g) => g.status === s)?._count._all ?? 0;
   const total = byStatus.reduce((a, g) => a + g._count._all, 0);
   const sources = [...new Set([...recentBySource.map((r) => r.source), ...confirmedBySource.map((r) => r.source)])]
@@ -93,6 +97,32 @@ export default async function NewsletterOverview() {
               ))}
             </ul>
           ) : <p className="p-5 text-sm text-slate-500">No activity yet.</p>}
+        </Card>
+      </div>
+
+      <div className="mt-6" data-testid="email-updates-panel">
+        <Card className="min-w-0" title="Email updates (members)" description="Opt-in emails for signed-in members, sent by the scheduled job (/api/cron/). Counts are emails from the last 7 days; staff test sends aren't counted." bodyClassName="p-0">
+          <div className="overflow-x-auto">
+            <table className="table-base w-full text-sm">
+              <thead><tr><th className="text-left">Update</th><th className="text-right">Opted in</th><th className="text-right">Sent</th><th className="text-right">Failed</th><th className="text-right">Not sent</th><th className="text-right"><span className="sr-only">Test</span></th></tr></thead>
+              <tbody>
+                {updates.kinds.map((k) => (
+                  <tr key={k.kind}>
+                    <td className="font-medium text-slate-800">{emailUpdateLabel(k.kind)}</td>
+                    <td className="text-right tabular-nums">{k.optedIn}</td>
+                    <td className="text-right tabular-nums">{k.sent}</td>
+                    <td className="text-right tabular-nums">{k.failed}</td>
+                    <td className="text-right tabular-nums" title="Skipped (e.g. no email provider configured)">{k.skipped}</td>
+                    <td className="text-right"><ActionButton action={sendTestEmailUpdateAction} fields={{ kind: k.kind }}><Send className="h-4 w-4" /> Send a test to me</ActionButton></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">
+            {updates.lastRunAt ? <>Last run {formatDateTime(new Date(updates.lastRunAt))}.</> : <>The scheduled job hasn&rsquo;t run yet — set up an hourly cron that POSTs to /api/cron/ with CRON_SECRET.</>}
+            {updates.lastRunError && <> <span className="font-semibold text-red-700">{updates.lastRunError}</span></>}
+          </p>
         </Card>
       </div>
     </>

@@ -17,7 +17,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon; adminOnly?: bool
 type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number; submissions?: number; garageSales?: number; suggestions?: number };
 
 const NAV: { title: string; items: NavItem[] }[] = [
-  { title: "Overview", items: [{ href: "/admin/", label: "Dashboard", icon: LayoutDashboard }] },
+  { title: "Overview", items: [{ href: "/admin/", label: "Dashboard", icon: LayoutDashboard }, { href: "/admin/analytics/", label: "Community analytics", icon: BarChart3 }] },
   {
     title: "Community",
     items: [

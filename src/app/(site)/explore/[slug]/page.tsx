@@ -18,6 +18,7 @@ import { EventCard } from "@/components/cards/event-card";
 import { OrgCard } from "@/components/gives/cards";
 import { PulseCard } from "@/components/pulse/pulse-card";
 import { PlaceCard } from "@/components/explore/collection-cards";
+import { TrackView } from "@/components/public/track";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,7 @@ export default async function CollectionPage({ params }: Props) {
 
   return (
     <>
+      {!preview && <TrackView type="view_collection" targetType="COLLECTION" targetId={c.id} />}
       {preview && (
         <div className="bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-900" role="status">
           Draft preview — only staff can see this page. {items.length === 0 && "It has no publicly visible items yet."}

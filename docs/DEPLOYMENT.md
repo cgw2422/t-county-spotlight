@@ -30,7 +30,15 @@ Add a second Railway service from the same repo (or a Railway Cron) running ever
 ```
 curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/"
 ```
-This publishes scheduled articles and cleans up expired sessions.
+This publishes scheduled articles, cleans up expired sessions, sends scheduled newsletters and sends members' opt-in **email updates**. It must run **at least hourly** (every 5–15 minutes is best): email updates only go out inside their send windows (America/New_York) and each run sends at most 200, continuing on the next run.
+
+| Email update | Window | Sent once per |
+|---|---|---|
+| Weekend summary | Thu 3 pm – Fri 11 am | member per weekend |
+| Saved event reminders | 8 am – 8 pm the day before | member per day (several events in one email) |
+| New in my communities | Monday 7 am – noon | member per week (only members with a My T County community) |
+
+Emails need `RESEND_API_KEY` (or `SMTP_*`); in production nothing is sent without a provider. `FORM_SECRET` (random string) signs the one-click "turn off" links — set it once and keep it stable, or older links stop working (it falls back to `DATABASE_URL`). Status and "Send a test to me" are in **Admin → Newsletter → Overview → Email updates**.
 
 ## 4. Stripe (only after you approve plans and pricing)
 1. Create Products/Prices in Stripe **test mode**, then paste each Price ID into **Admin → Memberships**.

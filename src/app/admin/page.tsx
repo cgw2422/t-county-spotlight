@@ -20,6 +20,13 @@ export const metadata = { title: { absolute: "Dashboard · Admin" } };
 const ENGAGEMENT_LABELS: Record<string, string> = {
   view_business: "Business page views", view_event: "Event views", view_promotion: "Special views", view_article: "Article views",
   click_website: "Website clicks", click_phone: "Phone taps", click_directions: "Directions requests", save: "Saves",
+  view_events_list: "Events list views", view_community: "Community page views", view_collection: "Explore collection views",
+  view_gives: "T County Gives views", view_submit: "“Share something” views", view_garage_sales: "Garage Sales list views",
+  view_garage_sale: "Garage sale views", view_food_trucks: "Food Trucks page views", click_food_truck_directions: "Food truck directions",
+  view_saved: "Saved page views", view_my_t_county: "My T County views", set_community: "Community choices", search: "Searches",
+  view_openings: "New & Coming Soon views", visit: "Daily visits (device estimate)", pwa_launch: "App launches", pwa_installed: "App installs",
+  install_prompt_shown: "Install prompts shown", install_prompt_accepted: "Install prompts accepted",
+  view_pulse: "Community Pulse views", click_pulse_business: "Pulse → business clicks", click_pulse_source: "Pulse source clicks", view_job: "Job views",
 };
 
 export default async function AdminDashboard() {
@@ -108,7 +115,7 @@ export default async function AdminDashboard() {
             <p className="px-5 py-10 text-center text-sm text-slate-500">No activity recorded yet.</p>
           )}
         </Card>
-        <Card className="lg:col-span-2" title="Engagement · last 30 days" description="Real actions recorded on the site">
+        <Card className="lg:col-span-2" title="Engagement · last 30 days" description="Real actions recorded on the site" actions={<Link href="/admin/analytics/" className="text-sm font-semibold text-brand-700 hover:underline">Community analytics →</Link>}>
           {engagementTotal ? (
             <ul className="space-y-2.5">
               {engagement.sort((a, b) => b._count._all - a._count._all).map((e) => (

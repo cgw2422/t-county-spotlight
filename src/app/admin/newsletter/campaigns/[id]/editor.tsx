@@ -82,6 +82,13 @@ export function CampaignEditor({ id, subject: s0, preheader: p0, content: c0, st
             <input id="nl-pre" className="input" value={preheader} maxLength={200} placeholder="Preview text shown after the subject in the inbox" onChange={(e) => { setPreheader(e.target.value); touch(); }} />
           </div>
         </div>
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3">
+          <input type="checkbox" checked={content.communityBlock} onChange={(e) => { const v = e.target.checked; setContent((c) => ({ ...c, communityBlock: v })); touch(); }} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
+          <span>
+            <span className="block text-sm font-semibold text-slate-900">Include personalized community block</span>
+            <span className="block text-xs text-slate-500">Subscribers who picked communities (or members with My T County communities) get up to 4 of this week&rsquo;s listings from their towns under the introduction. Built at send time from published listings only — nothing sponsored. Everyone else gets the email exactly as shown.</span>
+          </span>
+        </label>
         <div className="mt-5">
           <RichTextEditor name="intro" label="Introduction" compact minHeight="min-h-[140px]" defaultValue={content.intro} onChange={(html) => { setContent((c) => ({ ...c, intro: html })); touch(); }} stickyClass="top-0" />
         </div>

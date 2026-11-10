@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Share, X } from "lucide-react";
 import { OhioMark } from "./logo";
+import { sendTrack } from "@/components/public/track";
 
 type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
@@ -18,12 +19,12 @@ export function InstallPrompt() {
     try { dismissed = !!localStorage.getItem(KEY); } catch {}
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone;
     if (dismissed || standalone) return;
-    const onBip = (e: Event) => { e.preventDefault(); setEvt(e as BIPEvent); setShow(true); };
+    const onBip = (e: Event) => { e.preventDefault(); setEvt(e as BIPEvent); setShow(true); sendTrack({ type: "install_prompt_shown", targetType: "PWA", targetId: "native" }); };
     window.addEventListener("beforeinstallprompt", onBip);
     const ua = navigator.userAgent;
     const isIos = /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios/i.test(ua);
     let t: ReturnType<typeof setTimeout> | undefined;
-    if (isIos) t = setTimeout(() => { setIos(true); setShow(true); }, 15000);
+    if (isIos) t = setTimeout(() => { setIos(true); setShow(true); sendTrack({ type: "install_prompt_shown", targetType: "PWA", targetId: "ios" }); }, 15000);
     return () => { window.removeEventListener("beforeinstallprompt", onBip); if (t) clearTimeout(t); };
   }, []);
 
@@ -42,7 +43,7 @@ export function InstallPrompt() {
           )}
           <div className="mt-3 flex gap-2">
             {!ios && evt && (
-              <button className="btn-primary btn-sm" onClick={async () => { await evt.prompt(); await evt.userChoice; dismiss(); }}>Install</button>
+              <button className="btn-primary btn-sm" onClick={async () => { await evt.prompt(); const choice = await evt.userChoice; if (choice.outcome === "accepted") sendTrack({ type: "install_prompt_accepted", targetType: "PWA", targetId: "native" }); dismiss(); }}>Install</button>
             )}
             <button className="btn-secondary btn-sm" onClick={dismiss}>Not now</button>
           </div>

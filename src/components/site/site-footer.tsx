@@ -19,7 +19,7 @@ export async function SiteFooter() {
       </div>
       <div className="container-page grid gap-10 py-12 md:grid-cols-4">
         <div className="md:col-span-2">
-          <Logo src={brand.logoWhite} onDark plate={false} size="lg" className="max-w-full" />
+          <Logo src={brand.logoWhiteSmall} onDark plate={false} size="lg" className="max-w-full" loading="lazy" />
           <p className="mt-5 max-w-md text-sm leading-relaxed text-white">{s.footerText}</p>
           {socials.length > 0 && (
             <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">

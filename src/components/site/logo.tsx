@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
 
@@ -10,8 +11,8 @@ import { BRAND } from "@/lib/brand";
  * neutral placeholder icon.
  */
 export function BrandMark({ className, tile = true }: { className?: string; tile?: boolean }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  const img = (size: string) => <img src="/brand/mark.png" alt="" aria-hidden className={cn(size, "object-contain")} />;
+  // The 512px mark is shown at 32–48px: let next/image serve a small variant (1x/2x of 64px).
+  const img = (size: string) => <Image src="/brand/mark.png" alt="" aria-hidden width={64} height={64} className={cn(size, "object-contain")} />;
   if (!tile) return <span className={cn("inline-flex shrink-0", className)}>{img("h-full w-full")}</span>;
   // Inner image sized as a share of the tile (percentage padding would follow the parent's width).
   return <span className={cn("inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm", className)}>{img("h-[78%] w-[78%]")}</span>;
@@ -36,14 +37,14 @@ export function BrandWordmark({ onDark = false, className }: { onDark?: boolean;
  * background pass `onDark` (white plate); for the official all-white logo pass
  * `plate={false}`.
  */
-export function Logo({ src, className, onDark = false, plate = onDark, size = "md" }: { src?: string | null; className?: string; onDark?: boolean; plate?: boolean; size?: "sm" | "md" | "lg" }) {
+export function Logo({ src, className, onDark = false, plate = onDark, size = "md", loading }: { src?: string | null; className?: string; onDark?: boolean; plate?: boolean; size?: "sm" | "md" | "lg"; loading?: "lazy" | "eager" }) {
   const h = size === "sm" ? "h-8" : size === "lg" ? "h-12 sm:h-14" : "h-10 sm:h-12";
   return (
     <Link href="/" className={cn("flex shrink-0 items-center", className)} aria-label={`${BRAND.name} home`}>
       {src ? (
         <span className={cn(plate && "rounded-xl bg-white px-3 py-2 shadow-sm")}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={BRAND.name} className={cn(h, "w-auto max-w-[240px] object-contain")} />
+          <img src={src} alt={BRAND.name} loading={loading} className={cn(h, "w-auto max-w-[240px] object-contain")} />
         </span>
       ) : (
         <span className="flex items-center gap-2">

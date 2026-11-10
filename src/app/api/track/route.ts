@@ -26,8 +26,30 @@ const ALLOWED = new Set([
   "search",
   // New & Coming Soon page views (no target; aggregate only)
   "view_openings",
+  // Feature page views (aggregate only). view_events_list: targetType "EVENTS_VIEW", targetId = quick-date view (see EVENTS_VIEWS).
+  // view_community: targetType "COMMUNITY", targetId = community slug. view_collection: targetType "COLLECTION", targetId = collection id.
+  "view_events_list", "view_community", "view_collection", "view_gives", "view_submit", "view_garage_sales",
+  // Device-local "seen before?" flag (localStorage date, never an identifier): targetType "VISIT", targetId "new" | "returning".
+  "visit",
+  // PWA signals (only measurable on supporting browsers). install_prompt_*: targetType "PWA", targetId "native" | "ios".
+  "pwa_installed", "pwa_launch", "install_prompt_shown", "install_prompt_accepted",
 ]);
-const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY", "SEARCH"]);
+const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY", "SEARCH", "EVENTS_VIEW", "COLLECTION", "VISIT", "PWA"]);
+/** Small fixed vocabularies for aggregate targets. */
+const EVENTS_VIEWS = new Set(["all", "today", "tonight", "tomorrow", "weekend", "week", "month", "calendar", "range"]);
+const FIXED_TARGETS: Record<string, { targetType: string | null; ids: Set<string> | null }> = {
+  view_events_list: { targetType: "EVENTS_VIEW", ids: EVENTS_VIEWS },
+  visit: { targetType: "VISIT", ids: new Set(["new", "returning"]) },
+  install_prompt_shown: { targetType: "PWA", ids: new Set(["native", "ios"]) },
+  install_prompt_accepted: { targetType: "PWA", ids: new Set(["native"]) },
+  view_gives: { targetType: null, ids: null },
+  view_submit: { targetType: null, ids: null },
+  view_garage_sales: { targetType: null, ids: null },
+  pwa_installed: { targetType: null, ids: null },
+  pwa_launch: { targetType: null, ids: null },
+};
+/** Non-view signals that are still counted at most once per visitor per day. */
+const ONCE_PER_DAY = new Set(["visit", "pwa_launch", "pwa_installed", "install_prompt_shown", "install_prompt_accepted"]);
 const BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
 
 const schema = z.object({
@@ -45,6 +67,8 @@ export async function POST(req: Request) {
   }
   const ua = req.headers.get("user-agent") || "";
   if (!ua || BOT_RE.test(ua)) return new NextResponse(null, { status: 204 });
+  // Respect Global Privacy Control / Do Not Track even if a client sends anyway.
+  if (req.headers.get("sec-gpc") === "1" || req.headers.get("dnt") === "1") return new NextResponse(null, { status: 204 });
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
   if (!rateLimit(`track:${ip}`, 60, 60_000).ok) return new NextResponse(null, { status: 429 });
@@ -80,10 +104,25 @@ export async function POST(req: Request) {
     if (!sale) return new NextResponse(null, { status: 204 });
   }
 
-  // Community choices must name a known community (or "all"); nothing personal is stored.
-  if (body.type === "set_community" || body.targetType === "COMMUNITY") {
-    if (body.type !== "set_community" || body.targetType !== "COMMUNITY" || !body.targetId) return new NextResponse(null, { status: 400 });
-    if (body.targetId !== ALL_COUNTY && communitySlug(body.targetId) !== body.targetId) return new NextResponse(null, { status: 400 });
+  // Community choices / community page views must name a known community (or "all" for choices); nothing personal is stored.
+  if (body.type === "set_community" || body.type === "view_community" || body.targetType === "COMMUNITY") {
+    if ((body.type !== "set_community" && body.type !== "view_community") || body.targetType !== "COMMUNITY" || !body.targetId || body.businessId) return new NextResponse(null, { status: 400 });
+    const allOk = body.type === "set_community" && body.targetId === ALL_COUNTY;
+    if (!allOk && communitySlug(body.targetId) !== body.targetId) return new NextResponse(null, { status: 400 });
+  }
+
+  // Fixed-vocabulary aggregate signals carry no business and only a known target value (or none).
+  const fixed = FIXED_TARGETS[body.type];
+  if (fixed || body.targetType === "EVENTS_VIEW" || body.targetType === "VISIT" || body.targetType === "PWA") {
+    if (!fixed || body.businessId || (body.targetType ?? null) !== fixed.targetType) return new NextResponse(null, { status: 400 });
+    if (fixed.ids ? !body.targetId || !fixed.ids.has(body.targetId) : body.targetId) return new NextResponse(null, { status: 400 });
+  }
+
+  // Collection views must reference a real, published collection.
+  if (body.type === "view_collection" || body.targetType === "COLLECTION") {
+    if (body.type !== "view_collection" || body.targetType !== "COLLECTION" || !body.targetId || body.businessId) return new NextResponse(null, { status: 400 });
+    const col = await db.exploreCollection.findFirst({ where: { id: body.targetId, status: "PUBLISHED" }, select: { id: true } });
+    if (!col) return new NextResponse(null, { status: 204 });
   }
 
   // Searches carry only a small number (result types with results) — never the query.
@@ -96,7 +135,7 @@ export async function POST(req: Request) {
 
   try {
     // Count a view once per visitor per day so numbers stay honest.
-    if (body.type.startsWith("view_")) {
+    if (body.type.startsWith("view_") || ONCE_PER_DAY.has(body.type)) {
       const since = new Date(); since.setUTCHours(0, 0, 0, 0);
       const dup = await db.engagementEvent.findFirst({
         where: { type: body.type, visitorHash, targetId: body.targetId ?? null, businessId: body.businessId ?? null, createdAt: { gte: since } },

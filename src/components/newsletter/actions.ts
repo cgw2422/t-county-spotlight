@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { PUBLIC_SIGNUP_SOURCES, SIGNUP_NEUTRAL_MESSAGE, TOPICS, type Preferences, type SignupSource } from "@/lib/newsletter/copy";
 import { findByUnsubscribeToken, findMemberSubscriber, normalizeEmail, requestSubscription, unsubscribe, updatePreferences } from "@/lib/newsletter/subscribers";
 import type { ActionState } from "@/components/ui/form-message";
+import { cleanCommunities, communityName } from "@/lib/my-t-county-shared";
 
 /** Public signup. Always answers with the same neutral message for valid addresses. */
 export async function subscribeAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -19,7 +20,8 @@ export async function subscribeAction(_: ActionState, fd: FormData): Promise<Act
   if (!rateLimit(`nl-signup-email:${email}`, 5, 3600_000).ok) return { ok: true, message: SIGNUP_NEUTRAL_MESSAGE };
   const user = await getCurrentUser();
   try {
-    await requestSubscription({ email, firstName: String(fd.get("firstName") ?? ""), source, userId: user?.id ?? null, ip });
+    const community = communityName(String(fd.get("community") ?? ""));
+    await requestSubscription({ email, firstName: String(fd.get("firstName") ?? ""), source, userId: user?.id ?? null, ip, communities: community ? [community] : [] });
   } catch (e) {
     console.error("[newsletter] signup failed", e);
     return { error: "Something went wrong. Please try again." };
@@ -31,6 +33,12 @@ function prefsFrom(fd: FormData): Preferences {
   return Object.fromEntries(TOPICS.map((t) => [t.key, fd.get(`topic_${t.key}`) === "on"])) as Preferences;
 }
 
+/** Picked communities (validated, max 8). Only read when the form included the community fields. */
+function communitiesFrom(fd: FormData): string[] | undefined {
+  if (fd.get("communities_present") !== "1") return undefined;
+  return cleanCommunities(fd.getAll("community").map(String));
+}
+
 /** Preferences via the capability token from an email (no login). */
 export async function savePreferencesByTokenAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const ip = await clientIp();
@@ -40,7 +48,7 @@ export async function savePreferencesByTokenAction(_: ActionState, fd: FormData)
   if (sub.status !== "ACTIVE") return { error: "This address isn't currently subscribed." };
   const prefs = prefsFrom(fd);
   if (!Object.values(prefs).some(Boolean)) return { error: "Pick at least one topic — or unsubscribe below if you'd rather not get the newsletter." };
-  await updatePreferences(sub.id, prefs, String(fd.get("firstName") ?? ""));
+  await updatePreferences(sub.id, prefs, String(fd.get("firstName") ?? ""), communitiesFrom(fd));
   return { ok: true, message: "Your preferences are saved." };
 }
 
@@ -76,7 +84,7 @@ export async function accountPreferencesAction(_: ActionState, fd: FormData): Pr
   if (!sub || sub.status !== "ACTIVE") return { error: "You're not currently subscribed." };
   const prefs = prefsFrom(fd);
   if (!Object.values(prefs).some(Boolean)) return { error: "Pick at least one topic, or unsubscribe instead." };
-  await updatePreferences(sub.id, prefs);
+  await updatePreferences(sub.id, prefs, undefined, communitiesFrom(fd));
   return { ok: true, message: "Your preferences are saved." };
 }
 

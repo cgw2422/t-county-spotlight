@@ -12,6 +12,7 @@ import { WaysToHelp } from "@/components/gives/ways-to-help";
 import { SectionHeader } from "@/components/home/section-header";
 import { buildMetadata, param, type SearchParams } from "@/components/public/seo";
 import { Breadcrumbs } from "@/components/public/breadcrumbs";
+import { TrackView } from "@/components/public/track";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function GivesLanding({ searchParams }: { searchParams: Sea
 
   return (
     <>
+      <TrackView type="view_gives" />
       <section className="relative overflow-hidden bg-navy-900 text-white">
         <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,133,8,0.45),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(56,125,20,0.4),transparent_60%)]" />
         <div className="container-page relative py-12 sm:py-16 lg:py-20">

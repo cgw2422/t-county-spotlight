@@ -12,19 +12,43 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number]["key
 export const NOTIFICATION_KEYS = NOTIFICATION_CATEGORIES.map((c) => c.key) as NotificationCategory[];
 
 /**
- * Planned email updates (Phase 4). Nothing sends these yet: members can opt in
- * ahead of time and they start only once each update is available. Always off
- * by default; never promotional.
+ * Email updates for members (sent by /api/cron/, see src/lib/notifications/).
+ * Opt-in only and always off by default; never promotional. Stored under
+ * `notificationPrefs.planned` (the key predates these emails going live).
  */
-export const PLANNED_EMAIL_UPDATES = [
-  { key: "weekend_summary", label: "Weekend summary", help: "A short email on Thursday or Friday with what’s happening this weekend in your communities." },
-  { key: "saved_event_reminders", label: "Saved event reminders", help: "An email the day before an event you saved." },
-  { key: "new_in_my_communities", label: "New in my communities", help: "Newly listed events, food truck stops and garage sales in the communities you picked on My T County." },
+export const EMAIL_UPDATES = [
+  {
+    key: "weekend_summary",
+    label: "Weekend summary",
+    help: "Arrives Thursday afternoon (or by Friday morning): this weekend’s events, food trucks, garage sales and local specials — your communities first, then highlights around the county. Skipped when there’s nothing to share.",
+  },
+  {
+    key: "saved_event_reminders",
+    label: "Saved event reminders",
+    help: "The day before an event you saved (sent between 8 am and 8 pm). Several events on the same day come in one email. Skipped if the event is no longer listed.",
+  },
+  {
+    key: "new_in_my_communities",
+    label: "New in my communities",
+    help: "Monday morning: events, food truck stops, garage sales, openings and ways to help newly listed in the last week in the communities you picked on My T County. Skipped when nothing is new.",
+  },
 ] as const;
 
-export type PlannedEmailUpdate = (typeof PLANNED_EMAIL_UPDATES)[number]["key"];
+export type EmailUpdateKey = (typeof EMAIL_UPDATES)[number]["key"];
+export const EMAIL_UPDATE_KEYS = EMAIL_UPDATES.map((c) => c.key) as EmailUpdateKey[];
 
-export const PLANNED_EMAIL_KEYS = PLANNED_EMAIL_UPDATES.map((c) => c.key) as PlannedEmailUpdate[];
+export function isEmailUpdateKey(v: unknown): v is EmailUpdateKey {
+  return typeof v === "string" && (EMAIL_UPDATE_KEYS as string[]).includes(v);
+}
+
+export function emailUpdateLabel(key: EmailUpdateKey) {
+  return EMAIL_UPDATES.find((u) => u.key === key)!.label;
+}
+
+/** @deprecated Former names from before these emails were sent; kept for existing imports. */
+export const PLANNED_EMAIL_UPDATES = EMAIL_UPDATES;
+export type PlannedEmailUpdate = EmailUpdateKey;
+export const PLANNED_EMAIL_KEYS = EMAIL_UPDATE_KEYS;
 
 export type NotificationPrefs = { categories: Record<NotificationCategory, boolean>; planned: Record<PlannedEmailUpdate, boolean> };
 

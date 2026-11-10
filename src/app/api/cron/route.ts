@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { processDueNewsletters } from "@/lib/newsletter/send";
+import { processEmailUpdates } from "@/lib/notifications/run";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ function authorized(req: Request) {
  * - publishes SCHEDULED articles whose publishedAt has passed
  * - removes expired sessions and expired/used verification tokens
  * - starts due scheduled newsletters and continues sending ones (batched)
+ * - sends opt-in member email updates whose window is open (weekend summary,
+ *   saved event reminders, new in my communities; at most 200 per run, each
+ *   update at most once per member — run this at least hourly)
  */
 async function run(req: Request) {
   if (!process.env.CRON_SECRET) return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 503 });
@@ -49,6 +53,14 @@ async function run(req: Request) {
     newsletters = { error: (e as Error).message };
   }
 
+  let emailUpdates: Awaited<ReturnType<typeof processEmailUpdates>> | { error: string };
+  try {
+    emailUpdates = await processEmailUpdates({ now });
+  } catch (e) {
+    console.error("[cron] email updates failed", e);
+    emailUpdates = { error: (e as Error).message };
+  }
+
   return NextResponse.json({
     ok: true,
     time: now.toISOString(),
@@ -56,6 +68,7 @@ async function run(req: Request) {
     deletedSessions: sessions.count,
     deletedTokens: tokens.count,
     newsletters,
+    emailUpdates,
   });
 }
 

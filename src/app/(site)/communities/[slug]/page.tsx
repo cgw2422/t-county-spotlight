@@ -19,6 +19,7 @@ import { GarageSaleCard } from "@/components/garage-sales/garage-sale-card";
 import { ChurchCard, NeedCard, OpportunityCard, OrgCard } from "@/components/gives/cards";
 import { OpeningCard } from "@/components/openings/opening-card";
 import { SetCommunityButton } from "@/components/communities/set-community-button";
+import { TrackView } from "@/components/public/track";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,7 @@ export default async function CommunityPage({ params }: Props) {
 
   return (
     <>
+      <TrackView type="view_community" targetType="COMMUNITY" targetId={c.slug} />
       {cover && <ProfileCover src={cover} focusX={c.profile?.coverFocusX} focusY={c.profile?.coverFocusY} />}
       <header className={cover ? "border-b border-slate-200 bg-white" : "bg-gradient-to-br from-navy-900 to-navy-700"} data-testid="community-header">
         <div className="container-page py-6 sm:py-8">
