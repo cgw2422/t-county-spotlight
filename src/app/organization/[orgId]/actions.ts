@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { getSettings } from "@/lib/settings";
 import { sanitizePlain } from "@/lib/sanitize";
 import { absoluteUrl, fromDateInput, slugify } from "@/lib/utils";
+import { communityName } from "@/lib/my-t-county-shared";
 import { requireOrgAccess } from "@/lib/gives/access";
 import { parseOrgProfile } from "@/lib/gives/profile";
 import { isOrgPublic, needSlug, opportunitySlug, ownImageUrl, recalcNeed } from "@/lib/gives/queries";
@@ -95,6 +96,10 @@ export async function saveNeedAction(_p: ActionState, fd: FormData): Promise<Act
   const deadlineRaw = str(fd, "deadline");
   const deadline = deadlineRaw ? fromDateInput(`${deadlineRaw}T23:59`) : null;
   if (deadlineRaw && !deadline) fieldErrors.deadline = "Please choose a valid date.";
+  // Community override: a Tuscarawas County community, or empty = the organization's town.
+  const cityRaw = str(fd, "city");
+  const needCity = cityRaw ? communityName(cityRaw) ?? (cityRaw === existing?.city ? existing.city : null) : null;
+  if (cityRaw && !needCity) fieldErrors.city = "Choose a Tuscarawas County community.";
   if (Object.keys(fieldErrors).length) return bad(fieldErrors);
 
   const data = {
@@ -109,6 +114,7 @@ export async function saveNeedAction(_p: ActionState, fd: FormData): Promise<Act
     instructions: opt(fd, "instructions", 2000),
     dropoffLocation: opt(fd, "dropoffLocation", 300),
     isWishList: fd.get("isWishList") === "on",
+    city: needCity && org.city && needCity.toLowerCase() === org.city.trim().toLowerCase() ? null : needCity,
   };
   let id = existing?.id;
   if (existing) {

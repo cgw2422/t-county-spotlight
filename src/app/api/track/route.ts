@@ -22,8 +22,12 @@ const ALLOWED = new Set([
   "view_saved",
   // My T County: page views (no target) and community choices (targetType "COMMUNITY", targetId = community slug or "all"; aggregate only)
   "view_my_t_county", "set_community",
+  // Site search: targetType "SEARCH", targetId = how many result types had results (0–20). The query text is never sent or stored.
+  "search",
+  // New & Coming Soon page views (no target; aggregate only)
+  "view_openings",
 ]);
-const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY"]);
+const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY", "SEARCH"]);
 const BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
 
 const schema = z.object({
@@ -80,6 +84,11 @@ export async function POST(req: Request) {
   if (body.type === "set_community" || body.targetType === "COMMUNITY") {
     if (body.type !== "set_community" || body.targetType !== "COMMUNITY" || !body.targetId) return new NextResponse(null, { status: 400 });
     if (body.targetId !== ALL_COUNTY && communitySlug(body.targetId) !== body.targetId) return new NextResponse(null, { status: 400 });
+  }
+
+  // Searches carry only a small number (result types with results) — never the query.
+  if (body.type === "search" || body.targetType === "SEARCH") {
+    if (body.type !== "search" || body.targetType !== "SEARCH" || !body.targetId || !/^(?:[0-9]|1[0-9]|20)$/.test(body.targetId) || body.businessId) return new NextResponse(null, { status: 400 });
   }
 
   const day = new Date().toISOString().slice(0, 10);

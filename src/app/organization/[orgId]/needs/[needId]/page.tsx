@@ -83,8 +83,9 @@ export default async function NeedDetailPage({ params, searchParams }: { params:
         need={{
           id: need.id, title: need.title, description: need.description, category: need.category, urgency: need.urgency, status: need.status,
           quantityNeeded: need.quantityNeeded, unit: need.unit, deadline: need.deadline ? toDateInput(need.deadline).slice(0, 10) : "",
-          instructions: need.instructions, dropoffLocation: need.dropoffLocation, isWishList: need.isWishList,
+          instructions: need.instructions, dropoffLocation: need.dropoffLocation, isWishList: need.isWishList, city: need.city,
         }}
+        orgCity={org.city}
       />
       <div className="mt-8 border-t border-slate-200 pt-6">
         <ConfirmButton action={deleteNeedAction} fields={{ orgId: org.id, needId: need.id }} title="Delete this need?" body="It is removed from your public page and your needs list." confirmLabel="Delete need">

@@ -1,3 +1,4 @@
+import { nyDateKey } from "@/components/public/dates";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { History, RotateCcw, Trash2, ExternalLink } from "lucide-react";
@@ -52,7 +53,7 @@ export default async function EditArticlePage({ params, searchParams }: { params
           categories={categories}
           tagSuggestions={tags.map((t) => t.name)}
           article={{
-            id: a.id, title: a.title, slug: a.slug, excerpt: a.excerpt ?? "", content: a.content, kind: a.kind, status: a.status,
+            id: a.id, title: a.title, slug: a.slug, excerpt: a.excerpt ?? "", content: a.content, kind: a.kind, city: a.city ?? "", expiresAtInput: a.expiresAt ? nyDateKey(a.expiresAt) : "", status: a.status,
             featuredImageUrl: a.featuredImageUrl ?? "", featuredImageAlt: a.featuredImageAlt ?? "", ogImageUrl: a.ogImageUrl ?? "",
             authorName: a.authorName ?? "", seoTitle: a.seoTitle ?? "", seoDescription: a.seoDescription ?? "", isFeatured: a.isFeatured,
             publishAtInput: a.status === "SCHEDULED" || a.status === "PUBLISHED" ? toDateInput(a.publishedAt) : "",

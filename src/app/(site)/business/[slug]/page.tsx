@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { Clock, Globe, Mail, MapPin, Megaphone, Navigation, Phone, Star, UtensilsCrossed } from "lucide-react";
+import { Clock, Globe, Mail, MapPin, Megaphone, MessagesSquare, Navigation, Phone, Star, UtensilsCrossed } from "lucide-react";
 import { db } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
@@ -26,10 +26,13 @@ import { followRedirectIfAny, isFollowing, isSaved } from "@/components/public/s
 import { DAY_NAMES, format12, nyNow, openStatus, openingHoursSpec, parseHours } from "@/components/public/hours";
 import { GoogleReviews } from "@/components/public/google-reviews";
 import { PulseMentions } from "@/components/pulse/pulse-mentions";
+import { getPulseRecommendation, pulseHref } from "@/lib/pulse";
 import { BusinessOfferings } from "@/components/public/business-offerings";
+import { getCurrentOpeningForBusiness, OPENING_BADGE, OPENING_LABELS, isOpeningKind, openingDatePrefix, openingDateText, openingHref } from "@/lib/openings";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { publicGalleryPhotos } from "@/lib/listing-limits";
 import { FoodTruckSchedule } from "@/components/food-trucks/truck-schedule";
+import { communityHref } from "@/lib/communities-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +95,7 @@ export default async function BusinessPage({ params }: Props) {
   }
 
   const now = new Date();
-  const [articles, rawEvents, specials, updates, saved, following, { entitlements }, offerings] = await Promise.all([
+  const [articles, rawEvents, specials, updates, saved, following, { entitlements }, offerings, pulseRec] = await Promise.all([
     db.article.findMany({ where: publishedArticleWhere({ businesses: { some: { businessId: b.id } } }), orderBy: { publishedAt: "desc" }, take: 6, select: articleCardSelect }),
     db.event.findMany({ where: { AND: [upcomingEventWhere(now), { businessId: b.id }] }, select: eventCardSelect, take: 50 }),
     db.promotion.findMany({
@@ -109,7 +112,10 @@ export default async function BusinessPage({ params }: Props) {
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: { items: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
     }),
+    getPulseRecommendation(b.id),
   ]);
+  const opening = await getCurrentOpeningForBusiness(b.id);
+  const openingKind = opening && isOpeningKind(opening.kind) ? opening.kind : null;
   // Membership limits: gallery shows only what the plan allows (nothing is deleted); Premium-only sections are hidden otherwise.
   const photos = publicGalleryPhotos(b.photos, entitlements.maxPhotos);
   const showOfferings = entitlements.servicesMenus && offerings.some((s) => s.items.length > 0 || s.description);
@@ -155,19 +161,36 @@ export default async function BusinessPage({ params }: Props) {
               <div className="flex flex-wrap items-center gap-2">
                 {b.isSpotlighted && <span className="badge bg-amber-100 text-amber-900 ring-1 ring-amber-300"><Star className="h-3 w-3 fill-current" aria-hidden /> Editorial Spotlight</span>}
                 {status && <span className={status.open ? "badge-green" : "badge-gray"}><Clock className="h-3 w-3" aria-hidden /> {status.label}</span>}
+                {opening && openingKind && <Link href={openingHref(opening)} className={OPENING_BADGE[openingKind]} data-testid="business-opening-badge">{OPENING_LABELS[openingKind]}</Link>}
               </div>
               <h1 className="mt-1.5 font-display text-3xl font-bold leading-tight text-navy-900 text-balance sm:text-4xl">{b.name}</h1>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-slate-600">
                 {b.categories.map((c, i) => (
                   <span key={c.id}>{i > 0 && <span aria-hidden className="mr-2 text-slate-300">·</span>}<Link href={`/businesses/?category=${c.slug}`} className="hover:text-brand-700 hover:underline">{c.name}</Link></span>
                 ))}
-                {b.city && <span className="flex items-center gap-1">{b.categories.length > 0 && <span aria-hidden className="mr-1 text-slate-300">·</span>}<MapPin className="h-4 w-4" aria-hidden />{b.city}</span>}
+                {b.city && <span className="flex items-center gap-1">{b.categories.length > 0 && <span aria-hidden className="mr-1 text-slate-300">·</span>}<MapPin className="h-4 w-4" aria-hidden />{communityHref(b.city) ? <Link href={communityHref(b.city)!} className="hover:text-brand-700 hover:underline">{b.city}</Link> : b.city}</span>}
               </p>
               {b.isFoodTruck && (
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 text-slate-600" data-testid="truck-cuisine">
                   <span className="badge-orange">Food truck</span>
                   {b.cuisine && <span className="flex items-center gap-1"><UtensilsCrossed className="h-4 w-4" aria-hidden />{b.cuisine}</span>}
                   <Link href="/food-trucks/" className="text-sm font-semibold text-brand-700 hover:underline">All food trucks →</Link>
+                </p>
+              )}
+              {opening && openingKind && (
+                <p className="mt-2 text-sm text-slate-700" data-testid="business-opening-note">
+                  <span className="font-semibold">{opening.title}</span>
+                  {openingDateText(opening) && <> · {opening.effectiveDate ? `${openingDatePrefix(openingKind, opening.effectiveDate)} ${openingDateText(opening)}` : openingDateText(opening)}</>}
+                  {openingKind === "RELOCATING" && (opening.address || opening.city) && <> · New location: {[opening.address, opening.city].filter(Boolean).join(", ")}</>}
+                  {" "}<Link href={openingHref(opening)} className="font-semibold text-brand-700 hover:underline">Details</Link>
+                </p>
+              )}
+              {pulseRec && (
+                <p className="mt-2 text-sm" data-testid="pulse-recommended">
+                  <Link href={pulseHref(pulseRec)} className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-hillside-50 px-3 py-1 font-medium text-hillside-700 ring-1 ring-hillside-200 hover:bg-hillside-100">
+                    <MessagesSquare className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="min-w-0 truncate">Recommended in Community Pulse: {pulseRec.title}</span>
+                  </Link>
                 </p>
               )}
               {b.tagline && <p className="mt-2 max-w-2xl text-lg text-slate-700">{b.tagline}</p>}

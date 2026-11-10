@@ -23,10 +23,10 @@ export const ORG_ROLE_HELP: Record<string, string> = {
   EDITOR: "Can edit the profile, needs, volunteer opportunities and updates",
 };
 
-export const NEED_CATEGORIES = ["VOLUNTEERS", "SUPPLIES", "FOOD", "CLOTHING", "EQUIPMENT", "HYGIENE", "SCHOOL", "OTHER"] as const;
+export const NEED_CATEGORIES = ["VOLUNTEERS", "SUPPLIES", "FOOD", "CLOTHING", "EQUIPMENT", "HYGIENE", "SCHOOL", "FUNDRAISER", "OUTREACH", "OTHER"] as const;
 export const NEED_CATEGORY_LABEL: Record<string, string> = {
   VOLUNTEERS: "Volunteers", SUPPLIES: "Supplies", FOOD: "Food", CLOTHING: "Clothing", EQUIPMENT: "Equipment",
-  HYGIENE: "Hygiene items", SCHOOL: "School supplies", OTHER: "Other",
+  HYGIENE: "Hygiene items", SCHOOL: "School supplies", FUNDRAISER: "Fundraiser", OUTREACH: "Community outreach", OTHER: "Other",
 };
 export const NEED_URGENCIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 export const URGENCY_LABEL: Record<string, string> = { LOW: "Low", MEDIUM: "Medium", HIGH: "High", CRITICAL: "Critical" };

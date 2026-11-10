@@ -9,7 +9,7 @@ import { TokenInput } from "@/components/admin/token-input";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { ContentEditor } from "@/components/editor/content-editor";
 import type { LookupItem } from "@/app/admin/_actions/common";
-import { slugify } from "@/lib/utils";
+import { TUSCARAWAS_CITIES, slugify } from "@/lib/utils";
 import { autosaveArticle, saveArticle } from "./actions";
 
 export type ArticleFormData = {
@@ -19,6 +19,9 @@ export type ArticleFormData = {
   excerpt: string;
   content: string;
   kind: string;
+  city: string;
+  /** Community updates: "Show prominently until" (yyyy-mm-dd, America/New_York); empty = no end. */
+  expiresAtInput?: string;
   status: string;
   featuredImageUrl: string;
   featuredImageAlt: string;
@@ -59,6 +62,7 @@ export function ArticleForm({ article, categories, tagSuggestions }: {
   const [slugTouched, setSlugTouched] = useState(!!a?.slug);
   const [slug, setSlug] = useState(a?.slug ?? "");
   const [seoOpen, setSeoOpen] = useState(false);
+  const [kind, setKind] = useState(a?.kind ?? "GENERAL");
 
   // Autosave drafts every 20s when there are unsaved edits.
   useEffect(() => {
@@ -185,9 +189,24 @@ export function ArticleForm({ article, categories, tagSuggestions }: {
           <div className="card space-y-4 p-4 sm:p-5">
             <div>
               <label htmlFor="f-kind" className="label">Article type</label>
-              <select id="f-kind" name="kind" defaultValue={a?.kind ?? "GENERAL"} className="input">
+              <select id="f-kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value)} className="input">
                 {KIND_OPTIONS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
               </select>
+            </div>
+            {kind === "ANNOUNCEMENT" && (
+              <div>
+                <label htmlFor="f-expiresAt" className="label">Show prominently until</label>
+                <input id="f-expiresAt" type="date" name="expiresAt" defaultValue={a?.expiresAtInput ?? ""} className="input" />
+                <p className="help">After this day the update leaves the homepage and featured spots. It stays on the Announcements page under “Earlier updates”. Leave empty for no end date.</p>
+              </div>
+            )}
+            <div>
+              <label htmlFor="f-city" className="label">Community</label>
+              <select id="f-city" name="city" defaultValue={a?.city ?? ""} className="input">
+                <option value="">All of Tuscarawas County</option>
+                {TUSCARAWAS_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <p className="help">Tag news and updates to a community so they appear on its community page.</p>
             </div>
             <fieldset>
               <legend className="label">Categories</legend>

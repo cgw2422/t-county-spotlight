@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { slugify } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { ACTIVE_SIGNUP_STATUSES } from "./constants";
+import { startOfTodayNY } from "@/lib/gives";
 
 // ───────── Public visibility rules ─────────
 
@@ -46,9 +47,9 @@ export const openOpportunityWhere = (extra: Prisma.VolunteerOpportunityWhereInpu
   AND: [extra],
 });
 
+/** Needs expire after their deadline day (deadlines are stored as 23:59 New York time). */
 function startOfToday() {
-  const d = new Date();
-  return new Date(d.getTime() - 24 * 3600_000);
+  return startOfTodayNY();
 }
 
 // ───────── Card selects ─────────
@@ -60,7 +61,7 @@ export const orgCardSelect = {
 
 export const needCardSelect = {
   id: true, slug: true, title: true, category: true, urgency: true, status: true, quantityNeeded: true, quantityReceived: true, unit: true,
-  deadline: true, isWishList: true,
+  deadline: true, isWishList: true, city: true,
   organization: { select: { id: true, slug: true, name: true, kind: true, city: true, logoUrl: true, verifiedAt: true } },
 } satisfies Prisma.CommunityNeedSelect;
 

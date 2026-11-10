@@ -86,6 +86,11 @@ export default async function FreshnessPage() {
     pendingCounts(),
   ]);
 
+  const [expCount, expAnns] = await Promise.all([
+    db.article.count({ where: w.expiredAnnouncements }),
+    db.article.findMany({ where: w.expiredAnnouncements, orderBy: { expiresAt: "desc" }, take: SHOW, select: { id: true, title: true, expiresAt: true, city: true } }),
+  ]);
+
   const summary = [
     { href: "#ended-events", label: "Ended events", n: evCount },
     { href: "#expired-sales", label: "Expired garage sales", n: gsCount },
@@ -93,6 +98,7 @@ export default async function FreshnessPage() {
     { href: "#needs", label: "Needs past deadline", n: needCount },
     { href: "#volunteer", label: "Ended volunteer opportunities", n: oppCount },
     { href: "#announcements", label: "Announcements over 60 days", n: annCount },
+    { href: "#expired-updates", label: "Community updates past “show until”", n: expCount },
     { href: "#food-trucks", label: "Food trucks without a current schedule", n: ftCount },
   ];
 
@@ -146,6 +152,10 @@ export default async function FreshnessPage() {
           count={annCount} empty="No announcements older than 60 days." more="/admin/articles/"
           items={anns.map((a) => ({ id: a.id, title: a.title, href: `/admin/articles/${a.id}/`, meta: `Published ${short(a.publishedAt)}${a.isFeatured ? " · Featured" : ""}`,
             action: a.isFeatured ? <ActionButton action={unfeatureArticle} fields={{ id: a.id }} className="btn-secondary btn-sm" reloadOnSuccess><StarOff className="h-4 w-4" /> Unfeature</ActionButton> : undefined }))} />
+
+        <Section id="expired-updates" title="Community updates past their “show prominently until” date" description="For information: these already left the homepage and featured spots automatically and are listed under “Earlier updates” on /announcements/. No action needed."
+          count={expCount} empty="No community updates are past their date."
+          items={expAnns.map((a) => ({ id: a.id, title: a.title, href: `/admin/articles/${a.id}/`, meta: `Shown until ${short(a.expiresAt)}${a.city ? ` · ${a.city}` : ""}` }))} />
 
         <Section id="food-trucks" title="Food trucks with outdated schedules" description="Published food trucks with no upcoming stops and no schedule change in 14 days. Ask the owner to update their stops."
           count={ftCount} empty="Every food truck has a current schedule."

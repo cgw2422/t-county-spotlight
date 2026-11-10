@@ -150,14 +150,18 @@ export function formAgeSeconds(t: string, sig: string, now = Date.now()) {
 }
 
 /** Site search: published, non-expired sales. Matches public fields only (never the private address or submitter). */
-export async function searchGarageSales(q: string, limit = 8) {
+export async function searchGarageSales(q: string, limit = 8, opts: { city?: string | null; skip?: number } = {}) {
   const c = { contains: q, mode: "insensitive" as const };
   const where: Prisma.GarageSaleWhereInput = {
-    AND: [activeSaleWhere(), { OR: [{ title: c }, { description: c }, { city: c }, { generalLocation: c }, { AND: [{ addressVisibility: "EXACT" }, { address: c }] }] }],
+    AND: [
+      activeSaleWhere(),
+      { OR: [{ title: c }, { description: c }, { city: c }, { generalLocation: c }, { AND: [{ addressVisibility: "EXACT" }, { address: c }] }] },
+      opts.city ? { city: { equals: opts.city, mode: "insensitive" } } : {},
+    ],
   };
   const [count, rows] = await Promise.all([
     db.garageSale.count({ where }),
-    db.garageSale.findMany({ where, select: garageSaleCardSelect, orderBy: { startDate: "asc" }, take: limit }),
+    limit > 0 ? db.garageSale.findMany({ where, select: garageSaleCardSelect, orderBy: [{ startDate: "asc" }, { id: "asc" }], skip: opts.skip ?? 0, take: limit }) : Promise.resolve([]),
   ]);
   return { count, rows: rows.map(toPublicSale) };
 }

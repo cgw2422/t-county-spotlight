@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
   CalendarDays, CalendarCog, BadgePercent, Home, Sparkles, Menu as MenuIcon, ArrowRightLeft, Users, CreditCard,
   Palette, Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
-  MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck,
+  MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck, Compass, MapPinned, Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 import { OhioMark } from "@/components/site/logo";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { signOutAction } from "@/app/admin/_actions/common";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; badge?: keyof Counts };
-type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number; submissions?: number; garageSales?: number };
+type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number; submissions?: number; garageSales?: number; suggestions?: number };
 
 const NAV: { title: string; items: NavItem[] }[] = [
   { title: "Overview", items: [{ href: "/admin/", label: "Dashboard", icon: LayoutDashboard }] },
@@ -23,8 +23,11 @@ const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/submissions/", label: "Submissions queue", icon: Inbox, badge: "submissions" },
       { href: "/admin/freshness/", label: "Content freshness", icon: CalendarClock },
+      { href: "/admin/suggestions/", label: "Resident suggestions", icon: Lightbulb, badge: "suggestions" },
       { href: "/admin/garage-sales/", label: "Garage sales", icon: Tag, badge: "garageSales" },
       { href: "/admin/food-trucks/", label: "Food trucks", icon: Truck },
+      { href: "/admin/collections/", label: "Explore collections", icon: Compass },
+      { href: "/admin/communities/", label: "Community pages", icon: MapPinned },
     ],
   },
   {

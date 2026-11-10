@@ -6,6 +6,9 @@ import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
 import { OPPORTUNITY_STATUSES, OPPORTUNITY_STATUS_LABEL, opportunityHref } from "@/lib/gives/constants";
 import { isOrgPublic } from "@/lib/gives/queries";
+import { givesCity, opportunityCityWhere } from "@/lib/gives";
+import { communityName } from "@/lib/my-t-county-shared";
+import { TUSCARAWAS_CITIES } from "@/lib/utils";
 import { PageHeader } from "@/components/admin/page-header";
 import { ListToolbar } from "@/components/admin/list-toolbar";
 import { DataTable, Pagination } from "@/components/admin/data-table";
@@ -21,6 +24,7 @@ export default async function AdminVolunteerPage({ searchParams }: { searchParam
   await requireStaff();
   const sp = await searchParams;
   const q = spGet(sp, "q"), status = spGet(sp, "status"), when = spGet(sp, "when");
+  const city = communityName(spGet(sp, "city"));
   const { page, take, skip, perPage } = pageParams(sp);
   const now = new Date();
   const removed = status === "removed";
@@ -28,10 +32,13 @@ export default async function AdminVolunteerPage({ searchParams }: { searchParam
     deletedAt: removed ? { not: null } : null,
     ...((OPPORTUNITY_STATUSES as readonly string[]).includes(status) ? { status: status as Prisma.EnumOpportunityStatusFilter["equals"] } : {}),
     ...(when === "upcoming" ? { OR: [{ isOngoing: true }, { endAt: { gte: now } }, { endAt: null, startAt: { gte: now } }, { startAt: null, endAt: null }] } : when === "past" ? { isOngoing: false, OR: [{ endAt: { lt: now } }, { endAt: null, startAt: { lt: now } }] } : {}),
-    ...(q ? { AND: [{ OR: [{ title: { contains: q, mode: "insensitive" } }, { organization: { name: { contains: q, mode: "insensitive" } } }] }] } : {}),
+    AND: [
+      q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { organization: { name: { contains: q, mode: "insensitive" } } }] } : {},
+      city ? opportunityCityWhere(city) : {},
+    ],
   };
   const [rows, total] = await Promise.all([
-    db.volunteerOpportunity.findMany({ where, skip, take, orderBy: { createdAt: "desc" }, include: { organization: { select: { id: true, name: true, status: true, isPublished: true, deletedAt: true } }, signups: { select: { status: true } } } }),
+    db.volunteerOpportunity.findMany({ where, skip, take, orderBy: { createdAt: "desc" }, include: { organization: { select: { id: true, name: true, status: true, isPublished: true, deletedAt: true, city: true } }, signups: { select: { status: true } } } }),
     db.volunteerOpportunity.count({ where }),
   ]);
   return (
@@ -43,6 +50,7 @@ export default async function AdminVolunteerPage({ searchParams }: { searchParam
           filters={[
             { name: "status", label: "Status", options: [...OPPORTUNITY_STATUSES.map((s) => ({ value: s, label: OPPORTUNITY_STATUS_LABEL[s] })), { value: "removed", label: "Removed" }] },
             { name: "when", label: "When", options: [{ value: "upcoming", label: "Upcoming & ongoing" }, { value: "past", label: "Past" }] },
+            { name: "city", label: "Community", options: TUSCARAWAS_CITIES.map((c) => ({ value: c, label: c })) },
           ]}
         />
         <DataTable
@@ -56,7 +64,8 @@ export default async function AdminVolunteerPage({ searchParams }: { searchParam
                 <p className="text-sm text-slate-500"><Link href={`/admin/organizations/${r.organization.id}/`} className="hover:underline">{r.organization.name}</Link></p>
               </div>
             ) },
-            { header: "When", cell: (r) => r.isOngoing ? "Ongoing" : r.startAt ? formatDateTime(r.startAt) : "TBA" },
+            { header: "When", cell: (r) => r.isOngoing ? "Ongoing" : r.startAt ? <>{formatDateTime(r.startAt)}{(r.endAt ?? r.startAt) < now ? <span className="block text-xs text-red-700">Ended</span> : null}</> : "TBA" },
+            { header: "Community", cell: (r) => givesCity(r) ?? "—", hideOnMobile: true },
             { header: "Status", cell: (r) => <span className="badge-gray">{r.deletedAt ? "Removed" : OPPORTUNITY_STATUS_LABEL[r.status]}</span> },
             { header: "Sign-ups", cell: (r) => { const a = r.signups.filter((s) => s.status === "REGISTERED" || s.status === "CONFIRMED").length; const w = r.signups.filter((s) => s.status === "WAITLISTED").length; return `${a}${r.spots != null ? ` / ${r.spots}` : ""}${w ? ` · ${w} waitlisted` : ""}`; } },
           ]}

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Megaphone, Check, X, EyeOff, Trash2 } from "lucide-react";
+import { Megaphone, Check, X, EyeOff, Trash2, Pencil, Plus } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitize";
-import { formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
+import { OPENING_LABELS, isOpeningKind, openingDateText } from "@/lib/openings-shared";
 import { PageHeader } from "@/components/admin/page-header";
 import { LinkTabs } from "@/components/admin/tabs";
 import { Pagination } from "@/components/admin/data-table";
@@ -17,10 +18,11 @@ import { moderateUpdate } from "./actions";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Business updates" };
 
-const TABS: { key: string; label: string; status: Prisma.EnumPublishStatusFilter<"BusinessUpdate"> }[] = [
-  { key: "pending", label: "Pending", status: { equals: "PENDING" } },
-  { key: "published", label: "Published", status: { equals: "PUBLISHED" } },
-  { key: "rejected", label: "Rejected / hidden", status: { in: ["ARCHIVED", "DRAFT", "SUSPENDED"] } },
+const TABS: { key: string; label: string; where: Prisma.BusinessUpdateWhereInput }[] = [
+  { key: "pending", label: "Pending", where: { status: "PENDING" } },
+  { key: "published", label: "Published", where: { status: "PUBLISHED" } },
+  { key: "rejected", label: "Rejected / hidden", where: { status: { in: ["ARCHIVED", "DRAFT", "SUSPENDED"] } } },
+  { key: "openings", label: "New & Coming Soon", where: { kind: { not: "GENERAL" } } },
 ];
 
 export default async function UpdatesPage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -29,13 +31,14 @@ export default async function UpdatesPage({ searchParams }: { searchParams: Prom
   const tab = TABS.find((t) => t.key === spGet(sp, "tab")) ?? TABS[0];
   const { page, take, skip, perPage } = pageParams(sp, 20);
   const [rows, total, counts] = await Promise.all([
-    db.businessUpdate.findMany({ where: { status: tab.status }, skip, take, orderBy: { createdAt: tab.key === "pending" ? "asc" : "desc" }, include: { business: { select: { id: true, name: true } } } }),
-    db.businessUpdate.count({ where: { status: tab.status } }),
-    Promise.all(TABS.map((t) => db.businessUpdate.count({ where: { status: t.status } }))),
+    db.businessUpdate.findMany({ where: tab.where, skip, take, orderBy: { createdAt: tab.key === "pending" ? "asc" : "desc" }, include: { business: { select: { id: true, name: true } } } }),
+    db.businessUpdate.count({ where: tab.where }),
+    Promise.all(TABS.map((t) => db.businessUpdate.count({ where: t.where }))),
   ]);
   return (
     <>
-      <PageHeader title="Business updates" description="News posts from business owners (new hours, menu changes, announcements). Members' plans include posting updates." />
+      <PageHeader title="Business updates" description="News posts from business owners (new hours, menu changes, announcements) and New & Coming Soon entries (openings, relocations, expansions). Members' plans include posting updates."
+        actions={<Link href="/admin/updates/new/" className="btn-primary"><Plus className="h-4 w-4" /> Add New &amp; Coming Soon</Link>} />
       <LinkTabs items={TABS.map((t, i) => ({ label: t.label, href: `/admin/updates/?tab=${t.key}`, active: t.key === tab.key, count: counts[i] }))} />
       {rows.length ? (
         <div className="space-y-4">
@@ -49,17 +52,25 @@ export default async function UpdatesPage({ searchParams }: { searchParams: Prom
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     <StatusBadge status={u.status} />
+                    {isOpeningKind(u.kind) && <span className="badge-blue">{OPENING_LABELS[u.kind]}</span>}
                     {u.business ? <Link href={`/admin/businesses/${u.business.id}/`} className="font-semibold text-brand-700 hover:underline">{u.business.name}</Link> : <span className="font-semibold">{u.businessName ?? "No listing"}</span>}
                     <span>{formatDateTime(u.createdAt)}</span>
                   </div>
                   <h2 className="mt-1.5 text-base font-semibold text-slate-900">{u.title}</h2>
+                  {isOpeningKind(u.kind) && (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {openingDateText(u) ?? "No date announced"}{u.city ? ` · ${u.city}` : ""}{u.status === "PUBLISHED" && u.featuredUntil ? ` · homepage until ${formatDate(u.featuredUntil)}` : ""}
+                    </p>
+                  )}
+                  {u.rejectionReason && u.status !== "PUBLISHED" && <p className="mt-1 text-xs text-red-700">Rejected: {u.rejectionReason}</p>}
                   <div className="prose prose-sm prose-slate mt-1 max-w-none text-slate-700" dangerouslySetInnerHTML={{ __html: sanitizeRichText(u.body.includes("<") ? u.body : u.body.replace(/\n/g, "<br>")) }} />
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5">
                 {u.status !== "PUBLISHED" && <ActionButton action={moderateUpdate} fields={{ id: u.id, decision: "approve" }} className="btn-primary btn-sm"><Check className="h-4 w-4" /> Approve</ActionButton>}
-                {u.status === "PENDING" && <ActionButton action={moderateUpdate} fields={{ id: u.id, decision: "reject" }} prompt={{ name: "reason", label: "Reason (optional, emailed to the owner)" }} confirm={{ title: "Reject this update?", confirmLabel: "Reject", danger: true }}><X className="h-4 w-4" /> Reject</ActionButton>}
+                {u.status === "PENDING" && <ActionButton action={moderateUpdate} fields={{ id: u.id, decision: "reject" }} prompt={{ name: "reason", label: "Reason (emailed to the owner)", required: true }} confirm={{ title: "Reject this update?", confirmLabel: "Reject", danger: true }}><X className="h-4 w-4" /> Reject</ActionButton>}
                 {u.status === "PUBLISHED" && <ActionButton action={moderateUpdate} fields={{ id: u.id, decision: "unpublish" }}><EyeOff className="h-4 w-4" /> Unpublish</ActionButton>}
+                <Link href={`/admin/updates/${u.id}/`} className="btn-secondary btn-sm"><Pencil className="h-4 w-4" /> Edit</Link>
                 <ConfirmButton action={moderateUpdate} fields={{ id: u.id, decision: "delete" }} title="Delete this update?" body="This permanently removes the post." className="btn-ghost btn-sm text-red-700"><Trash2 className="h-4 w-4" /> Delete</ConfirmButton>
               </div>
             </article>

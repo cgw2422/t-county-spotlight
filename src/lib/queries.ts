@@ -39,10 +39,20 @@ function pinFirst<T extends { id: string }>(featured: T[], rest: T[], ids: strin
   return [...pinned, ...rest.filter((x) => !seen.has(x.id))].slice(0, limit);
 }
 
+/**
+ * Community updates (ANNOUNCEMENT) leave prominent placement after `expiresAt`
+ * (null = no end). Other kinds are unaffected. Archives don't use this.
+ */
+export const notExpiredAnnouncementWhere = (now = new Date()): Prisma.ArticleWhereInput => ({
+  OR: [{ kind: { not: "ANNOUNCEMENT" } }, { expiresAt: null }, { expiresAt: { gt: now } }],
+});
+
+/** Homepage / featured placements: pinned ids first, then the default order. Expired community updates are left out. */
 export async function getArticlesForSection(kind: Prisma.ArticleWhereInput, featuredIds: string[], limit: number) {
+  const current = notExpiredAnnouncementWhere();
   const [featured, rest] = await Promise.all([
-    featuredIds.length ? db.article.findMany({ where: publishedArticleWhere({ id: { in: featuredIds } }), select: articleCardSelect }) : [],
-    db.article.findMany({ where: publishedArticleWhere(kind), orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }], take: limit, select: articleCardSelect }),
+    featuredIds.length ? db.article.findMany({ where: publishedArticleWhere({ AND: [{ id: { in: featuredIds } }, current] }), select: articleCardSelect }) : [],
+    db.article.findMany({ where: publishedArticleWhere({ AND: [kind, current] }), orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }], take: limit, select: articleCardSelect }),
   ]);
   return pinFirst(featured, rest, featuredIds, limit);
 }

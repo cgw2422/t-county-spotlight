@@ -17,6 +17,8 @@ export function freshnessWhere(now = new Date()) {
       status: "PUBLISHED", deletedAt: null, isOngoing: false,
       OR: [{ endAt: { lt: now } }, { endAt: null, startAt: { lt: now } }],
     } satisfies Prisma.VolunteerOpportunityWhereInput,
+    /** Community updates whose "show prominently until" date has passed (informational: already off the homepage). */
+    expiredAnnouncements: { kind: "ANNOUNCEMENT", status: "PUBLISHED", deletedAt: null, expiresAt: { lte: now } } satisfies Prisma.ArticleWhereInput,
     oldAnnouncements: { kind: "ANNOUNCEMENT", status: "PUBLISHED", deletedAt: null, publishedAt: { lt: new Date(now.getTime() - 60 * 86400_000) } } satisfies Prisma.ArticleWhereInput,
     staleFoodTrucks: {
       isFoodTruck: true, deletedAt: null, status: "PUBLISHED",

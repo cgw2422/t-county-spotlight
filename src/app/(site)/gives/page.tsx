@@ -3,40 +3,51 @@ import Link from "next/link";
 import { ArrowRight, Building2, Church, HandHelping, HeartHandshake, Search, UsersRound } from "lucide-react";
 import { db } from "@/lib/db";
 import { GIVES_TAGLINE } from "@/lib/gives/constants";
-import { activeSignupCounts, givesStats, needCardSelect, openNeedWhere, openOpportunityWhere, opportunityCardSelect, orgCardSelect, pledgedTotals, publicOrgWhere, spotsLeft } from "@/lib/gives/queries";
-import { NeedCard, OpportunityCard, OrgCard } from "@/components/gives/cards";
+import { activeSignupCounts, givesStats, openOpportunityWhere, opportunityCardSelect, orgCardSelect, publicOrgWhere, spotsLeft } from "@/lib/gives/queries";
+import { getWaysToHelp, type HelpSort } from "@/lib/gives/help";
+import { helpType } from "@/lib/gives";
+import { communityName, getCommunityPreference } from "@/lib/my-t-county";
+import { OpportunityCard, OrgCard } from "@/components/gives/cards";
+import { WaysToHelp } from "@/components/gives/ways-to-help";
 import { SectionHeader } from "@/components/home/section-header";
-import { buildMetadata } from "@/components/public/seo";
+import { buildMetadata, param, type SearchParams } from "@/components/public/seo";
 import { Breadcrumbs } from "@/components/public/breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
+  const sp = await searchParams;
   return buildMetadata({
+    noindex: ["community", "type", "sort"].some((k) => !!param(sp, k)),
     title: `T County Gives — ${GIVES_TAGLINE}`,
     description: "Support Tuscarawas County nonprofits, churches and community groups. See urgent needs, pledge supplies, find volunteer opportunities and donate directly.",
     path: "/gives/",
   });
 }
 
-export default async function GivesLanding() {
+export default async function GivesLanding({ searchParams }: { searchParams: SearchParams }) {
+  const sp = await searchParams;
+  const community = communityName(param(sp, "community"));
+  const type = helpType(param(sp, "type"))?.key ?? null;
+  const sort: HelpSort = param(sp, "sort") === "deadline" ? "deadline" : "urgency";
   const now = new Date();
   const weekEnd = new Date(now.getTime() + 7 * 86400_000);
-  const [stats, urgent, thisWeek, featured, causes] = await Promise.all([
+  const [stats, help, pref, thisWeek, featured, causes] = await Promise.all([
     givesStats(),
-    db.communityNeed.findMany({ where: openNeedWhere({ urgency: { in: ["CRITICAL", "HIGH"] } }), select: needCardSelect, orderBy: [{ deadline: { sort: "asc", nulls: "last" } }, { urgency: "desc" }], take: 6 }),
+    getWaysToHelp({ city: community, type, sort, take: 12 }),
+    getCommunityPreference(),
     db.volunteerOpportunity.findMany({ where: openOpportunityWhere({ OR: [{ startAt: { lte: weekEnd } }, { isOngoing: true }] }), select: opportunityCardSelect, orderBy: [{ isOngoing: "asc" }, { startAt: { sort: "asc", nulls: "last" } }], take: 6 }),
     db.organization.findMany({ where: publicOrgWhere(), select: orgCardSelect, orderBy: [{ isFeatured: "desc" }, { verifiedAt: { sort: "desc", nulls: "last" } }, { updatedAt: "desc" }], take: 6 }),
     db.organization.groupBy({ by: ["orgType"], where: publicOrgWhere({ orgType: { not: null }, kind: { not: "CHURCH" } }), _count: { _all: true }, orderBy: { _count: { orgType: "desc" } }, take: 16 }),
   ]);
-  const [pledged, signups] = await Promise.all([pledgedTotals(urgent.map((n) => n.id)), activeSignupCounts(thisWeek.map((o) => o.id))]);
+  const signups = await activeSignupCounts(thisWeek.map((o) => o.id));
   const statItems = [
     { n: stats.orgs, label: stats.orgs === 1 ? "nonprofit & group" : "nonprofits & groups", href: "/gives/organizations/", icon: Building2 },
     { n: stats.churches, label: stats.churches === 1 ? "church" : "churches", href: "/churches/", icon: Church },
     { n: stats.needs, label: stats.needs === 1 ? "open need" : "open needs", href: "/gives/needs/", icon: HandHelping },
     { n: stats.opportunities, label: stats.opportunities === 1 ? "volunteer opportunity" : "volunteer opportunities", href: "/gives/volunteer/", icon: UsersRound },
   ].filter((s) => s.n > 0);
-  const empty = !urgent.length && !thisWeek.length && !featured.length;
+  const empty = !help.total && !thisWeek.length && !featured.length;
 
   return (
     <>
@@ -54,7 +65,7 @@ export default async function GivesLanding() {
             <button className="btn-accent shrink-0">Search</button>
           </form>
           <div className="mt-6 flex flex-wrap gap-2">
-            <Link href="/gives/needs/" className="btn border border-white/30 text-white hover:bg-white/10"><HandHelping className="h-4 w-4" aria-hidden /> Meet a need</Link>
+            <Link href="/gives/#ways-to-help" className="btn border border-white/30 text-white hover:bg-white/10"><HandHelping className="h-4 w-4" aria-hidden /> Ways to help</Link>
             <Link href="/gives/volunteer/" className="btn border border-white/30 text-white hover:bg-white/10"><UsersRound className="h-4 w-4" aria-hidden /> Volunteer</Link>
             <Link href="/churches/" className="btn border border-white/30 text-white hover:bg-white/10"><Church className="h-4 w-4" aria-hidden /> Find a church</Link>
           </div>
@@ -74,13 +85,7 @@ export default async function GivesLanding() {
         </div>
       </section>
 
-      {urgent.length > 0 && (
-        <section className="container-page py-12">
-          <SectionHeader title="Urgent needs" subtitle="High-priority requests from local organizations — the soonest deadlines first." href="/gives/needs/" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{urgent.map((n) => <NeedCard key={n.id} n={n} pledged={pledged.get(n.id)} />)}</div>
-          <p className="mt-4 text-sm"><Link href="/gives/needs/" className="font-semibold text-brand-700 hover:underline">See every open need →</Link></p>
-        </section>
-      )}
+      {(help.total > 0 || community || type) && <WaysToHelp data={help} community={community} type={type} sort={sort} myCommunity={pref.community} />}
 
       {thisWeek.length > 0 && (
         <section className="bg-slate-50 py-12">

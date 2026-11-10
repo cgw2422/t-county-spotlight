@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { KIND_PARAM, KIND_PLURAL, KIND_TO_PARAM, NEED_CATEGORIES, NEED_CATEGORY_LABEL, NEED_URGENCIES, ORG_KINDS, URGENCY_LABEL } from "@/lib/gives/constants";
 import { needCardSelect, openNeedWhere, pledgedTotals } from "@/lib/gives/queries";
 import { NeedCard } from "@/components/gives/cards";
+import { givesCity, needCityWhere } from "@/lib/gives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/public/page-header";
 import { SearchBox } from "@/components/public/search-box";
@@ -36,15 +37,16 @@ export default async function NeedsBoard({ searchParams }: { searchParams: Searc
   const urgency = (NEED_URGENCIES as readonly string[]).includes(param(sp, "urgency").toUpperCase()) ? (param(sp, "urgency").toUpperCase() as (typeof NEED_URGENCIES)[number]) : null;
   const kind = KIND_PARAM[param(sp, "kind")] ?? null;
   const cityParam = param(sp, "city").slice(0, 80);
+  const sort = param(sp, "sort") === "deadline" ? "deadline" : "urgency";
   const page = pageParam(sp);
 
   const [catGroups, allNeeds] = await Promise.all([
     db.communityNeed.groupBy({ by: ["category"], where: openNeedWhere(), _count: { _all: true } }),
-    db.communityNeed.findMany({ where: openNeedWhere(), select: { organization: { select: { city: true } } }, take: 2000 }),
+    db.communityNeed.findMany({ where: openNeedWhere(), select: { city: true, organization: { select: { city: true } } }, take: 2000 }),
   ]);
   const cc = new Map(catGroups.map((g) => [g.category, g._count._all]));
   const totalAll = catGroups.reduce((n, g) => n + g._count._all, 0);
-  const cities = [...new Set(allNeeds.map((n) => n.organization.city?.trim()).filter((c): c is string => !!c))].sort();
+  const cities = [...new Set(allNeeds.map((n) => givesCity(n)).filter((c): c is string => !!c))].sort();
   const city = cities.find((c) => c.toLowerCase() === cityParam.toLowerCase()) ?? cityParam;
 
   const and: Prisma.CommunityNeedWhereInput[] = [];
@@ -55,11 +57,11 @@ export default async function NeedsBoard({ searchParams }: { searchParams: Searc
   if (category) and.push({ category });
   if (urgency) and.push({ urgency });
   if (kind) and.push({ organization: { kind } });
-  if (city) and.push({ organization: { city: { equals: city, mode: "insensitive" } } });
+  if (city) and.push(needCityWhere(city));
   const where = openNeedWhere(and.length ? { AND: and } : {});
   const [total, needs] = await Promise.all([
     db.communityNeed.count({ where }),
-    db.communityNeed.findMany({ where, select: needCardSelect, orderBy: [{ urgency: "desc" }, { deadline: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }], skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
+    db.communityNeed.findMany({ where, select: needCardSelect, orderBy: sort === "deadline" ? [{ deadline: { sort: "asc", nulls: "last" } }, { urgency: "desc" }, { createdAt: "desc" }] : [{ urgency: "desc" }, { deadline: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }], skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
   ]);
   const pledged = await pledgedTotals(needs.map((n) => n.id));
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
@@ -70,6 +72,7 @@ export default async function NeedsBoard({ searchParams }: { searchParams: Searc
       urgency: o.urgency === undefined ? urgency?.toLowerCase() : o.urgency,
       kind: o.kind === undefined ? (kind ? KIND_TO_PARAM[kind] : undefined) : o.kind,
       city: o.city === undefined ? city : o.city,
+      sort: sort === "deadline" ? "deadline" : undefined,
       page: o.page && o.page > 1 ? o.page : undefined,
     })}`;
   const chip = (active: boolean) => cn("inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-4 text-sm font-medium ring-1", active ? "bg-navy-800 text-white ring-navy-800" : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50");
@@ -83,7 +86,7 @@ export default async function NeedsBoard({ searchParams }: { searchParams: Searc
         crumbs={[{ label: "T County Gives", href: "/gives/" }, { label: "Needs" }]}
       />
       <div className="container-page py-6 sm:py-8">
-        <SearchBox action="/gives/needs/" defaultValue={q} placeholder="Search needs or organizations…" label="Search needs" hidden={{ category: category?.toLowerCase(), urgency: urgency?.toLowerCase(), kind: kind ? KIND_TO_PARAM[kind] : undefined, city }} id="need-q" />
+        <SearchBox action="/gives/needs/" defaultValue={q} placeholder="Search needs or organizations…" label="Search needs" hidden={{ category: category?.toLowerCase(), urgency: urgency?.toLowerCase(), kind: kind ? KIND_TO_PARAM[kind] : undefined, city, sort: sort === "deadline" ? "deadline" : undefined }} id="need-q" />
         <nav aria-label="Need categories" className="-mx-4 mt-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">
           <ul className="flex gap-2 pb-1 sm:flex-wrap">
             <li><Link href={href({ category: null, page: 1 })} aria-current={!category ? "page" : undefined} className={chip(!category)}>All <span className={!category ? "text-white/70" : "text-slate-400"}>{totalAll}</span></Link></li>
@@ -128,6 +131,13 @@ export default async function NeedsBoard({ searchParams }: { searchParams: Searc
                     </select>
                   </div>
                 )}
+                <div>
+                  <label htmlFor="f-sort" className="label">Sort</label>
+                  <select id="f-sort" name="sort" defaultValue={sort} className="input">
+                    <option value="urgency">Most urgent first</option>
+                    <option value="deadline">Deadline soonest</option>
+                  </select>
+                </div>
                 <button className="btn-primary w-full">Apply filters</button>
                 {(category || urgency || kind || city || q) && <Link href="/gives/needs/" className="btn-ghost w-full">Clear all</Link>}
               </form>

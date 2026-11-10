@@ -8,11 +8,18 @@ import { GARAGE_SALE_LIMITS } from "@/lib/garage-sales-shared";
 /** Photo types residents may upload for a garage sale (no SVG/ICO/PDF). */
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
 
+/** Resident forms that may use this endpoint (`purpose` field; defaults to garage sale). */
+const PURPOSES: Record<string, { title: string; source: string; filename: string }> = {
+  garage_sale: { title: "Garage sale photo", source: "garage_sale", filename: "garage-sale-photo" },
+  suggestion: { title: "Community suggestion photo", source: "community_suggestion", filename: "suggestion-photo" },
+};
+
 /**
- * Anonymous photo upload for garage sale submissions. Separate from /api/upload
- * (staff + business owners): rate-limited per IP and per form, 8 MB cap, real
- * image sniffing, at most 4 photos per form. The submit action re-checks that
- * every photo URL came from the media store.
+ * Anonymous photo upload for resident submissions (garage sales and community
+ * suggestions). Separate from /api/upload (staff + business owners):
+ * rate-limited per IP and per form, 8 MB cap, real image sniffing, at most 4
+ * photos per form. The submit actions re-check that every photo URL came from
+ * the media store.
  */
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
@@ -31,6 +38,8 @@ export async function POST(req: Request) {
   const file = form.get("file");
   const formKey = String(form.get("formKey") ?? "").slice(0, 64);
   const existing = Number(form.get("count") ?? 0);
+  const purposeKey = String(form.get("purpose") ?? "garage_sale");
+  const purpose = Object.hasOwn(PURPOSES, purposeKey) ? PURPOSES[purposeKey] : PURPOSES.garage_sale;
   if (!(file instanceof File)) return NextResponse.json({ error: "No file provided." }, { status: 400 });
   if (!/^[a-zA-Z0-9-]{16,64}$/.test(formKey)) return NextResponse.json({ error: "Please reload the form and try again." }, { status: 400 });
   if (!Number.isFinite(existing) || existing >= GARAGE_SALE_LIMITS.maxPhotos) return NextResponse.json({ error: `You can add up to ${GARAGE_SALE_LIMITS.maxPhotos} photos.` }, { status: 400 });
@@ -40,12 +49,12 @@ export async function POST(req: Request) {
   const mime = sniffImageType(buf);
   if (!mime || !PHOTO_TYPES.has(mime)) return NextResponse.json({ error: "That file isn't a photo. Upload a JPG, PNG, WebP or GIF image." }, { status: 400 });
   // Allow a few replacements per form, but cap the total.
-  if (!rateLimit(`gs-upload-form:${formKey}`, GARAGE_SALE_LIMITS.maxPhotos * 2, 3 * 3600_000).ok) return NextResponse.json({ error: "Too many photos for one sale." }, { status: 429 });
+  if (!rateLimit(`gs-upload-form:${formKey}`, GARAGE_SALE_LIMITS.maxPhotos * 2, 3 * 3600_000).ok) return NextResponse.json({ error: "Too many photos for one form." }, { status: 429 });
 
   try {
     const user = await getCurrentUser();
-    const media = await saveImageUpload(buf, file.name || "garage-sale-photo", user?.id ?? null, { title: "Garage sale photo" });
-    await audit(user?.id, "media.upload", "Media", media.id, { source: "garage_sale", filename: media.filename });
+    const media = await saveImageUpload(buf, file.name || purpose.filename, user?.id ?? null, { title: purpose.title });
+    await audit(user?.id, "media.upload", "Media", media.id, { source: purpose.source, filename: media.filename });
     return NextResponse.json({ url: media.url, width: media.width, height: media.height });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 });

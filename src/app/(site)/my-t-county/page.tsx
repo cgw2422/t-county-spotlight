@@ -26,6 +26,7 @@ import { ArticleCard } from "@/components/cards/article-card";
 import { FoodTruckStopCard } from "@/components/food-trucks/stop-card";
 import { GarageSaleCard } from "@/components/garage-sales/garage-sale-card";
 import { OpportunityCard } from "@/components/gives/cards";
+import { communityHref } from "@/lib/communities-shared";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -109,6 +110,11 @@ export default async function MyTCountyPage() {
             <p className="eyebrow">Your corner of Tuscarawas County</p>
             <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">My T County</h1>
             <p className="mt-1 text-slate-600">{c ? `What’s happening in ${c}, with the rest of the county close by.` : `What’s happening across ${ALL_COUNTY_LABEL}.`}</p>
+            {pref.community && communityHref(pref.community) && (
+              <Link href={communityHref(pref.community)!} className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-brand-700 hover:underline" data-testid="mtc-community-page-link">
+                Visit the {pref.community} page <ChevronRight className="h-4 w-4" aria-hidden />
+              </Link>
+            )}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {user ? (

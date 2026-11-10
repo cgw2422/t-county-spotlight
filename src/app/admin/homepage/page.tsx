@@ -27,7 +27,7 @@ const PICK: Record<string, { type: LookupType; label: string } | undefined> = {
 };
 const TYPE_LABEL: Record<string, string> = {
   hero: "Hero banner", explore: "Explore categories grid", today: "Today and tonight's events (hidden when none)", weekend: "This weekend's events", events: "Upcoming events", businesses: "Featured businesses",
-  spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner", community_pulse: "Community Pulse (recent entries)",
+  spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner", community_pulse: "Community Pulse (recent entries)", new_coming_soon: "New & Coming Soon (openings; each leaves after its homepage date)",
 };
 
 async function resolveFeatured(type: LookupType, ids: string[]): Promise<LookupItem[]> {

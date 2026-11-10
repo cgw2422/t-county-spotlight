@@ -4,6 +4,7 @@ import { coverPosition } from "@/lib/cover";
 import { SmartImage } from "@/components/ui/smart-image";
 import { formatDate, formatTime, stripHtml, truncate } from "@/lib/utils";
 import { NEED_CATEGORY_LABEL, needHref, nextService, opportunityHref, orgHref, readServiceTimes } from "@/lib/gives/constants";
+import { endsSoonLabel, givesCity } from "@/lib/gives";
 import { KindBadge, NeedProgress, UrgencyBadge, VerifiedBadge } from "./badges";
 
 export type OrgCardData = {
@@ -88,16 +89,19 @@ type OrgMini = { slug: string; name: string; kind: string; city?: string | null;
 
 export type NeedCardData = {
   id: string; slug: string; title: string; category: string; urgency: string; quantityNeeded: number | null; quantityReceived: number; unit: string | null;
-  deadline: Date | null; isWishList?: boolean; organization: OrgMini;
+  deadline: Date | null; isWishList?: boolean; city?: string | null; organization: OrgMini;
 };
 
 export function NeedCard({ n, pledged, showOrg = true }: { n: NeedCardData; pledged?: number; showOrg?: boolean }) {
+  const soon = endsSoonLabel(n.deadline);
+  const city = givesCity(n);
   return (
     <Link href={needHref(n)} className="card card-hover group flex h-full flex-col p-4">
       <div className="flex flex-wrap items-center gap-1.5">
         <UrgencyBadge urgency={n.urgency} />
         <span className="badge-gray">{NEED_CATEGORY_LABEL[n.category] ?? n.category}</span>
         {n.isWishList && <span className="badge-orange">Wish list</span>}
+        {soon && <span className="badge-amber">{soon}</span>}
       </div>
       <h3 className="mt-2 font-semibold leading-snug text-navy-900 group-hover:text-brand-700">{n.title}</h3>
       {showOrg && (
@@ -109,7 +113,7 @@ export function NeedCard({ n, pledged, showOrg = true }: { n: NeedCardData; pled
       <div className="mt-3"><NeedProgress received={n.quantityReceived} needed={n.quantityNeeded} unit={n.unit} pledged={pledged} compact /></div>
       <p className="mt-auto flex flex-wrap gap-x-3 pt-3 text-sm text-slate-500">
         {n.deadline && <span className="inline-flex items-center gap-1"><CalendarClock className="h-4 w-4" aria-hidden />By {formatDate(n.deadline, { month: "short", day: "numeric" })}</span>}
-        {n.organization.city && <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" aria-hidden />{n.organization.city}</span>}
+        {city && <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" aria-hidden />{city}</span>}
       </p>
     </Link>
   );
@@ -121,6 +125,8 @@ export type OpportunityCardData = {
 };
 
 export function OpportunityCard({ o, left, showOrg = true }: { o: OpportunityCardData; left?: number | null; showOrg?: boolean }) {
+  const soon = !o.isOngoing ? endsSoonLabel(o.endAt) : null;
+  const city = givesCity(o);
   const when = o.isOngoing ? "Ongoing — flexible schedule" : o.startAt ? `${formatDate(o.startAt, { weekday: "short", month: "short", day: "numeric" })} · ${formatTime(o.startAt)}${o.endAt ? ` – ${formatTime(o.endAt)}` : ""}` : "Date to be announced";
   return (
     <Link href={opportunityHref(o)} className="card card-hover group flex h-full gap-3 p-4">
@@ -136,8 +142,9 @@ export function OpportunityCard({ o, left, showOrg = true }: { o: OpportunityCar
         <h3 className="font-semibold leading-snug text-navy-900 group-hover:text-brand-700">{o.title}</h3>
         {showOrg && <p className="truncate text-sm text-slate-600">{o.organization.name}</p>}
         <p className="mt-1 text-sm text-slate-600">{when}</p>
-        {(o.locationName || o.city) && <p className="flex items-center gap-1 truncate text-sm text-slate-500"><MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />{[o.locationName, o.city].filter(Boolean).join(", ")}</p>}
+        {(o.locationName || city) && <p className="flex items-center gap-1 truncate text-sm text-slate-500"><MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />{[o.locationName, city].filter(Boolean).join(", ")}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5">
+          {soon && <span className="badge-amber">{soon}</span>}
           {left != null && (left > 0 ? <span className="badge-green">{left} spot{left === 1 ? "" : "s"} left</span> : <span className="badge-amber">Full — join the waitlist</span>)}
           {o.minAge != null && <span className="badge-gray">Ages {o.minAge}+</span>}
         </div>

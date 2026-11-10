@@ -231,12 +231,16 @@ export function canConfirm(s: { startAt: Date; endAt: Date; status: string }, no
 }
 
 /** Site search: food trucks by name or type of food, with each truck's next public stop. */
-export async function searchFoodTrucks(q: string, limit = 8) {
+export async function searchFoodTrucks(q: string, limit = 8, opts: { city?: string | null; skip?: number } = {}) {
   const c = { contains: q, mode: "insensitive" as const };
-  const where = publicTruckWhere({ OR: [{ name: c }, { cuisine: c }] });
+  // Community: the truck's home city or an upcoming public stop there.
+  const cityWhere: Prisma.BusinessWhereInput = opts.city
+    ? { OR: [{ city: { equals: opts.city, mode: "insensitive" } }, { foodTruckStops: { some: publicStopWhere({ city: opts.city }) } }] }
+    : {};
+  const where = publicTruckWhere({ AND: [{ OR: [{ name: c }, { cuisine: c }] }, cityWhere] });
   const [count, rows] = await Promise.all([
     db.business.count({ where }),
-    db.business.findMany({ where, orderBy: { name: "asc" }, take: limit, select: truckSelect }),
+    limit > 0 ? db.business.findMany({ where, orderBy: { name: "asc" }, skip: opts.skip ?? 0, take: limit, select: truckSelect }) : Promise.resolve([]),
   ]);
   const next = rows.length
     ? await db.foodTruckStop.findMany({ where: { ...publicStopWhere(), businessId: { in: rows.map((r) => r.id) } }, orderBy: { startAt: "asc" }, distinct: ["businessId"], select: { businessId: true, startAt: true, endAt: true, locationName: true } })

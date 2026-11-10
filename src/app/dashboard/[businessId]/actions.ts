@@ -13,7 +13,9 @@ import { sanitizePlain } from "@/lib/sanitize";
 import { getSettings } from "@/lib/settings";
 import { audit } from "@/lib/audit";
 import { googleListingFromForm } from "@/lib/google-places";
-import { fromDateInput, slugify } from "@/lib/utils";
+import { fromDateInput, slugify, TUSCARAWAS_CITIES } from "@/lib/utils";
+import { isOpeningKind } from "@/lib/openings-shared";
+import { isDateKey, startOfNyDay } from "@/components/public/dates";
 import { getOrCreateCustomer, getStripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
 import { DAYS, normalizeUrl, textToHtml } from "@/components/dashboard/text";
@@ -410,10 +412,31 @@ export async function createUpdateAction(_p: FormState, fd: FormData): Promise<F
   const body = str(fd, "body").slice(0, 4000);
   if (!title || !body) return { values: echoValues(fd), error: "Please add a headline and a message." };
   const settings = await getSettings();
-  const status = settings.requireUpdateApproval ? "PENDING" : "PUBLISHED";
-  const u = await db.businessUpdate.create({ data: { businessId: business.id, title, body, imageUrl: imageUrl(opt(fd, "imageUrl", 500)), status } });
-  await audit(user.id, status === "PUBLISHED" ? "update.owner_publish" : "update.owner_submit", "BusinessUpdate", u.id, { businessId: business.id });
+  // "This is a…": openings, moves and expansions always go to staff review (New & Coming Soon).
+  const kindRaw = str(fd, "kind");
+  const kind = isOpeningKind(kindRaw) ? kindRaw : "GENERAL";
+  const opening = kind !== "GENERAL";
+  const dateKey = str(fd, "effectiveDate");
+  if (opening && dateKey && !isDateKey(dateKey)) return { values: echoValues(fd), error: "Please enter a valid date (or leave it empty)." };
+  const cityIn = sanitizePlain(opt(fd, "city", 80), 80);
+  const status = opening || settings.requireUpdateApproval ? "PENDING" : "PUBLISHED";
+  const u = await db.businessUpdate.create({
+    data: {
+      businessId: business.id, title, body, imageUrl: imageUrl(opt(fd, "imageUrl", 500)), status, kind, submittedById: user.id,
+      ...(status === "PUBLISHED" ? { publishedAt: new Date() } : {}),
+      ...(opening ? {
+        effectiveDate: dateKey ? startOfNyDay(dateKey) : null,
+        dateNote: sanitizePlain(opt(fd, "dateNote", 80), 80) || null,
+        ...(kind === "RELOCATING" ? {
+          address: sanitizePlain(opt(fd, "address", 200), 200) || null,
+          city: cityIn ? TUSCARAWAS_CITIES.find((c) => c.toLowerCase() === cityIn.toLowerCase()) ?? cityIn : null,
+        } : {}),
+      } : {}),
+    },
+  });
+  await audit(user.id, status === "PUBLISHED" ? "update.owner_publish" : "update.owner_submit", "BusinessUpdate", u.id, { businessId: business.id, kind });
   revalidatePath(`/dashboard/${business.id}/updates/`);
+  revalidatePath("/admin/updates/");
   return { ok: true, message: status === "PUBLISHED" ? "Posted! Your update is live." : "Sent for review. We'll publish it shortly." };
 }
 

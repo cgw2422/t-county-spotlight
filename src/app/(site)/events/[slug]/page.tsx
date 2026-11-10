@@ -23,6 +23,7 @@ import { TrackView, TrackedLink } from "@/components/public/track";
 import { buildMetadata } from "@/components/public/seo";
 import { followRedirectIfAny, isSaved } from "@/components/public/server";
 import { loadEvent } from "./data";
+import { communityHref } from "@/lib/communities-shared";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 
 export const dynamic = "force-dynamic";
@@ -166,7 +167,7 @@ export default async function EventPage({ params }: Props) {
                   <dd className="text-slate-700">
                     {e.locationName && <span className="block font-medium text-slate-900">{e.locationName}</span>}
                     {e.address && <span className="block">{e.address}</span>}
-                    {e.city && <span className="block">{e.city}, OH</span>}
+                    {e.city && <span className="block">{communityHref(e.city) ? <Link href={communityHref(e.city)!} className="hover:text-brand-700 hover:underline">{e.city}</Link> : e.city}, OH</span>}
                     {mapUrl && <TrackedLink href={mapUrl} target="_blank" rel="noopener noreferrer" track={track("click_directions")} className="mt-1 inline-block font-semibold text-brand-700 hover:underline">View map &amp; directions</TrackedLink>}
                   </dd>
                 </div>

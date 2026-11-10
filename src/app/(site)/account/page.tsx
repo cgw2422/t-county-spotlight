@@ -6,6 +6,7 @@ import { DeviceSavesOffer } from "@/components/saved/device-saved";
 import { removeSavedItemAction } from "../saved/actions";
 import { GivesAccountCard } from "@/components/gives/account-card";
 import { MyGarageSales } from "@/components/garage-sales/my-garage-sales";
+import { MySuggestions } from "@/components/suggestions/my-suggestions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
     <div className="space-y-8">
       <GivesAccountCard user={user} />
       <MyGarageSales userId={user.id} />
+      <MySuggestions userId={user.id} />
       {sp.welcome && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Welcome to T County Connect! Tap the heart on any event, business, food truck, garage sale, special or story to save it here.</p>}
       {sp.password && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Your new password is saved and you&apos;re signed in.</p>}
       <DeviceSavesOffer />

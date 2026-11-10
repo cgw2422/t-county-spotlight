@@ -6,6 +6,9 @@ import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { NEED_CATEGORIES, NEED_CATEGORY_LABEL, NEED_STATUSES, NEED_STATUS_LABEL, NEED_URGENCIES, URGENCY_LABEL, needHref } from "@/lib/gives/constants";
 import { isOrgPublic } from "@/lib/gives/queries";
+import { givesCity, needCityWhere, startOfTodayNY } from "@/lib/gives";
+import { communityName } from "@/lib/my-t-county-shared";
+import { TUSCARAWAS_CITIES } from "@/lib/utils";
 import { PageHeader } from "@/components/admin/page-header";
 import { ListToolbar } from "@/components/admin/list-toolbar";
 import { DataTable, Pagination } from "@/components/admin/data-table";
@@ -22,6 +25,7 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
   await requireStaff();
   const sp = await searchParams;
   const q = spGet(sp, "q"), status = spGet(sp, "status"), category = spGet(sp, "category"), urgency = spGet(sp, "urgency");
+  const city = communityName(spGet(sp, "city")), when = spGet(sp, "when");
   const { page, take, skip, perPage } = pageParams(sp);
   const removed = status === "removed";
   const where: Prisma.CommunityNeedWhereInput = {
@@ -29,18 +33,22 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
     ...((NEED_STATUSES as readonly string[]).includes(status) ? { status: status as Prisma.EnumNeedStatusFilter["equals"] } : {}),
     ...((NEED_CATEGORIES as readonly string[]).includes(category) ? { category: category as Prisma.EnumNeedCategoryFilter["equals"] } : {}),
     ...((NEED_URGENCIES as readonly string[]).includes(urgency) ? { urgency: urgency as Prisma.EnumNeedUrgencyFilter["equals"] } : {}),
-    ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { organization: { name: { contains: q, mode: "insensitive" } } }] } : {}),
+    AND: [
+      q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { organization: { name: { contains: q, mode: "insensitive" } } }] } : {},
+      city ? needCityWhere(city) : {},
+      when === "expired" ? { deadline: { lt: startOfTodayNY() } } : when === "current" ? { OR: [{ deadline: null }, { deadline: { gte: startOfTodayNY() } }] } : {},
+    ],
   };
   const [rows, total] = await Promise.all([
     db.communityNeed.findMany({
       where, skip, take, orderBy: { createdAt: "desc" },
-      include: { organization: { select: { id: true, name: true, status: true, isPublished: true, deletedAt: true } }, pledges: { select: { status: true, quantity: true } } },
+      include: { organization: { select: { id: true, name: true, status: true, isPublished: true, deletedAt: true, city: true } }, pledges: { select: { status: true, quantity: true } } },
     }),
     db.communityNeed.count({ where }),
   ]);
   return (
     <>
-      <PageHeader title="Community needs" description="Every need posted by organizations. Close or remove anything inappropriate. Pledge contact details are visible to staff on each organization's need page." />
+      <PageHeader title="Community needs" description="Every need posted by organizations. Close or remove anything inappropriate (every action is recorded in the audit log). Needs past their deadline are hidden from the public automatically. Pledge contact details are visible to staff on each organization's need page." />
       <div className="card overflow-hidden">
         <ListToolbar
           placeholder="Search need or organization…"
@@ -48,6 +56,8 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
             { name: "status", label: "Status", options: [...NEED_STATUSES.map((s) => ({ value: s, label: NEED_STATUS_LABEL[s] })), { value: "removed", label: "Removed" }] },
             { name: "category", label: "Category", options: NEED_CATEGORIES.map((c) => ({ value: c, label: NEED_CATEGORY_LABEL[c] })) },
             { name: "urgency", label: "Urgency", options: NEED_URGENCIES.map((u) => ({ value: u, label: URGENCY_LABEL[u] })) },
+            { name: "city", label: "Community", options: TUSCARAWAS_CITIES.map((c) => ({ value: c, label: c })) },
+            { name: "when", label: "Deadline", options: [{ value: "current", label: "Not expired" }, { value: "expired", label: "Past deadline" }] },
           ]}
         />
         <DataTable
@@ -62,6 +72,8 @@ export default async function AdminNeedsPage({ searchParams }: { searchParams: P
               </div>
             ) },
             { header: "Urgency", cell: (r) => <UrgencyBadge urgency={r.urgency} /> },
+            { header: "Community", cell: (r) => <span>{givesCity(r) ?? "—"}{!r.city && r.organization.city ? <span className="block text-xs text-slate-400">from organization</span> : null}</span>, hideOnMobile: true },
+            { header: "Deadline", cell: (r) => r.deadline ? <span className={r.deadline < startOfTodayNY() ? "text-red-700" : undefined}>{formatDate(r.deadline, { month: "short", day: "numeric", year: "numeric" })}{r.deadline < startOfTodayNY() ? " (expired)" : ""}</span> : "—", hideOnMobile: true },
             { header: "Status", cell: (r) => <span className="badge-gray">{r.deletedAt ? "Removed" : NEED_STATUS_LABEL[r.status]}</span> },
             { header: "Pledges", cell: (r) => { const live = r.pledges.filter((p) => p.status !== "CANCELLED"); return `${live.length} (${live.reduce((n, p) => n + p.quantity, 0)} items)`; } },
             { header: "Received", cell: (r) => `${r.quantityReceived}${r.quantityNeeded ? ` / ${r.quantityNeeded}` : ""}`, hideOnMobile: true },

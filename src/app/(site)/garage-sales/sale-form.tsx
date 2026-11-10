@@ -1,7 +1,8 @@
 "use client";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ImagePlus, Loader2, X } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { ResidentPhotoField } from "@/components/public/resident-photo-field";
 import { FormMessage, type ActionState } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { GARAGE_SALE_CATEGORIES, GARAGE_SALE_LIMITS, GARAGE_SALE_TYPES } from "@/lib/garage-sales-shared";
@@ -26,67 +27,6 @@ type Props = {
 function Err({ state, name }: { state: ActionState; name: string }) {
   const m = state?.fieldErrors?.[name];
   return m ? <p id={`${name}-err`} className="mt-1 text-sm text-red-600">{m}</p> : null;
-}
-
-function PhotoField({ initial }: { initial: string[] }) {
-  const [photos, setPhotos] = useState<string[]>(initial);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [formKey] = useState(() => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}-key`));
-  const input = useRef<HTMLInputElement>(null);
-  const full = photos.length >= GARAGE_SALE_LIMITS.maxPhotos;
-
-  async function upload(files: File[]) {
-    setError(null);
-    let current = photos.length;
-    for (const file of files) {
-      if (current >= GARAGE_SALE_LIMITS.maxPhotos) { setError(`You can add up to ${GARAGE_SALE_LIMITS.maxPhotos} photos.`); break; }
-      if (file.size > GARAGE_SALE_LIMITS.maxPhotoBytes) { setError(`“${file.name}” is larger than 8 MB.`); continue; }
-      setBusy(true);
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("formKey", formKey);
-      fd.append("count", String(current));
-      try {
-        const res = await fetch("/api/garage-sales/upload/", { method: "POST", body: fd });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json.error || "Upload failed");
-        current++;
-        setPhotos((p) => [...p, json.url]);
-      } catch (e) {
-        setError((e as Error).message);
-      } finally {
-        setBusy(false);
-      }
-    }
-  }
-
-  return (
-    <div>
-      <span className="label">Photos (optional, up to {GARAGE_SALE_LIMITS.maxPhotos})</span>
-      {photos.map((p) => <input key={p} type="hidden" name="photos" value={p} />)}
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {photos.map((p, i) => (
-          <li key={p} className="relative aspect-square overflow-hidden rounded-xl bg-slate-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
-            <button type="button" onClick={() => setPhotos((all) => all.filter((x) => x !== p))} className="absolute right-1.5 top-1.5 grid h-9 w-9 place-items-center rounded-full bg-white/95 shadow hover:bg-white" aria-label={`Remove photo ${i + 1}`}><X className="h-4 w-4" /></button>
-          </li>
-        ))}
-        {!full && (
-          <li>
-            <button type="button" onClick={() => input.current?.click()} disabled={busy} className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600 hover:bg-slate-100">
-              {busy ? <Loader2 className="h-6 w-6 animate-spin" aria-hidden /> : <ImagePlus className="h-6 w-6" aria-hidden />}
-              {busy ? "Uploading…" : "Add photo"}
-            </button>
-          </li>
-        )}
-      </ul>
-      <input ref={input} data-testid="photo-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="sr-only" tabIndex={-1}
-        onChange={(e) => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) upload(f); }} />
-      {error ? <p role="alert" className="mt-2 text-sm text-red-600">{error}</p> : <p className="help">JPG, PNG, WebP or GIF, 8 MB max each. Please don&apos;t include house numbers or people&apos;s faces.</p>}
-    </div>
-  );
 }
 
 export function GarageSaleForm({ mode, action, defaults = {}, hidden = {}, cities, minDate, maxDate, stamp }: Props) {
@@ -148,7 +88,7 @@ export function GarageSaleForm({ mode, action, defaults = {}, hidden = {}, citie
             ))}
           </div>
         </fieldset>
-        <PhotoField initial={defaults.photos ?? []} />
+        <ResidentPhotoField initial={defaults.photos ?? []} max={GARAGE_SALE_LIMITS.maxPhotos} purpose="garage_sale" help={<>JPG, PNG, WebP or GIF, 8 MB max each. Please don&apos;t include house numbers or people&apos;s faces.</>} />
         <Err state={state} name="photos" />
       </fieldset>
 

@@ -28,6 +28,8 @@ import { PulseCard } from "@/components/pulse/pulse-card";
 import { getCommunityPreference, getSpecialsWithCity, splitByCommunity } from "@/lib/my-t-county";
 import { CommunityBar } from "@/components/my-t-county/community-bar";
 import { CommunityGroups } from "@/components/my-t-county/community-groups";
+import { OpeningsHomeSection } from "@/components/openings/home-section";
+import { getHomepageAnnouncements } from "@/lib/announcements";
 
 export const dynamic = "force-dynamic";
 
@@ -157,10 +159,11 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       );
     }
     case "announcements": {
-      const items = await getArticlesForSection({ kind: "ANNOUNCEMENT" }, s.featuredIds, s.limit);
+      // Expired community updates (expiresAt passed) leave the homepage; the visitor's community comes first.
+      const items = await getHomepageAnnouncements(s.featuredIds, s.limit, [community]);
       if (!items.length) return null;
       return (
-        <section key={s.id} className="container-page py-12">
+        <section key={s.id} className="container-page py-12" data-testid="home-announcements">
           <SectionHeader title={s.title} subtitle={s.subtitle} href="/announcements/" />
           <div className="grid gap-5 sm:grid-cols-2">{items.map((a) => <ArticleCard key={a.id} a={a} variant="compact" />)}</div>
         </section>
@@ -173,7 +176,7 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
         </section>
       );
     case "gives":
-      return <GivesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} />;
+      return <GivesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} community={community} />;
     case "cta":
       return (
         <section key={s.id} className="container-page py-12">
@@ -201,6 +204,8 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       return <FoodTrucksHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     case "garage_sales":
       return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
+    case "new_coming_soon":
+      return <OpeningsHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     default:
       return null;
   }

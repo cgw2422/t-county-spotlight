@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Briefcase, CalendarDays, ChevronRight, MessagesSquare, Send, ShoppingBag, Star, Tag, Truck } from "lucide-react";
+import { Briefcase, CalendarDays, ChevronRight, MapPinned, MessagesSquare, Send, ShoppingBag, Sparkles, Star, Tag, Truck } from "lucide-react";
 import { db } from "@/lib/db";
 import { publicBusinessWhere } from "@/lib/queries";
 import { ExploreGrid } from "@/components/home/explore-grid";
 import { SearchBox } from "@/components/public/search-box";
 import { buildMetadata } from "@/components/public/seo";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
+import { getPublicCollections } from "@/lib/explore-collections";
+import { CollectionCard } from "@/components/explore/collection-cards";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +23,20 @@ const QUICK = [
   { href: "/jobs/", label: "Jobs", desc: "Work local", icon: Briefcase, color: "bg-sky-50 text-sky-700" },
   { href: "/food-trucks/", label: "Food Trucks", desc: "Where trucks are serving", icon: Truck, color: "bg-brand-50 text-navy-900" },
   { href: "/garage-sales/", label: "Garage Sales", desc: "Yard & rummage sales", icon: ShoppingBag, color: "bg-hillside-50 text-hillside-700" },
+  { href: "/communities/", label: "Communities", desc: "Your town's page", icon: MapPinned, color: "bg-sky-50 text-navy-900" },
+  { href: "/new/", label: "New & Coming Soon", desc: "Openings & moves", icon: Sparkles, color: "bg-orange-50 text-sunset-600" },
   { href: "/submit/", label: "Share something", desc: "Events, sales & more", icon: Send, color: "bg-orange-50 text-sunset-600" },
 ];
 
 export default async function ExplorePage() {
-  const categories = await db.businessCategory.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, slug: true, _count: { select: { businesses: { where: publicBusinessWhere() } } } },
-  });
+  const [categories, collections] = await Promise.all([
+    db.businessCategory.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, slug: true, _count: { select: { businesses: { where: publicBusinessWhere() } } } },
+    }),
+    // Only published collections with at least one visible item (never empty ones).
+    getPublicCollections(),
+  ]);
   return (
     <>
       <div className="bg-gradient-to-br from-navy-900 to-navy-700">
@@ -63,6 +71,16 @@ export default async function ExplorePage() {
           <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
         </Link>
       </section>
+
+      {collections.length > 0 && (
+        <section aria-labelledby="collections-title" className="container-page pt-10" data-testid="explore-collections">
+          <h2 id="collections-title" className="section-title">Collections</h2>
+          <p className="mt-1 text-slate-600">Hand-picked places, events and local favorites across Tuscarawas County.</p>
+          <ul className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {collections.map((c) => <li key={c.id}><CollectionCard c={c} /></li>)}
+          </ul>
+        </section>
+      )}
 
       <ExploreGrid title="Explore by topic" />
 

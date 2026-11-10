@@ -8,6 +8,9 @@ import { absoluteUrl } from "@/lib/utils";
 import { givesSitemapEntries } from "@/lib/gives/sitemap";
 import { publicPulseWhere, pulseHref } from "@/lib/pulse";
 import { activeSaleWhere, garageSaleHref } from "@/lib/garage-sales";
+import { openingHref, publicOpeningsWhere } from "@/lib/openings";
+import { collectionHref, getPublicCollections } from "@/lib/explore-collections";
+import { COMMUNITIES, getCommunityCounts, hasCommunityContent } from "@/lib/communities";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +26,14 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/jobs/", priority: 0.6, changeFrequency: "daily" },
   { path: "/community-pulse/", priority: 0.7, changeFrequency: "weekly" },
   { path: "/explore/", priority: 0.5, changeFrequency: "weekly" },
+  { path: "/communities/", priority: 0.6, changeFrequency: "weekly" },
   { path: "/food-trucks/", priority: 0.8, changeFrequency: "daily" },
   { path: "/list-your-business/", priority: 0.6, changeFrequency: "monthly" },
   { path: "/events/submit/", priority: 0.4, changeFrequency: "monthly" },
   { path: "/garage-sales/", priority: 0.8, changeFrequency: "daily" },
   { path: "/garage-sales/submit/", priority: 0.4, changeFrequency: "monthly" },
   { path: "/submit/", priority: 0.4, changeFrequency: "monthly" },
+  { path: "/new/", priority: 0.7, changeFrequency: "daily" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -56,6 +61,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...pulses.map((p) => ({ url: absoluteUrl(pulseHref(p)), lastModified: p.resultsUpdatedAt && p.resultsUpdatedAt > p.updatedAt ? p.resultsUpdatedAt : p.updatedAt, changeFrequency: "monthly" as const, priority: 0.6 })),
       ...jobs.map((j) => ({ url: absoluteUrl(jobHref(j)), lastModified: j.updatedAt, changeFrequency: "weekly" as const, priority: 0.4 })),
       ...(await givesSitemapEntries()),
+      // Explore collections: published and with at least one visible item (never empty ones).
+      ...(await getPublicCollections(now)).map((c) => ({ url: absoluteUrl(collectionHref(c)), lastModified: c.updatedAt, changeFrequency: "weekly" as const, priority: 0.6 })),
+      // Community pages that have at least some listed content (empty ones still render, but are left out here).
+      ...(await getCommunityCounts(now).then((m) => COMMUNITIES.filter((c) => hasCommunityContent(m.get(c.slug))))).map((c) => ({ url: absoluteUrl(`/communities/${c.slug}/`), changeFrequency: "daily" as const, priority: 0.7 })),
+      ...(await db.businessUpdate.findMany({ where: publicOpeningsWhere(), select: { id: true, updatedAt: true }, take: 5000 })).map((o) => ({ url: absoluteUrl(openingHref(o)), lastModified: o.updatedAt, changeFrequency: "weekly" as const, priority: 0.5 })),
       ...(await db.garageSale.findMany({ where: activeSaleWhere(now), select: { slug: true, updatedAt: true } })).map((g) => ({ url: absoluteUrl(garageSaleHref(g)), lastModified: g.updatedAt, changeFrequency: "daily" as const, priority: 0.5 })),
     ];
   } catch (e) {

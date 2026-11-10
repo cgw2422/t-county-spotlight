@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { KIND_PARAM, KIND_PLURAL, KIND_TO_PARAM, ORG_KINDS } from "@/lib/gives/constants";
 import { activeSignupCounts, openOpportunityWhere, opportunityCardSelect, spotsLeft } from "@/lib/gives/queries";
 import { OpportunityCard } from "@/components/gives/cards";
+import { opportunityCityWhere } from "@/lib/gives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/public/page-header";
 import { SearchBox } from "@/components/public/search-box";
@@ -51,7 +52,7 @@ export default async function VolunteerList({ searchParams }: { searchParams: Se
   if (when === "month") and.push({ OR: [{ isOngoing: true }, { startAt: { lte: new Date(now.getTime() + 30 * 86400_000) } }] });
   if (when === "ongoing") and.push({ isOngoing: true });
   if (kind) and.push({ organization: { kind } });
-  if (city) and.push({ OR: [{ city: { equals: city, mode: "insensitive" } }, { city: null, organization: { city: { equals: city, mode: "insensitive" } } }] });
+  if (city) and.push(opportunityCityWhere(city));
   if (youth) and.push({ OR: [{ minAge: null }, { minAge: { lt: 18 } }] });
   const where = openOpportunityWhere(and.length ? { AND: and } : {});
   const [total, opps] = await Promise.all([

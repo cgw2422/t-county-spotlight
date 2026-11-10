@@ -10,6 +10,7 @@ import {
 import {
   addMemberAction, saveNeedAction, saveOpportunityAction, saveOrgEventAction, saveOrgUpdateAction,
 } from "@/app/organization/[orgId]/actions";
+import { TUSCARAWAS_CITIES } from "@/lib/utils";
 import { OrgImageUpload } from "./org-image-upload";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -27,9 +28,12 @@ function Section({ title, description, children }: { title: string; description?
 export type NeedValues = {
   id?: string; title: string; description: string | null; category: string; urgency: string; status: string; quantityNeeded: number | null;
   unit: string | null; deadline: string; instructions: string | null; dropoffLocation: string | null; isWishList: boolean;
+  /** Community override (null = the organization's town). */
+  city: string | null;
 };
 
-export function NeedForm({ orgId, need }: { orgId: string; need: NeedValues }) {
+export function NeedForm({ orgId, need, orgCity }: { orgId: string; need: NeedValues; orgCity?: string | null }) {
+  const cityKnown = !need.city || (TUSCARAWAS_CITIES as readonly string[]).includes(need.city);
   return (
     <ActionForm action={saveNeedAction} warnUnsaved className="space-y-6">
       <input type="hidden" name="orgId" value={orgId} />
@@ -42,7 +46,18 @@ export function NeedForm({ orgId, need }: { orgId: string; need: NeedValues }) {
           <SelectField name="urgency" label="How urgent?" defaultValue={need.urgency} options={NEED_URGENCIES.map((u) => ({ value: u, label: URGENCY_LABEL[u] }))} />
           <TextField name="quantityNeeded" label="How many? (optional)" type="number" min={1} inputMode="numeric" defaultValue={need.quantityNeeded ?? ""} help="Leave blank if there's no set number." />
           <TextField name="unit" label="Unit (optional)" defaultValue={need.unit ?? ""} maxLength={40} placeholder="e.g. cans, coats, volunteers" />
-          <TextField name="deadline" label="Needed by (optional)" type="date" defaultValue={need.deadline} />
+          <TextField name="deadline" label="Needed by (optional)" type="date" defaultValue={need.deadline} help="Optional — the need is hidden after this date." />
+          <SelectField
+            name="city"
+            label="Community"
+            defaultValue={need.city ?? ""}
+            help="Where residents will find this need. Leave as your organization's town unless it's for another community."
+            options={[
+              { value: "", label: orgCity ? `Our organization's town (${orgCity})` : "Our organization's town" },
+              ...(!cityKnown && need.city ? [{ value: need.city, label: need.city }] : []),
+              ...TUSCARAWAS_CITIES.map((c) => ({ value: c, label: c })),
+            ]}
+          />
           <SelectField name="status" label="Status" defaultValue={need.status} options={NEED_STATUSES.map((s) => ({ value: s, label: NEED_STATUS_LABEL[s] }))} help="Partly met and fulfilled update automatically when you confirm pledges." />
         </FormGrid>
         <Checkbox name="isWishList" label="Add to our wish list" defaultChecked={need.isWishList} help="Ongoing items you always welcome (shown in your wish list)." />

@@ -5,8 +5,11 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin, requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { fromDateInput, slugify } from "@/lib/utils";
+import { TUSCARAWAS_CITIES, fromDateInput, slugify } from "@/lib/utils";
 import type { ActionState } from "@/components/ui/form-message";
+import { endOfNyDay, isDateKey } from "@/components/public/dates";
+import { articleHref } from "@/lib/links";
+import { notifySuggestionPublished } from "@/lib/suggestions";
 import { getAll, isUniqueError, jsonField, parseForm, uniqueSlug, zBool, zOpt, zReq, zSlugOpt, zUrlOpt } from "../_lib/form";
 
 const KINDS = ["SPOTLIGHT", "NEWS", "ANNOUNCEMENT", "THINGS_TO_DO", "GENERAL"] as const;
@@ -20,6 +23,8 @@ const schema = z.object({
   excerpt: zOpt(1000),
   content: z.string().max(3_000_000).default(""),
   kind: z.enum(KINDS).default("GENERAL"),
+  /** Community tag (Article.city) — one of TUSCARAWAS_CITIES or empty for countywide. */
+  city: zOpt(80).refine((v) => !v || TUSCARAWAS_CITIES.includes(v), "Choose a community from the list"),
   featuredImageUrl: zUrlOpt,
   featuredImageAlt: zOpt(300),
   ogImageUrl: zUrlOpt,
@@ -28,6 +33,8 @@ const schema = z.object({
   seoDescription: zOpt(400),
   isFeatured: zBool,
   publishAt: z.string().optional(),
+  /** Community updates: last day of prominent placement (yyyy-mm-dd). */
+  expiresAt: z.string().trim().optional().refine((v) => !v || isDateKey(v), "Use a valid date"),
 });
 
 async function resolveCategories(fd: FormData) {
@@ -106,6 +113,8 @@ export async function saveArticle(_: ActionState, fd: FormData): Promise<ActionS
 
   const data = {
     title: d.title, slug, excerpt: d.excerpt, content: d.content, kind: d.kind,
+    ...(fd.has("city") ? { city: d.city } : {}),
+    ...(fd.has("expiresAt") ? { expiresAt: d.expiresAt ? endOfNyDay(d.expiresAt) : null } : {}),
     featuredImageUrl: d.featuredImageUrl, featuredImageAlt: d.featuredImageAlt, ogImageUrl: d.ogImageUrl,
     authorName: d.authorName, seoTitle: d.seoTitle, seoDescription: d.seoDescription, isFeatured: d.isFeatured,
     status, publishedAt, localEditedAt: now,
@@ -143,6 +152,8 @@ export async function saveArticle(_: ActionState, fd: FormData): Promise<ActionS
 
   revalidatePath("/admin/articles");
   if (status === "PUBLISHED" || existing?.status === "PUBLISHED") revalidatePath("/", "layout");
+  // Created from a resident suggestion: let the submitter know once it's live.
+  if (existing && status === "PUBLISHED" && existing.status !== "PUBLISHED") await notifySuggestionPublished(`Article:${id}`, articleHref({ slug, legacyPath: existing.legacyPath }));
 
   if (!existing) redirect(`/admin/articles/${id}/?created=1`);
   const msg =

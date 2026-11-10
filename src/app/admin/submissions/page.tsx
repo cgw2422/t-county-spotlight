@@ -16,6 +16,7 @@ import { rejectClaim } from "../organizations/claims/actions";
 import { setPromotionStatus } from "../specials/actions";
 import { moderateUpdate } from "../updates/actions";
 import { setJobStatus } from "../jobs/actions";
+import { setSuggestionStatus } from "../suggestions/actions";
 import { spGet, type SP } from "../_lib/list";
 import { pendingCounts, pendingSubmissions, SUBMISSION_TYPES, type SubmissionRow, type SubmissionType } from "./data";
 
@@ -24,7 +25,7 @@ export const metadata = { title: "Community submissions" };
 
 const TYPE_LABEL: Record<SubmissionType, string> = {
   event: "Event", garage_sale: "Garage sale", application: "Business application", organization: "Nonprofit / church",
-  claim: "Ownership claim", special: "Special", update: "Business update", job: "Job", article: "Article",
+  claim: "Ownership claim", special: "Special", update: "Business update", job: "Job", article: "Article", suggestion: "Resident suggestion",
 };
 
 const rejectPrompt = (name: string) => ({ name, label: "Reason (emailed to the submitter)", required: true });
@@ -47,6 +48,7 @@ function InlineActions({ r }: { r: SubmissionRow }) {
     case "special": return <>{approve(setPromotionStatus, { id: r.id, status: "APPROVED" })}{reject(setPromotionStatus, { id: r.id, status: "REJECTED" }, "reason")}</>;
     case "update": return <>{approve(moderateUpdate, { id: r.id, decision: "approve" })}{reject(moderateUpdate, { id: r.id, decision: "reject" }, "reason")}</>;
     case "job": return approve(setJobStatus, { id: r.id, status: "PUBLISHED" });
+    case "suggestion": return reject(setSuggestionStatus, { id: r.id, status: "REJECTED" }, "reason"); // approval = create content or mark approved on the review screen
     default: return null;
   }
 }
@@ -65,7 +67,7 @@ export default async function SubmissionsQueuePage({ searchParams }: { searchPar
     <>
       <PageHeader
         title="Community submissions"
-        description="Everything waiting for review across events, garage sales, listings, organizations, claims, specials, updates, jobs and articles — oldest first. Submitter contact details are private to staff."
+        description="Everything waiting for review across events, garage sales, listings, organizations, claims, specials, updates, jobs, articles and resident suggestions — oldest first. Submitter contact details are private to staff."
         actions={<Link href="/admin/freshness/" className="btn-secondary">Content freshness</Link>}
       />
       <LinkTabs items={tabs} />

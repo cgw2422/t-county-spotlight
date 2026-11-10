@@ -5,6 +5,7 @@ import { requireBusinessAccess } from "@/lib/auth";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { getSettings } from "@/lib/settings";
 import { formatDate } from "@/lib/utils";
+import { OPENING_LABELS, isOpeningKind, openingDateText } from "@/lib/openings-shared";
 import { PageHeader, Panel, StatusBadge, Upsell } from "@/components/dashboard/shell";
 import { UpdateForm } from "@/components/dashboard/update-form";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,11 +38,12 @@ export default async function UpdatesPage({ params }: { params: Promise<{ busine
                   <div className="flex items-start gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-navy-900">{u.title}</p>
-                      <p className="text-xs text-slate-500">{formatDate(u.createdAt)}</p>
+                      <p className="text-xs text-slate-500">{formatDate(u.createdAt)}{isOpeningKind(u.kind) && <> · <span className="font-semibold text-brand-700">{OPENING_LABELS[u.kind]}</span>{openingDateText(u) ? ` · ${openingDateText(u)}` : ""}</>}</p>
                     </div>
                     <StatusBadge status={u.status} />
                   </div>
                   <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{u.body}</p>
+                  {u.status === "ARCHIVED" && u.rejectionReason && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800"><strong>Not approved:</strong> {u.rejectionReason}</p>}
                   <form action={deleteUpdateAction} className="mt-2 text-right">
                     <input type="hidden" name="businessId" value={business.id} />
                     <input type="hidden" name="updateId" value={u.id} />

@@ -52,15 +52,8 @@ export function resultProfileHref(r: PulseResultRow): { href: string; businessId
   return null;
 }
 
-/**
- * Orders results as the admin configured: by mentions (ties keep manual order)
- * or strictly by manual order. Paid status never affects ordering.
- */
-export function orderResults<T extends { mentions: number | null; sortOrder: number }>(rows: T[], sortMode: string): T[] {
-  const byManual = [...rows].sort((a, b) => a.sortOrder - b.sortOrder);
-  if (sortMode === "MANUAL") return byManual;
-  return byManual.sort((a, b) => (b.mentions ?? -1) - (a.mentions ?? -1));
-}
+/** Result ordering (sort mode + mentions + manual order only — never membership). */
+export { orderResults } from "./pulse-order";
 
 export const pulseCardSelect = {
   id: true, slug: true, title: true, description: true, featuredImageUrl: true, featuredImageAlt: true, publishedAt: true, status: true,
@@ -105,6 +98,19 @@ export async function getPulseMentions(where: { businessId?: string; organizatio
   });
   const seen = new Set<string>();
   return rows.filter((r) => (seen.has(r.pulse.id) ? false : (seen.add(r.pulse.id), true)));
+}
+
+/**
+ * The most recent published (not archived) Community Pulse entry that lists this
+ * business — for the "Recommended in Community Pulse" badge on its profile.
+ */
+export async function getPulseRecommendation(businessId: string) {
+  const row = await db.pulseResult.findFirst({
+    where: { businessId, pulse: publicPulseWhere() },
+    orderBy: { pulse: { publishedAt: "desc" } },
+    select: { pulse: { select: { id: true, slug: true, title: true } } },
+  });
+  return row?.pulse ?? null;
 }
 
 export function mentionsLabel(n: number) {
