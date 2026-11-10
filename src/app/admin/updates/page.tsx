@@ -49,7 +49,7 @@ export default async function UpdatesPage({ searchParams }: { searchParams: Prom
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     <StatusBadge status={u.status} />
-                    <Link href={`/admin/businesses/${u.business.id}/`} className="font-semibold text-brand-700 hover:underline">{u.business.name}</Link>
+                    {u.business ? <Link href={`/admin/businesses/${u.business.id}/`} className="font-semibold text-brand-700 hover:underline">{u.business.name}</Link> : <span className="font-semibold">{u.businessName ?? "No listing"}</span>}
                     <span>{formatDateTime(u.createdAt)}</span>
                   </div>
                   <h2 className="mt-1.5 text-base font-semibold text-slate-900">{u.title}</h2>

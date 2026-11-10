@@ -20,11 +20,11 @@ export async function moderateUpdate(_: ActionState, fd: FormData): Promise<Acti
     const status = p.data.decision === "approve" ? "PUBLISHED" : p.data.decision === "reject" ? "ARCHIVED" : "DRAFT";
     await db.businessUpdate.update({ where: { id: u.id }, data: { status } });
   }
-  await audit(user.id, `business_update.${p.data.decision}`, "BusinessUpdate", u.id, { title: u.title, business: u.business.name, reason: p.data.reason });
+  await audit(user.id, `business_update.${p.data.decision}`, "BusinessUpdate", u.id, { title: u.title, business: u.business?.name ?? u.businessName, reason: p.data.reason });
   if (u.status === "PENDING" && (p.data.decision === "approve" || p.data.decision === "reject")) {
-    for (const o of u.business.owners) {
+    for (const o of u.business?.owners ?? []) {
       await sendEmail(o.user.email, p.data.decision === "approve" ? `Your update “${u.title}” is live` : `Your update “${u.title}” wasn't approved`,
-        p.data.decision === "approve" ? `Your update for ${u.business.name} is now visible on your T County Connect page.` : `We couldn't publish your update “${u.title}”.${p.data.reason ? `\n\nReason: ${p.data.reason}` : ""}`);
+        p.data.decision === "approve" ? `Your update for ${u.business?.name ?? u.businessName ?? "your business"} is now visible on your T County Connect page.` : `We couldn't publish your update “${u.title}”.${p.data.reason ? `\n\nReason: ${p.data.reason}` : ""}`);
     }
   }
   revalidatePath("/admin/updates");

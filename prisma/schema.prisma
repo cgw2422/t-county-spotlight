@@ -259,16 +259,46 @@ model BusinessApplication {
   createdAt    DateTime     @default(now())
 }
 
+enum BusinessUpdateKind {
+  GENERAL
+  COMING_SOON
+  RECENTLY_OPENED
+  RELOCATING
+  EXPANDING
+}
+
+/// Business news. kind != GENERAL makes it a "New & Coming Soon" announcement.
+/// businessId is optional so staff can announce a business that has no listing yet.
 model BusinessUpdate {
-  id         String        @id @default(cuid())
-  businessId String
-  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  title      String
-  body       String
-  imageUrl   String?
-  status     PublishStatus @default(PENDING)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id              String             @id @default(cuid())
+  businessId      String?
+  business        Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  kind            BusinessUpdateKind @default(GENERAL)
+  title           String
+  body            String
+  imageUrl        String?
+  photos          String[]           @default([])
+  /// Name/location for announcements without a listing
+  businessName    String?
+  address         String?
+  city            String?
+  /// Only a date that was actually announced — never invented
+  effectiveDate   DateTime?
+  /// Free-text timing when no exact date exists, e.g. "Spring 2027"
+  dateNote        String?
+  linkUrl         String?
+  /// After this, the item leaves prominent (homepage) placement but stays in the archive
+  featuredUntil   DateTime?
+  submittedById   String?
+  rejectionReason String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  publishedAt     DateTime?
+  status          PublishStatus      @default(PENDING)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([kind, status])
 }
 
 model BusinessFollow {
@@ -329,6 +359,10 @@ model Article {
   featuredImageAlt String?
   status           ArticleStatus @default(DRAFT)
   kind             ArticleKind   @default(GENERAL)
+  /// Community (TUSCARAWAS_CITIES value) this item is about; null = countywide
+  city             String?
+  /// Community updates leave prominent placement after this (archive kept)
+  expiresAt        DateTime?
   publishedAt      DateTime?
   authorName       String?
   authorId         String?
@@ -1001,6 +1035,8 @@ enum NeedCategory {
   EQUIPMENT
   HYGIENE
   SCHOOL
+  FUNDRAISER
+  OUTREACH
   OTHER
 }
 
@@ -1034,6 +1070,8 @@ model CommunityNeed {
   urgency          NeedUrgency  @default(MEDIUM)
   instructions     String?
   dropoffLocation  String?
+  /// Community for location filtering; falls back to the organization's city
+  city             String?
   status           NeedStatus   @default(OPEN)
   isWishList       Boolean      @default(false)
   deletedAt        DateTime?
@@ -1515,4 +1553,116 @@ model GarageSale {
 
   @@index([status, endDate])
   @@index([city])
+}
+
+
+// ───────────────────────────── Phase 3: local discovery ─────────────────────────────
+
+/// Admin-curated Explore T County collection ("Free Things to Do", "Rainy Day Activities", ...)
+model ExploreCollection {
+  id            String                  @id @default(cuid())
+  slug          String                  @unique
+  title         String
+  description   String?
+  coverImageUrl String?
+  coverFocusX   Int                     @default(50)
+  coverFocusY   Int                     @default(50)
+  status        PublishStatus           @default(DRAFT)
+  isFeatured    Boolean                 @default(false)
+  sortOrder     Int                     @default(0)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  items         ExploreCollectionItem[]
+
+  @@index([status, sortOrder])
+}
+
+enum CollectionItemType {
+  BUSINESS
+  ARTICLE
+  EVENT
+  ORGANIZATION
+  PULSE
+  PLACE
+}
+
+/// One entry in a collection: a link to an existing record, or a PLACE (park, trail, site)
+/// entered by staff with verified details.
+model ExploreCollectionItem {
+  id           String             @id @default(cuid())
+  collectionId String
+  collection   ExploreCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  itemType     CollectionItemType
+  targetId     String?
+  /// PLACE fields (also optional overrides for linked records)
+  title        String?
+  description  String?
+  imageUrl     String?
+  address      String?
+  city         String?
+  websiteUrl   String?
+  note         String?
+  sortOrder    Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([collectionId, sortOrder])
+}
+
+/// Optional admin content for a community (town) page. Pages exist for every community;
+/// this only adds a cover image and introduction.
+model CommunityProfile {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  intro         String?
+  coverImageUrl String?
+  coverFocusX   Int      @default(50)
+  coverFocusY   Int      @default(50)
+  updatedById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum SuggestionKind {
+  BUSINESS_OPENING
+  COMMUNITY_UPDATE
+  ATTRACTION
+  VOLUNTEER
+  OTHER
+}
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+/// Resident suggestions that staff verify before anything is published.
+model CommunitySuggestion {
+  id              String           @id @default(cuid())
+  kind            SuggestionKind
+  title           String
+  details         String
+  city            String?
+  address         String?
+  linkUrl         String?
+  eventDate       DateTime?
+  photos          String[]         @default([])
+  /// Private submitter info — staff only
+  submitterName   String?
+  submitterEmail  String
+  userId          String?
+  manageTokenHash String?          @unique
+  status          SuggestionStatus @default(PENDING)
+  rejectionReason String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  /// What staff created from it (e.g. "BusinessUpdate:<id>", "Article:<id>")
+  resultRef       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([status, createdAt])
 }
