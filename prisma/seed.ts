@@ -108,6 +108,19 @@ async function main() {
       await db.menuItem.create({ data: { location, label: "Community Pulse", href: "/community-pulse/", sortOrder: (last._max.sortOrder ?? 0) + 1 } });
     }
   }
+  // Resident features (Phase 1): mobile + footer menus, appended only if missing.
+  for (const [label, href, locations] of [
+    ["Food Trucks", "/food-trucks/", ["MOBILE", "FOOTER"]],
+    ["Garage Sales", "/garage-sales/", ["MOBILE", "FOOTER"]],
+    ["Share Something", "/submit/", ["FOOTER"]],
+  ] as const) {
+    for (const location of locations) {
+      if (!(await db.menuItem.findFirst({ where: { location, href } }))) {
+        const last = await db.menuItem.aggregate({ where: { location }, _max: { sortOrder: true } });
+        await db.menuItem.create({ data: { location, label, href, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
+      }
+    }
+  }
   // Proposed plans — inactive until the owner approves pricing in Admin → Memberships.
   const plans = [
     { slug: "free", name: "Free Listing", priceCents: 0, interval: "FREE" as const, sortOrder: 0, isActive: true,

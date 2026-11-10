@@ -94,6 +94,14 @@ export function BusinessForm({ b, categories, selectedCategoryIds = [] }: {
             <div className="text-center"><DirtyIndicator /></div>
           </div>
         </Card>
+        <Card title="Food truck" description="Food trucks get a schedule and appear on /food-trucks/. Not a Premium feature.">
+          <div className="space-y-3">
+            <Checkbox name="isFoodTruck" label="This listing is a food truck" defaultChecked={b?.isFoodTruck} help="Owners can then manage stops from their dashboard." />
+            <TextField name="cuisine" label="Type of food" defaultValue={b?.cuisine ?? ""} maxLength={60} placeholder="BBQ, Tacos, Desserts…" />
+            <TextField name="menuUrl" label="Menu link" type="url" defaultValue={b?.menuUrl ?? ""} placeholder="https://" />
+            {b?.isFoodTruck && <a href={`/admin/food-trucks/${b.id}/`} className="text-sm font-semibold text-brand-700 hover:underline">Manage stops →</a>}
+          </div>
+        </Card>
         <Card title="Categories">
           {categories.length ? (
             <div className="max-h-72 space-y-0.5 overflow-y-auto">

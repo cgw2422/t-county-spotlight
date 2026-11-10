@@ -13,8 +13,12 @@ const ALLOWED = new Set([
   "click_website", "click_phone", "click_directions", "click_ticket", "click_apply",
   // Community Pulse (targetType "PULSE", targetId = entry id)
   "view_pulse", "click_pulse_business", "click_pulse_source",
+  // Garage sales (targetType "GARAGE_SALE", targetId = sale id)
+  "view_garage_sale",
+  // Food trucks: page views (no target) and directions clicks (targetType "BUSINESS" = the truck)
+  "view_food_trucks", "click_food_truck_directions",
 ]);
-const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE"]);
+const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE"]);
 const BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
 
 const schema = z.object({
@@ -58,6 +62,13 @@ export async function POST(req: Request) {
     if (body.targetType !== "PULSE" || !body.targetId) return new NextResponse(null, { status: 400 });
     const pulse = await db.communityPulse.findFirst({ where: { id: body.targetId, deletedAt: null, status: { in: ["PUBLISHED", "ARCHIVED"] } }, select: { id: true } });
     if (!pulse) return new NextResponse(null, { status: 204 });
+  }
+
+  // Garage sale views must reference a real, published sale.
+  if (body.type === "view_garage_sale") {
+    if (body.targetType !== "GARAGE_SALE" || !body.targetId) return new NextResponse(null, { status: 400 });
+    const sale = await db.garageSale.findFirst({ where: { id: body.targetId, status: "PUBLISHED" }, select: { id: true } });
+    if (!sale) return new NextResponse(null, { status: 204 });
   }
 
   const day = new Date().toISOString().slice(0, 10);

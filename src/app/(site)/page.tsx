@@ -12,6 +12,9 @@ import { getActivePlacements, getActiveSpecials, getArticlesForSection, getFeatu
 import { Hero } from "@/components/home/hero";
 import { ExploreGrid } from "@/components/home/explore-grid";
 import { SectionHeader } from "@/components/home/section-header";
+import { TodaySection } from "@/components/home/today-section";
+import { FoodTrucksHomeSection } from "@/components/food-trucks/home-section";
+import { GarageSalesHomeSection } from "@/components/garage-sales/home-section";
 import { EventCard } from "@/components/cards/event-card";
 import { BusinessCard } from "@/components/cards/business-card";
 import { ArticleCard } from "@/components/cards/article-card";
@@ -35,6 +38,8 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
     }
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
+    case "today":
+      return <TodaySection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} />;
     case "weekend": {
       const { start, end } = weekendWindow();
       const items = await getUpcomingOccurrences({ from: start, to: end, limit: s.limit, featuredIds: s.featuredIds });
@@ -165,6 +170,10 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
         </section>
       );
     }
+    case "food_trucks":
+      return <FoodTrucksHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} />;
+    case "garage_sales":
+      return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} />;
     default:
       return null;
   }

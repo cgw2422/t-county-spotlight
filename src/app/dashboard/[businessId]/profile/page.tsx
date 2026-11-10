@@ -40,6 +40,7 @@ export default async function EditProfilePage({ params }: { params: Promise<{ bu
           name: b!.name, tagline: b!.tagline ?? "", description: htmlToText(b!.description), logoUrl: b!.logoUrl ?? "", coverUrl: b!.coverUrl ?? "", coverFocusX: b!.coverFocusX, coverFocusY: b!.coverFocusY,
           categoryIds: b!.categories.map((c) => c.id), address: b!.address ?? "", city: b!.city ?? "", zip: b!.zip ?? "", phone: b!.phone ?? "",
           email: b!.email ?? "", emailPublic: b!.emailPublic, website: b!.website ?? "", socials, hours: readHours(b!.hours),
+          truck: b!.isFoodTruck ? { cuisine: b!.cuisine ?? "", menuUrl: b!.menuUrl ?? "" } : undefined,
         }}
       />
     </>

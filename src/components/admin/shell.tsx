@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
   CalendarDays, CalendarCog, BadgePercent, Home, Sparkles, Menu as MenuIcon, ArrowRightLeft, Users, CreditCard,
   Palette, Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
-  MessagesSquare, ListOrdered, BarChart3,
+  MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck,
   type LucideIcon,
 } from "lucide-react";
 import { OhioMark } from "@/components/site/logo";
@@ -14,10 +14,19 @@ import { cn } from "@/lib/utils";
 import { signOutAction } from "@/app/admin/_actions/common";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; badge?: keyof Counts };
-type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number };
+type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number; submissions?: number; garageSales?: number };
 
 const NAV: { title: string; items: NavItem[] }[] = [
   { title: "Overview", items: [{ href: "/admin/", label: "Dashboard", icon: LayoutDashboard }] },
+  {
+    title: "Community",
+    items: [
+      { href: "/admin/submissions/", label: "Submissions queue", icon: Inbox, badge: "submissions" },
+      { href: "/admin/freshness/", label: "Content freshness", icon: CalendarClock },
+      { href: "/admin/garage-sales/", label: "Garage sales", icon: Tag, badge: "garageSales" },
+      { href: "/admin/food-trucks/", label: "Food trucks", icon: Truck },
+    ],
+  },
   {
     title: "Content",
     items: [
@@ -120,7 +129,7 @@ function SidebarNav({ path, isAdmin, counts, collapsed, onNavigate }: { path: st
             <ul className="space-y-0.5">
               {items.map((item) => {
                 const active = item.href === current;
-                const count = item.badge ? counts[item.badge] : 0;
+                const count = item.badge ? counts[item.badge] ?? 0 : 0;
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>

@@ -13,6 +13,7 @@ import type { ActionState } from "@/components/ui/form-message";
 import { nyDateKey } from "@/components/public/dates";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { createEventWithinLimit } from "@/lib/listing-limits";
+import { VENDOR_INFO_MAX, parseEventTags } from "@/lib/events";
 
 const optionalUrl = z.string().trim().max(500).optional().transform((v) => v || undefined)
   .refine((v) => !v || /^https?:\/\/[^\s]+\.[^\s]+/i.test(v), "Enter a full link starting with https://");
@@ -129,6 +130,8 @@ export async function submitEvent(_prev: ActionState, fd: FormData): Promise<Act
       isFree: d.isFree,
       price: d.isFree ? null : sanitizePlain(d.price, 80) || null,
       imageUrl, businessId, organizationId, categoryId,
+      tags: parseEventTags(fd.getAll("tags")),
+      vendorInfo: sanitizePlain(fd.get("vendorInfo")?.toString(), VENDOR_INFO_MAX) || null,
       status: publish ? "PUBLISHED" : "PENDING",
       submittedById: user?.id ?? null,
       submitterEmail: email ?? null,

@@ -7,6 +7,8 @@ import { requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { absoluteUrl, fromDateInput, slugify } from "@/lib/utils";
+import { VENDOR_INFO_MAX, parseEventTags } from "@/lib/events";
+import { sanitizePlain } from "@/lib/sanitize";
 import type { ActionState } from "@/components/ui/form-message";
 import { Prisma } from "@/generated/prisma/client";
 import { getAll, isUniqueError, parseForm, uniqueSlug, zBool, zInt, zOpt, zReq, zSlugOpt, zUrlOpt } from "../_lib/form";
@@ -69,6 +71,8 @@ export async function saveEvent(_: ActionState, fd: FormData): Promise<ActionSta
     city: d.city === "__other" ? d.cityOther : d.city, organizer: d.organizer, ticketUrl: d.ticketUrl,
     isFree: d.isFree, price: d.isFree ? null : d.price, status: d.status, isFeatured: d.isFeatured, isSponsored: d.isSponsored,
     businessId, categoryId: d.categoryId, organizationId,
+    tags: parseEventTags(fd.getAll("tags")),
+    vendorInfo: sanitizePlain(String(fd.get("vendorInfo") ?? ""), VENDOR_INFO_MAX) || null,
   };
   let id = d.id;
   try {

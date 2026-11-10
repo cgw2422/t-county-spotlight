@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { requireBusinessAccess } from "@/lib/auth";
 import { descriptionLength, getBusinessEntitlements } from "@/lib/entitlements";
 import { addPhotosWithinLimit, createEventWithinLimit, photoLimitMessage } from "@/lib/listing-limits";
+import { VENDOR_INFO_MAX, parseEventTags } from "@/lib/events";
 import { sanitizePlain } from "@/lib/sanitize";
 import { getSettings } from "@/lib/settings";
 import { audit } from "@/lib/audit";
@@ -83,6 +84,16 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
     else socials[k] = u;
   }
 
+  // Food trucks: type of food + menu link (http/https only). Not Premium-gated.
+  const truck: Prisma.BusinessUpdateInput = {};
+  if (business.isFoodTruck) {
+    truck.cuisine = sanitizePlain(str(fd, "cuisine"), 60) || null;
+    const menuRaw = str(fd, "menuUrl");
+    const menuUrl = normalizeUrl(menuRaw);
+    if (menuRaw && !menuUrl) fieldErrors.menuUrl = "Please paste the full link to your menu (starting with https://).";
+    truck.menuUrl = menuUrl;
+  }
+
   const hours = DAYS.map((day) => {
     const closed = fd.get(`closed_${day}`) === "on";
     const open = str(fd, `open_${day}`).slice(0, 5);
@@ -127,6 +138,7 @@ export async function updateProfileAction(_p: FormState, fd: FormData): Promise<
     socials,
     hours: hasHours ? hours : [],
     categories: { set: validCats },
+    ...truck,
     ...(!google.skip && !google.fieldErrors ? google.data : {}),
   };
   if (descChanged) data.description = descHtml;
@@ -278,6 +290,8 @@ export async function saveEventAction(_p: FormState, fd: FormData): Promise<Form
     price: opt(fd, "price", 80),
     categoryId: validCat?.id ?? null,
     organizer: business.name,
+    tags: parseEventTags(fd.getAll("tags")),
+    vendorInfo: sanitizePlain(String(fd.get("vendorInfo") ?? ""), VENDOR_INFO_MAX) || null,
     status,
     rejectionReason: null,
   } as const;

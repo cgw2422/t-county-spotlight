@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { isOrgPublic } from "@/lib/gives/queries";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, CalendarPlus, Clock, Download, MapPin, Repeat, Ticket, UserRound } from "lucide-react";
+import { CalendarDays, CalendarPlus, Clock, Download, MapPin, Repeat, Store, Ticket, UserRound } from "lucide-react";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
-import { describeRecurrence, expandOccurrences, googleCalendarUrl } from "@/lib/events";
+import { describeRecurrence, directionsUrl, eventTagLabel, expandOccurrences, googleCalendarUrl } from "@/lib/events";
 import { eventHref } from "@/lib/links";
 import { getUpcomingOccurrences } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
@@ -66,8 +66,9 @@ export default async function EventPage({ params }: Props) {
   const url = absoluteUrl(eventHref(e));
   const business = e.business && e.business.status === "PUBLISHED" && !e.business.deletedAt ? e.business : null;
   const where = [e.locationName, e.address, e.city].filter(Boolean);
-  const mapQuery = [e.locationName, e.address, e.city, e.city ? "OH" : null].filter(Boolean).join(", ");
-  const mapUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
+  const mapUrl = directionsUrl(e);
+  const tagLabels = e.tags.map(eventTagLabel).filter((t): t is string => !!t);
+  const vendorInfo = e.vendorInfo?.trim() || null;
   const description = sanitizeRichText(e.description);
   const [saved, settings, more] = await Promise.all([
     isSaved("EVENT", e.id),
@@ -101,6 +102,11 @@ export default async function EventPage({ params }: Props) {
                 {formatDate(next.occurrenceStart, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 <span className="text-slate-400"> · </span>{timeRange(next.occurrenceStart, next.occurrenceEnd, e.allDay)}
               </p>
+              {tagLabels.length > 0 && (
+                <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Event details">
+                  {tagLabels.map((t) => <li key={t} className="badge-gray">{t}</li>)}
+                </ul>
+              )}
               {past && <p role="status" className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700">This event has already taken place.</p>}
             </div>
           </header>
@@ -122,6 +128,13 @@ export default async function EventPage({ params }: Props) {
             <section aria-labelledby="about-event" className="mt-10">
               <h2 id="about-event" className="section-title">About this event</h2>
               <div className={`${PROSE_CLASSES} mt-4 max-w-[70ch] text-slate-800`} dangerouslySetInnerHTML={{ __html: description }} />
+            </section>
+          )}
+
+          {vendorInfo && (
+            <section aria-labelledby="vendors-title" className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+              <h2 id="vendors-title" className="flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><Store className="h-5 w-5 text-brand-700" aria-hidden /> Vendors</h2>
+              <p className="mt-3 max-w-[70ch] whitespace-pre-line text-slate-800">{vendorInfo}</p>
             </section>
           )}
 

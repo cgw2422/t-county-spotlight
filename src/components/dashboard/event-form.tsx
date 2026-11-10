@@ -4,12 +4,20 @@ import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { saveEventAction } from "@/app/dashboard/[businessId]/actions";
-import { Checkbox, FormSection, TextArea, TextField, echoed, echoedChecked } from "./fields";
+import { EventDetailsFields } from "@/components/events/event-details-fields";
+import { Checkbox, FormSection, TextArea, TextField, echoed, echoedChecked, type Echo } from "./fields";
 
 export type EventValues = {
   id?: string; title: string; description: string; imageUrl: string; startAt: string; endAt: string; allDay: boolean;
   locationName: string; address: string; city: string; ticketUrl: string; isFree: boolean; price: string; categoryId: string;
+  tags?: string[]; vendorInfo?: string;
 };
+
+function echoedTags(ev: Echo | undefined, fallback: string[]) {
+  if (!ev) return fallback;
+  const v = ev.tags;
+  return Array.isArray(v) ? v : v ? [v] : [];
+}
 
 export function EventForm({ businessId, values, categories, needsApproval }: { businessId: string; values: EventValues; categories: { id: string; name: string }[]; needsApproval: boolean }) {
   const [state, action] = useActionState(saveEventAction, null);
@@ -47,6 +55,9 @@ export function EventForm({ businessId, values, categories, needsApproval }: { b
           <TextField label="Address" name="address" defaultValue={echoed(ev, "address", values.address)} maxLength={200} />
           <TextField label="City" name="city" defaultValue={echoed(ev, "city", values.city)} maxLength={80} />
         </div>
+      </FormSection>
+      <FormSection title="Event details" description="Optional — helps residents find your event with filters.">
+        <EventDetailsFields idPrefix="f" tags={echoedTags(ev, values.tags ?? [])} vendorInfo={echoed(ev, "vendorInfo", values.vendorInfo ?? "")} />
       </FormSection>
       <FormSection title="Tickets & cost">
         <Checkbox name="isFree" defaultChecked={echoedChecked(ev, "isFree", values.isFree)} label="This event is free" />

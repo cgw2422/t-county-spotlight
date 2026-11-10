@@ -22,6 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     db.job.count({ where: { status: "PENDING", deletedAt: null } }),
     Promise.all([db.organization.count({ where: { status: "PENDING", deletedAt: null } }), db.organizationClaim.count({ where: { status: "PENDING" } })]).then(([o, c]) => o + c),
   ]);
+  const garageSales = await db.garageSale.count({ where: { status: "PENDING" } });
+  // Community submissions queue badge: everything awaiting review (see /admin/submissions/).
+  const submissions = applications + events + specials + updates + articles + jobs + organizations + garageSales;
   return (
     <AdminShell
       user={{ name: user.name, email: user.email, role: user.role }}
@@ -29,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       siteName={settings.siteName}
       logoUrl={brand.logoWhiteSmall}
       logoOnDark
-      counts={{ applications, events, specials, updates, articles, jobs, organizations }}
+      counts={{ applications, events, specials, updates, articles, jobs, organizations, submissions, garageSales }}
     >
       {children}
       <Toaster />

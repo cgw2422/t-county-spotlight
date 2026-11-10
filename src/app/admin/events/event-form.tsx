@@ -5,6 +5,7 @@ import { MediaField } from "@/components/admin/media-picker";
 import { SearchSelect } from "@/components/admin/search-select";
 import { CitySelect } from "@/components/admin/city-select";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { EventDetailsFields } from "@/components/events/event-details-fields";
 import type { Recurrence } from "@/lib/events";
 import { toDateInput } from "@/lib/utils";
 import type { Event } from "@/generated/prisma/client";
@@ -58,6 +59,9 @@ export function EventForm({ e, categories, business, organization, defaults }: {
             <CitySelect defaultValue={e ? e.city : defaults?.city} />
             <TextField name="organizer" label="Organizer" defaultValue={e?.organizer ?? defaults?.organizer ?? ""} />
           </FormGrid>
+        </Card>
+        <Card title="Event details" description="Attributes residents can filter by, plus vendor information for markets and craft shows.">
+          <EventDetailsFields idPrefix="admin-ev" tags={e?.tags ?? []} vendorInfo={e?.vendorInfo ?? ""} />
         </Card>
         <Card title="Tickets">
           <div className="space-y-3">

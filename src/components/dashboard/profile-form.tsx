@@ -16,6 +16,8 @@ export type ProfileValues = {
   name: string; tagline: string; description: string; logoUrl: string; coverUrl: string; coverFocusX: number; coverFocusY: number; categoryIds: string[];
   address: string; city: string; zip: string; phone: string; email: string; emailPublic: boolean; website: string;
   socials: Record<string, string>; hours: HoursRow[];
+  /** Food trucks only (shown when the listing is a food truck). */
+  truck?: { cuisine: string; menuUrl: string };
 };
 
 const SOCIALS = [
@@ -99,6 +101,15 @@ export function ProfileForm({ businessId, values, categories, cities, google, de
         <TextField label="Email" name="email" type="email" defaultValue={echoed(ev, "email", values.email)} error={fe.email} hint="We use this to reach you." />
         <Checkbox name="emailPublic" defaultChecked={echoedChecked(ev, "emailPublic", values.emailPublic)} label="Show my email on my public listing" hint="Leave unchecked to keep it private." />
       </FormSection>
+
+      {values.truck && (
+        <FormSection id="truck" title="Food truck" description="Shown on the T County Food Trucks page and your listing.">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField label="Type of food" name="cuisine" defaultValue={echoed(ev, "cuisine", values.truck.cuisine)} maxLength={60} placeholder="BBQ, Tacos, Desserts…" error={fe.cuisine} />
+            <TextField label="Menu link" name="menuUrl" defaultValue={echoed(ev, "menuUrl", values.truck.menuUrl)} inputMode="url" placeholder="https://" error={fe.menuUrl} hint="A link to your menu online (website, Facebook photo, PDF)." />
+          </div>
+        </FormSection>
+      )}
 
       <FormSection id="social" title="Social media" description="Paste the full link to each page you use. Leave the rest blank.">
         <div className="grid gap-5 sm:grid-cols-2">

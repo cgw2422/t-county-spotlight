@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { Clock, Globe, Mail, MapPin, Megaphone, Navigation, Phone, Star } from "lucide-react";
+import { Clock, Globe, Mail, MapPin, Megaphone, Navigation, Phone, Star, UtensilsCrossed } from "lucide-react";
 import { db } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
@@ -29,6 +29,7 @@ import { PulseMentions } from "@/components/pulse/pulse-mentions";
 import { BusinessOfferings } from "@/components/public/business-offerings";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { publicGalleryPhotos } from "@/lib/listing-limits";
+import { FoodTruckSchedule } from "@/components/food-trucks/truck-schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -162,6 +163,13 @@ export default async function BusinessPage({ params }: Props) {
                 ))}
                 {b.city && <span className="flex items-center gap-1">{b.categories.length > 0 && <span aria-hidden className="mr-1 text-slate-300">·</span>}<MapPin className="h-4 w-4" aria-hidden />{b.city}</span>}
               </p>
+              {b.isFoodTruck && (
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 text-slate-600" data-testid="truck-cuisine">
+                  <span className="badge-orange">Food truck</span>
+                  {b.cuisine && <span className="flex items-center gap-1"><UtensilsCrossed className="h-4 w-4" aria-hidden />{b.cuisine}</span>}
+                  <Link href="/food-trucks/" className="text-sm font-semibold text-brand-700 hover:underline">All food trucks →</Link>
+                </p>
+              )}
               {b.tagline && <p className="mt-2 max-w-2xl text-lg text-slate-700">{b.tagline}</p>}
             </div>
           </div>
@@ -177,6 +185,8 @@ export default async function BusinessPage({ params }: Props) {
 
         <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_340px]">
           <div className="min-w-0 space-y-12">
+            {b.isFoodTruck && <FoodTruckSchedule truck={b} showMenuSection={showOfferings && offerings.some((o) => o.kind === "MENU" && o.items.length > 0)} />}
+
             {(description || story) && (
               <section aria-labelledby="about-title">
                 <h2 id="about-title" className="section-title">About {b.name}</h2>

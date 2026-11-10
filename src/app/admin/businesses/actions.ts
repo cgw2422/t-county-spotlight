@@ -10,6 +10,7 @@ import { fromDateInput, slugify } from "@/lib/utils";
 import type { ActionState } from "@/components/ui/form-message";
 import { Prisma } from "@/generated/prisma/client";
 import { googleListingFromForm } from "@/lib/google-places";
+import { sanitizePlain } from "@/lib/sanitize";
 import { getAll, isUniqueError, jsonField, parseForm, uniqueSlug, zBool, zEmailOpt, zOpt, zReq, zSlugOpt, zUrlOpt } from "../_lib/form";
 
 const STATUSES = ["DRAFT", "PENDING", "PUBLISHED", "SUSPENDED", "ARCHIVED"] as const;
@@ -38,6 +39,9 @@ const schema = z.object({
   isSpotlighted: zBool,
   seoTitle: zOpt(200),
   seoDescription: zOpt(400),
+  isFoodTruck: zBool,
+  cuisine: zOpt(60),
+  menuUrl: zOpt(2000).refine((v) => !v || /^https?:\/\/[^\s]+$/i.test(v), "Menu link must be a full URL (https://…)"),
 });
 
 type Hours = { day: string; open: string; close: string; closed: boolean }[];
@@ -81,6 +85,7 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
     name: d.name, slug, tagline: d.tagline, description: d.description, story: d.story, logoUrl: d.logoUrl, coverUrl: d.coverUrl, ...focusFromForm(fd),
     address: d.address, city: d.city === "__other" ? d.cityOther : d.city, zip: d.zip, phone: d.phone, email: d.email, emailPublic: d.emailPublic,
     website: d.website, status: d.status, isFeatured: d.isFeatured, isSpotlighted: d.isSpotlighted, seoTitle: d.seoTitle, seoDescription: d.seoDescription,
+    isFoodTruck: d.isFoodTruck, cuisine: d.cuisine ? sanitizePlain(d.cuisine, 60) || null : null, menuUrl: d.menuUrl,
     socials: (parseSocials(fd) as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
     hours: (parseHours(fd) as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
     publishedAt: d.status === "PUBLISHED" ? existing?.publishedAt ?? new Date() : existing?.publishedAt ?? null,
@@ -101,6 +106,7 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
   const statusChanged = existing && existing.status !== d.status;
   await audit(user.id, existing ? (statusChanged ? `business.${d.status === "PUBLISHED" ? "publish" : d.status.toLowerCase()}` : "business.update") : "business.create", "Business", id, {
     name: d.name, status: d.status, ...(existing && existing.isSpotlighted !== d.isSpotlighted ? { spotlight: d.isSpotlighted } : {}),
+    ...((existing?.isFoodTruck ?? false) !== d.isFoodTruck ? { foodTruck: d.isFoodTruck } : {}),
   });
   revalidatePath("/admin/businesses");
   revalidatePath("/", "layout");

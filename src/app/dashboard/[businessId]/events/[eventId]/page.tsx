@@ -33,7 +33,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ busi
             values={{
               id: e.id, title: e.title, description: htmlToText(e.description), imageUrl: e.imageUrl ?? "", startAt: toDateInput(e.startAt), endAt: toDateInput(e.endAt),
               allDay: e.allDay, locationName: e.locationName ?? "", address: e.address ?? "", city: e.city ?? "", ticketUrl: e.ticketUrl ?? "",
-              isFree: e.isFree, price: e.price ?? "", categoryId: e.categoryId ?? "",
+              isFree: e.isFree, price: e.price ?? "", categoryId: e.categoryId ?? "", tags: e.tags, vendorInfo: e.vendorInfo ?? "",
             }} />
           <form action={withdrawEventAction} className="mt-8 border-t border-slate-200 pt-6">
             <input type="hidden" name="businessId" value={business.id} />

@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 import { FormMessage, type ActionState } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { EventDetailsFields } from "@/components/events/event-details-fields";
 import { submitEvent } from "./actions";
 
 type Props = {
@@ -175,6 +176,12 @@ export function EventSubmitForm({ categories, cities, businesses, organizations 
             <Err state={state} name="ticketUrl" />
           </div>
         </div>
+      </fieldset>
+
+      <fieldset className="card space-y-5 p-5 sm:p-6">
+        <legend className="sr-only">Event details</legend>
+        <h2 className="font-display text-xl font-semibold text-navy-900">Event details <span className="text-base font-normal text-slate-500">(optional)</span></h2>
+        <EventDetailsFields idPrefix="submit" />
       </fieldset>
 
       <fieldset className="card space-y-5 p-5 sm:p-6">

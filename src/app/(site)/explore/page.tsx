@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Briefcase, CalendarDays, ChevronRight, MessagesSquare, Star, Tag } from "lucide-react";
+import { Briefcase, CalendarDays, ChevronRight, MessagesSquare, Send, ShoppingBag, Star, Tag, Truck } from "lucide-react";
 import { db } from "@/lib/db";
 import { publicBusinessWhere } from "@/lib/queries";
 import { ExploreGrid } from "@/components/home/explore-grid";
@@ -19,6 +19,9 @@ const QUICK = [
   { href: "/specials/", label: "Specials", desc: "Deals & coupons", icon: Tag, color: "bg-orange-50 text-orange-600" },
   { href: "/spotlights/", label: "Spotlights", desc: "Local stories", icon: Star, color: "bg-amber-50 text-amber-600" },
   { href: "/jobs/", label: "Jobs", desc: "Work local", icon: Briefcase, color: "bg-sky-50 text-sky-700" },
+  { href: "/food-trucks/", label: "Food Trucks", desc: "Where trucks are serving", icon: Truck, color: "bg-brand-50 text-navy-900" },
+  { href: "/garage-sales/", label: "Garage Sales", desc: "Yard & rummage sales", icon: ShoppingBag, color: "bg-hillside-50 text-hillside-700" },
+  { href: "/submit/", label: "Share something", desc: "Events, sales & more", icon: Send, color: "bg-orange-50 text-sunset-600" },
 ];
 
 export default async function ExplorePage() {

@@ -17,6 +17,7 @@ export default async function BusinessDashboardLayout({ children, params }: { ch
     { key: "overview", href: root, label: "Overview" },
     { key: "profile", href: `${root}profile/`, label: "Edit profile" },
     { key: "photos", href: `${root}photos/`, label: "Photos" },
+    ...(business.isFoodTruck ? [{ key: "schedule", href: `${root}schedule/`, label: "Food truck schedule" } as DashNavItem] : []),
     { key: "services", href: `${root}services/`, label: "Services & menus", locked: !entitlements.servicesMenus, badge: entitlements.servicesMenus ? undefined : "Premium" },
     { key: "events", href: `${root}events/`, label: "Events", locked: !entitlements.events },
     { key: "specials", href: `${root}specials/`, label: "Specials", locked: !entitlements.promotions },

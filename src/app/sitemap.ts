@@ -7,6 +7,7 @@ import { articleHref, businessHref, eventHref, jobHref, pageHref, specialHref } 
 import { absoluteUrl } from "@/lib/utils";
 import { givesSitemapEntries } from "@/lib/gives/sitemap";
 import { publicPulseWhere, pulseHref } from "@/lib/pulse";
+import { activeSaleWhere, garageSaleHref } from "@/lib/garage-sales";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,12 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/jobs/", priority: 0.6, changeFrequency: "daily" },
   { path: "/community-pulse/", priority: 0.7, changeFrequency: "weekly" },
   { path: "/explore/", priority: 0.5, changeFrequency: "weekly" },
+  { path: "/food-trucks/", priority: 0.8, changeFrequency: "daily" },
   { path: "/list-your-business/", priority: 0.6, changeFrequency: "monthly" },
   { path: "/events/submit/", priority: 0.4, changeFrequency: "monthly" },
+  { path: "/garage-sales/", priority: 0.8, changeFrequency: "daily" },
+  { path: "/garage-sales/submit/", priority: 0.4, changeFrequency: "monthly" },
+  { path: "/submit/", priority: 0.4, changeFrequency: "monthly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -51,6 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...pulses.map((p) => ({ url: absoluteUrl(pulseHref(p)), lastModified: p.resultsUpdatedAt && p.resultsUpdatedAt > p.updatedAt ? p.resultsUpdatedAt : p.updatedAt, changeFrequency: "monthly" as const, priority: 0.6 })),
       ...jobs.map((j) => ({ url: absoluteUrl(jobHref(j)), lastModified: j.updatedAt, changeFrequency: "weekly" as const, priority: 0.4 })),
       ...(await givesSitemapEntries()),
+      ...(await db.garageSale.findMany({ where: activeSaleWhere(now), select: { slug: true, updatedAt: true } })).map((g) => ({ url: absoluteUrl(garageSaleHref(g)), lastModified: g.updatedAt, changeFrequency: "daily" as const, priority: 0.5 })),
     ];
   } catch (e) {
     console.error("[sitemap]", e);

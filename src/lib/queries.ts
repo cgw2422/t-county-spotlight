@@ -28,7 +28,7 @@ const businessCardSelect = {
 
 const eventCardSelect = {
   id: true, slug: true, title: true, imageUrl: true, locationName: true, city: true, startAt: true, endAt: true,
-  allDay: true, isSponsored: true, isFeatured: true, recurrence: true, isFree: true,
+  allDay: true, isSponsored: true, isFeatured: true, recurrence: true, isFree: true, price: true, organizer: true, address: true,
 } satisfies Prisma.EventSelect;
 
 /** Featured ids first (admin-picked), then fill with the default ordering. */

@@ -5,8 +5,8 @@ import { db } from "@/lib/db";
 import { activePromotionWhere } from "@/lib/promotions";
 import { articleCardSelect, businessCardSelect, eventCardSelect, publicBusinessWhere, publishedArticleWhere } from "@/lib/queries";
 import { expandOccurrences, upcomingEventWhere } from "@/lib/events";
-import { pageHref } from "@/lib/links";
-import { stripHtml, truncate } from "@/lib/utils";
+import { businessHref, pageHref } from "@/lib/links";
+import { formatDate, stripHtml, truncate } from "@/lib/utils";
 import { BusinessCard } from "@/components/cards/business-card";
 import { ArticleCard } from "@/components/cards/article-card";
 import { EventCard } from "@/components/cards/event-card";
@@ -19,6 +19,9 @@ import { OrgCard } from "@/components/gives/cards";
 import { searchOrganizations } from "@/lib/gives/search";
 import { publicPulseWhere, pulseCardSelect } from "@/lib/pulse";
 import { PulseCard } from "@/components/pulse/pulse-card";
+import { searchFoodTrucks, timeRange } from "@/lib/food-trucks";
+import { searchGarageSales } from "@/lib/garage-sales";
+import { GarageSaleCard } from "@/components/garage-sales/garage-sale-card";
 
 export const dynamic = "force-dynamic";
 const LIMIT = 8;
@@ -58,11 +61,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   })() : null;
 
   const orgs = results ? await searchOrganizations(q, LIMIT) : null;
-  const total = results ? (orgs?.count ?? 0) + results.bizCount + results.artCount + results.events.length + results.spCount + results.pages.length + results.pulseCount : 0;
+  const trucks = results ? await searchFoodTrucks(q, LIMIT) : null;
+  const sales = results ? await searchGarageSales(q, LIMIT) : null;
+  const total = results ? (sales?.count ?? 0) + (trucks?.count ?? 0) + (orgs?.count ?? 0) + results.bizCount + results.artCount + results.events.length + results.spCount + results.pages.length + results.pulseCount : 0;
   const groups = results ? [
     { id: "businesses", label: "Businesses", count: results.bizCount },
+    { id: "food-trucks", label: "Food trucks", count: trucks?.count ?? 0 },
     { id: "organizations", label: "Nonprofits & churches", count: orgs?.count ?? 0 },
     { id: "events", label: "Events", count: results.events.length },
+    { id: "garage-sales", label: "Garage sales", count: sales?.count ?? 0 },
     { id: "specials", label: "Specials", count: results.spCount },
     { id: "articles", label: "Stories", count: results.artCount },
     { id: "community-pulse", label: "Community Pulse", count: results.pulseCount },
@@ -110,6 +117,22 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">{results.businesses.map((b) => <BusinessCard key={b.id} b={b} />)}</div>
             </section>
           )}
+          {trucks && trucks.rows.length > 0 && (
+            <section id="food-trucks" aria-labelledby="r-trucks" className="scroll-mt-24">
+              <GroupHeader id="r-trucks" title="Food trucks" count={trucks.count} more="/food-trucks/" />
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {trucks.rows.map((t) => (
+                  <li key={t.id}>
+                    <Link href={businessHref(t)} className="card card-hover block h-full p-4">
+                      <span className="block font-semibold text-navy-900">{t.name}</span>
+                      {t.cuisine && <span className="block text-sm text-slate-600">{t.cuisine}</span>}
+                      <span className="mt-1 block text-xs text-slate-500">{t.next ? `Next scheduled: ${formatDate(t.next.startAt, { weekday: "short", month: "short", day: "numeric" })} · ${timeRange(t.next.startAt, t.next.endAt)} · ${t.next.locationName}` : "No upcoming stops listed"}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {orgs && orgs.rows.length > 0 && (
             <section id="organizations" aria-labelledby="r-org" className="scroll-mt-24">
               <GroupHeader id="r-org" title="Nonprofits & churches" count={orgs.count} more={orgs.count > LIMIT ? `/gives/organizations/${qs({ q })}` : undefined} />
@@ -120,6 +143,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             <section id="events" aria-labelledby="r-ev" className="scroll-mt-24">
               <GroupHeader id="r-ev" title="Upcoming events" count={results.events.length} more={results.events.length > LIMIT ? `/events/${qs({ q })}` : undefined} />
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">{results.events.slice(0, LIMIT).map((e) => <EventCard key={e.id} e={e} layout="row" />)}</div>
+            </section>
+          )}
+          {sales && sales.rows.length > 0 && (
+            <section id="garage-sales" aria-labelledby="r-gs" className="scroll-mt-24">
+              <GroupHeader id="r-gs" title="Garage sales" count={sales.count} more={sales.count > LIMIT ? "/garage-sales/" : undefined} />
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">{sales.rows.map((s) => <GarageSaleCard key={s.id} s={s} compact />)}</div>
             </section>
           )}
           {results.specials.length > 0 && (
