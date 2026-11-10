@@ -3,6 +3,7 @@ import { Bookmark, ChevronRight } from "lucide-react";
 import { getSavedSummary } from "@/lib/saved";
 import { SmartImage } from "@/components/ui/smart-image";
 import { OhioMark } from "@/components/site/logo";
+import { DiscoverySuggestions } from "./discovery-suggestions";
 
 const TYPE_LABEL: Record<string, string> = {
   EVENT: "Event", BUSINESS: "Business", PROMOTION: "Special", GARAGE_SALE: "Garage sale", ARTICLE: "Article", PULSE: "Community Pulse", ORGANIZATION: "Organization",
@@ -23,14 +24,13 @@ function SavedLinkCard() {
 }
 
 /** Members: a few saved items + link to /saved/. Guests: link to /saved/ (device saves live in the browser). */
-export async function MySavedPanel({ userId }: { userId: string | null }) {
+export async function MySavedPanel({ userId, limit = 4 }: { userId: string | null; limit?: number }) {
   if (!userId) return <SavedLinkCard />;
-  const items = await getSavedSummary(userId, 4);
+  const items = await getSavedSummary(userId, limit);
   if (!items.length) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-slate-600" data-testid="mtc-saved-empty">Nothing saved yet. Tap the save button on events, businesses, garage sales and more to keep them here.</p>
-        <SavedLinkCard />
+        <DiscoverySuggestions intro={<span data-testid="mtc-saved-empty">Nothing saved yet. Tap the heart on events, businesses, food trucks, garage sales and more to keep them here. A few places to start:</span>} />
       </div>
     );
   }

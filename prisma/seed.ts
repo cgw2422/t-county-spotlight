@@ -43,6 +43,7 @@ const HOMEPAGE_SECTIONS = [
   { key: "weekend", type: "weekend", title: "What's Happening This Weekend", subtitle: "Events and activities across the county", limit: 4 },
   { key: "food_trucks", type: "food_trucks", title: "Food Trucks Near You", subtitle: "Scheduled stops from local food trucks", limit: 4 },
   { key: "garage_sales", type: "garage_sales", title: "Garage Sales & Community Markets", subtitle: "Yard sales, rummage sales and markets coming up", limit: 4 },
+  { key: "join", type: "join", title: "Make T County Yours.", subtitle: "Save your favorite places, recommend businesses, and stay connected to your community with a free account.", limit: 0 },
   { key: "specials", type: "specials", title: "Local Specials", subtitle: "Deals from participating businesses", limit: 4 },
   { key: "new_coming_soon", type: "new_coming_soon", title: "New & Coming Soon", subtitle: "Businesses opening, moving and growing across T County", limit: 4 },
   { key: "announcements", type: "announcements", title: "Community Updates", subtitle: null, limit: 4 },
@@ -78,6 +79,7 @@ async function main() {
   const hadSections = (await db.homepageSection.count()) > 0;
   for (const [i, s] of HOMEPAGE_SECTIONS.entries()) {
     if (await db.homepageSection.findUnique({ where: { key: s.key } })) continue;
+    if (hadSections && s.key === "join") continue; // placed once below (homepageJoinSection)
     // Sections added after launch go to the end of the admin's existing order.
     const max = hadSections ? (await db.homepageSection.aggregate({ _max: { sortOrder: true } }))._max.sortOrder ?? 0 : -1;
     await db.homepageSection.create({ data: { ...s, sortOrder: hadSections ? max + 1 : i } });
@@ -183,6 +185,26 @@ async function main() {
       await db.homepageSection.updateMany({ where: { key: "spotlights", title: "Latest Business Spotlights" }, data: { title: "Local Stories & Business Spotlights" } });
     }
     await db.setting.create({ data: { key: "homepageResidentOrder", value: { applied: untouched, at: new Date().toISOString() } } });
+  }
+  // One-time: add the free-account "join" section to existing installs, right after Garage Sales
+  // (or at the end when that section is missing). Later sections shift down by one, so the admin's
+  // own order is kept; the section can be switched off or moved in Admin → Homepage.
+  if (!(await db.setting.findUnique({ where: { key: "homepageJoinSection" } }))) {
+    let placed: string | null = null;
+    if (!(await db.homepageSection.findUnique({ where: { key: "join" } }))) {
+      const def = HOMEPAGE_SECTIONS.find((x) => x.key === "join")!;
+      const anchor = await db.homepageSection.findUnique({ where: { key: "garage_sales" }, select: { sortOrder: true } });
+      if (anchor) {
+        await db.homepageSection.updateMany({ where: { sortOrder: { gt: anchor.sortOrder } }, data: { sortOrder: { increment: 1 } } });
+        await db.homepageSection.create({ data: { ...def, sortOrder: anchor.sortOrder + 1 } });
+        placed = "after garage_sales";
+      } else {
+        const max = (await db.homepageSection.aggregate({ _max: { sortOrder: true } }))._max.sortOrder ?? -1;
+        await db.homepageSection.create({ data: { ...def, sortOrder: max + 1 } });
+        placed = "end";
+      }
+    }
+    await db.setting.create({ data: { key: "homepageJoinSection", value: { placed, at: new Date().toISOString() } } });
   }
   await runBrandMigration(db);
   await runNamingMigration(db);

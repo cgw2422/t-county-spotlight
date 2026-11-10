@@ -5,13 +5,16 @@ import { FORCED_PASSWORD_CHANGE_PATH, getSessionUser, getPending2faSession } fro
 import { homeForRole, safeNext } from "@/lib/tokens";
 import { AuthShell } from "@/components/account/auth-shell";
 import { LoginForm } from "./login-form";
+import { REGISTER_SOURCES, registerHref, type RegisterSource } from "@/lib/resident-accounts";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; locked?: string; reset?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; locked?: string; reset?: string; source?: string }> }) {
   const sp = await searchParams;
   const next = safeNext(sp.next) ?? undefined;
+  // Carry where the visitor came from (recommend, save, …) to "Create a free account"; a plain sign-in page visit counts as "header".
+  const source: RegisterSource = (REGISTER_SOURCES as readonly string[]).includes(sp.source ?? "") ? (sp.source as RegisterSource) : "header";
   const user = await getSessionUser();
   if (user?.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   if (user) redirect(next ?? homeForRole(user.role));
@@ -19,8 +22,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to save businesses and events, follow your favorites, and manage your listing."
-      footer={<>New here? <Link href={`/register/${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-brand-700 hover:underline">Create a free account</Link></>}
+      subtitle="Sign in to My T County to save favorites, recommend local businesses and follow your community. Business owners: sign in here to manage your listing."
+      footer={<>New here? <Link href={registerHref(source, next)} className="font-semibold text-brand-700 hover:underline" data-testid="login-register-link">Create a free account</Link></>}
     >
       {sp.locked && <p role="alert" className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Too many incorrect codes. Please sign in again.</p>}
       <LoginForm next={next} />

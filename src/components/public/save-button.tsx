@@ -6,6 +6,13 @@ import { Bell, BellRing, Heart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SavedKind } from "@/lib/saved-shared";
 import { getMemberSavedState, noteMemberSaved, setLocalSaved, takeGuestHint, useLocalSaved } from "@/lib/saved-local";
+import { SAVED_CHANGE_SIGNAL, markEngaged, registerHref } from "@/lib/resident-accounts";
+
+/** Tells other components on the page (event reminder, install invitation) that something was saved or unsaved. */
+function announce(type: string, targetId: string, saved: boolean, guest: boolean) {
+  if (saved) markEngaged();
+  try { window.dispatchEvent(new CustomEvent(SAVED_CHANGE_SIGNAL, { detail: { type, targetId, saved, guest } })); } catch {}
+}
 
 export type SaveKind = SavedKind | "BUSINESS_FOLLOW";
 
@@ -61,6 +68,7 @@ export function SaveButton({ type, targetId, initial, label, savedLabel, classNa
       return;
     }
     setOverride(next);
+    announce(type, targetId, next, true);
     if (next && takeGuestHint()) setHint(true);
   }
 
@@ -94,6 +102,7 @@ export function SaveButton({ type, targetId, initial, label, savedLabel, classNa
           return;
         }
         setOverride(json.saved);
+        announce(type, targetId, json.saved, false);
         if (!follow) {
           noteMemberSaved(type, targetId, json.saved);
           if (!json.saved && localHas) setLocalSaved(type as SavedKind, targetId, false);
@@ -135,9 +144,8 @@ export function SaveButton({ type, targetId, initial, label, savedLabel, classNa
           className="fixed inset-x-4 bottom-[calc(4.5rem+var(--safe-bottom))] z-50 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-navy-900 px-4 py-3 text-left text-sm text-white shadow-lg lg:bottom-6"
         >
           <span className="flex-1">
-            Saved on this device.{" "}
-            <Link href={`/register/?next=${encodeURIComponent("/saved/")}`} className="font-semibold underline underline-offset-2">Create a free account</Link>{" "}
-            to keep your saves on all your devices.
+            Saved on this device. A free account keeps your favorites synced across your phone, tablet and computer.{" "}
+            <Link href={registerHref("save", path || "/saved/")} className="font-semibold underline underline-offset-2" data-testid="guest-save-register">Create free account</Link>
           </span>
           <button type="button" onClick={() => setHint(false)} className="-m-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-white/80 hover:text-white" aria-label="Dismiss">
             <X className="h-4 w-4" aria-hidden />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BarChart3, Download } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
-import { ANALYTICS_RANGES, analyticsRange, getCommunityAnalytics, type CountRow, type NamedRow } from "@/lib/analytics";
+import { ANALYTICS_RANGES, analyticsRange, getCommunityAnalytics, getResidentFunnel, type CountRow, type NamedRow } from "@/lib/analytics";
 import { PageHeader, Card } from "@/components/admin/page-header";
 import { LinkTabs } from "@/components/admin/tabs";
 import { formatDate } from "@/lib/utils";
@@ -49,7 +49,8 @@ export default async function CommunityAnalyticsPage({ searchParams }: { searchP
   await requireStaff();
   const sp = await searchParams;
   const range = analyticsRange(spGet(sp, "range"));
-  const a = await getCommunityAnalytics(range);
+  const [a, funnel] = await Promise.all([getCommunityAnalytics(range), getResidentFunnel(range)]);
+  const pct = (x: number, of: number) => (of ? `${Math.round((x / of) * 100)}%` : "—");
 
   const visitsTotal = a.visits.new + a.visits.returning;
   const returningPct = visitsTotal ? Math.round((a.visits.returning / visitsTotal) * 100) : null;
@@ -103,6 +104,36 @@ export default async function CommunityAnalyticsPage({ searchParams }: { searchP
             </figcaption>
           </figure>
         )}
+      </Card>
+
+      <Card title="Resident accounts" description="Free account sign-up funnel by where the visitor came from: sign-up page views → started the form → created an account → confirmed their email. Views and starts count once per visitor per day; completions and confirmations are recorded by the server. Aggregate only — no names or emails." className="mb-6" bodyClassName="p-0">
+        <div className="grid grid-cols-2 gap-px border-b border-slate-100 bg-slate-100 sm:grid-cols-5" data-testid="resident-funnel">
+          {[
+            { label: "Sign-up page views", value: funnel.total.views },
+            { label: "Started the form", value: funnel.total.starts, hint: pct(funnel.total.starts, funnel.total.views) },
+            { label: "Accounts created", value: funnel.total.completions, hint: pct(funnel.total.completions, funnel.total.views) },
+            { label: "Email confirmed", value: funnel.total.verifications, hint: pct(funnel.total.verifications, funnel.total.completions) + " of created" },
+            { label: "Signed-in member visits", value: funnel.returning, hint: "once per device per day" },
+          ].map((t) => (
+            <div key={t.label} className="bg-white p-3.5 sm:p-4">
+              <p className="text-[13px] font-medium text-slate-500">{t.label}</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-navy-950" data-testid={`funnel-${t.label}`}>{n(t.value)}</p>
+              {t.hint && <p className="mt-0.5 text-xs text-slate-500">{t.hint}</p>}
+            </div>
+          ))}
+        </div>
+        {funnel.rows.length ? (
+          <div className="overflow-x-auto">
+            <table className="table-base" data-testid="resident-funnel-table">
+              <thead><tr><th>Source</th><th className="text-right">Views</th><th className="text-right">Started</th><th className="text-right">Created</th><th className="text-right">Confirmed</th></tr></thead>
+              <tbody>
+                {funnel.rows.map((r) => (
+                  <tr key={r.source}><td>{r.label}</td><td className="text-right tabular-nums">{n(r.views)}</td><td className="text-right tabular-nums">{n(r.starts)}</td><td className="text-right tabular-nums">{n(r.completions)}</td><td className="text-right tabular-nums">{n(r.verifications)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <div className="p-4 sm:p-5"><Empty /></div>}
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">

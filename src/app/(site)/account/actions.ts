@@ -10,7 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { homeForRole, sendVerificationEmail } from "@/lib/tokens";
 import { postLoginHome } from "@/lib/gives/access";
 import { audit } from "@/lib/audit";
-import { NOTIFICATION_KEYS, PLANNED_EMAIL_KEYS, enabledCategories, type NotificationPrefs } from "@/lib/notification-categories";
+import { NOTIFICATION_KEYS, PLANNED_EMAIL_KEYS, enabledCategories, readNotificationPrefs, type NotificationPrefs } from "@/lib/notification-categories";
 import type { ActionState } from "@/components/ui/form-message";
 
 async function me() {
@@ -115,6 +115,24 @@ export async function saveNotificationPrefsAction(_p: ActionState, fd: FormData)
   await db.pushSubscription.updateMany({ where: { userId: user.id }, data: { categories: enabledCategories(prefs) } });
   revalidatePath("/account/notifications/");
   return { message: "Notification preferences saved." };
+}
+
+/**
+ * "Get a reminder the day before" on an event page: the member's explicit click turns on the
+ * existing "Saved event reminders" email update (it covers every event they save). Nothing else changes.
+ */
+export async function enableSavedEventRemindersAction(): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Please sign in first." };
+  if (!rateLimit(`reminder-optin:${user.id}`, 10, 60_000).ok) return { ok: false, error: "Too many requests. Please try again in a minute." };
+  const prefs = readNotificationPrefs(user.notificationPrefs);
+  if (!prefs.planned.saved_event_reminders) {
+    prefs.planned.saved_event_reminders = true;
+    await db.user.update({ where: { id: user.id }, data: { notificationPrefs: prefs } });
+    await audit(user.id, "user.email_update_optin", "User", user.id, { kind: "saved_event_reminders", via: "event_page" });
+  }
+  revalidatePath("/account/notifications/");
+  return { ok: true };
 }
 
 export async function deleteAccountAction(_p: ActionState, fd: FormData): Promise<ActionState> {

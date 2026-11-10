@@ -1,5 +1,8 @@
 import "server-only";
+import crypto from "node:crypto";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { REGISTER_SOURCES, REGISTER_SOURCE_LABELS, type RegisterSource } from "@/lib/resident-accounts";
 import { communityName, ALL_COUNTY_LABEL, ALL_COUNTY } from "@/lib/my-t-county-shared";
 import { addDaysKey, nyDateKey, startOfNyDay } from "@/components/public/dates";
 
@@ -148,7 +151,7 @@ export async function getCommunityAnalytics(range: AnalyticsRange, now = new Dat
   const pwa: CountRow[] = [
     { label: "Launched as installed app", count: typeCount("pwa_launch"), note: "once per device per day" },
     { label: "App installed (browser confirmed)", count: typeCount("pwa_installed"), note: "Chrome/Edge/Android only" },
-    { label: "Install prompt shown (Android/desktop)", count: prompt("install_prompt_shown", "native") },
+    { label: "Install prompt shown (Android)", count: prompt("install_prompt_shown", "native") },
     { label: "Install instructions shown (iPhone/iPad)", count: prompt("install_prompt_shown", "ios") },
     { label: "Install prompt accepted", count: prompt("install_prompt_accepted", "native") },
   ];
@@ -242,3 +245,45 @@ export function analyticsCsv(a: CommunityAnalytics) {
   for (const r of a.daily) { rows.push(["Daily", r.day, "events", r.events]); rows.push(["Daily", r.day, "visitors (per-day estimate)", r.visitors]); }
   return rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
+
+// ───────────── Resident accounts (registration funnel) ─────────────
+
+const SERVER_BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
+
+/**
+ * Server-side aggregate signal (same rules as /api/track: no raw IP, a per-day visitor
+ * hash only, skipped for bots and under Global Privacy Control / Do Not Track).
+ * Never throws: analytics must not break the action that called it.
+ */
+export async function recordServerSignal(type: "register_complete" | "email_verified", targetId: RegisterSource) {
+  try {
+    const h = await headers();
+    const ua = h.get("user-agent") || "";
+    if (!ua || SERVER_BOT_RE.test(ua) || h.get("sec-gpc") === "1" || h.get("dnt") === "1") return;
+    const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+    const visitorHash = crypto.createHash("sha256").update(`${ip}|${ua}|${new Date().toISOString().slice(0, 10)}`).digest("hex");
+    await db.engagementEvent.create({ data: { type, targetType: "REGISTER", targetId, visitorHash } });
+  } catch (e) {
+    console.error("[analytics] server signal failed", e);
+  }
+}
+
+export type FunnelRow = { source: RegisterSource; label: string; views: number; starts: number; completions: number; verifications: number };
+export const FUNNEL_TYPES = ["register_view", "register_start", "register_complete", "email_verified"] as const;
+
+/** Registration funnel by source plus signed-in "returning member" days, for the selected range. Aggregate counts only. */
+export async function getResidentFunnel(range: AnalyticsRange, now = new Date()) {
+  const since = startOfNyDay(addDaysKey(nyDateKey(now), -(range.days - 1)));
+  const [grouped, returning] = await Promise.all([
+    db.engagementEvent.groupBy({ by: ["type", "targetId"], where: { createdAt: { gte: since }, type: { in: [...FUNNEL_TYPES] } }, _count: { _all: true } }),
+    db.engagementEvent.count({ where: { createdAt: { gte: since }, type: "returning_member" } }),
+  ]);
+  const c = (type: string, source: string) => grouped.find((g) => g.type === type && g.targetId === source)?._count._all ?? 0;
+  const rows: FunnelRow[] = REGISTER_SOURCES.map((source) => ({
+    source, label: REGISTER_SOURCE_LABELS[source],
+    views: c("register_view", source), starts: c("register_start", source), completions: c("register_complete", source), verifications: c("email_verified", source),
+  }));
+  const total = rows.reduce((t, r) => ({ views: t.views + r.views, starts: t.starts + r.starts, completions: t.completions + r.completions, verifications: t.verifications + r.verifications }), { views: 0, starts: 0, completions: 0, verifications: 0 });
+  return { rows: rows.filter((r) => r.views + r.starts + r.completions + r.verifications > 0), total, returning };
+}
+export type ResidentFunnel = Awaited<ReturnType<typeof getResidentFunnel>>;

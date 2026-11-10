@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/site/bottom-nav";
 import { InstallPrompt } from "@/components/site/install-prompt";
 import { GuestSavesSync } from "@/components/saved/guest-saves-sync";
 import { UsageSignals } from "@/components/site/usage-signals";
+import { GuestPrefsMerge } from "@/components/my-t-county/guest-prefs-merge";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +17,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <InstallPrompt />
       <BottomNav />
       <GuestSavesSync userId={user?.id ?? null} />
-      <UsageSignals />
+      {/* Guest My T County preferences join the account right after sign-in or registration, on any page. */}
+      {user && <GuestPrefsMerge userId={user.id} />}
+      <UsageSignals signedIn={!!user} />
     </>
   );
 }

@@ -25,6 +25,9 @@ import { followRedirectIfAny, isSaved } from "@/components/public/server";
 import { loadEvent } from "./data";
 import { communityHref } from "@/lib/communities-shared";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
+import { EventReminder } from "@/components/public/event-reminder";
+import { getCurrentUser } from "@/lib/auth";
+import { readNotificationPrefs } from "@/lib/notification-categories";
 
 export const dynamic = "force-dynamic";
 
@@ -71,10 +74,11 @@ export default async function EventPage({ params }: Props) {
   const tagLabels = e.tags.map(eventTagLabel).filter((t): t is string => !!t);
   const vendorInfo = e.vendorInfo?.trim() || null;
   const description = sanitizeRichText(e.description);
-  const [saved, settings, more] = await Promise.all([
+  const [saved, settings, more, viewer] = await Promise.all([
     isSaved("EVENT", e.id),
     getSettings(),
     getUpcomingOccurrences({ limit: 4, where: { id: { not: e.id }, ...(e.categoryId ? { categoryId: e.categoryId } : {}) } }),
+    getCurrentUser(),
   ]);
   const track = (type: string) => ({ type, businessId: business?.id, targetType: "EVENT", targetId: e.id });
 
@@ -124,6 +128,10 @@ export default async function EventPage({ params }: Props) {
               </>
             )}
           </div>
+          {!past && (
+            <EventReminder eventId={e.id} eventPath={eventHref(e)} signedIn={!!viewer} initialSaved={saved}
+              remindersOn={!!viewer && readNotificationPrefs(viewer.notificationPrefs).planned.saved_event_reminders} verified={!!viewer?.emailVerifiedAt} />
+          )}
 
           {description && (
             <section aria-labelledby="about-event" className="mt-10">

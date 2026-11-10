@@ -8,7 +8,7 @@ import { ALL_COUNTY, ALL_COUNTY_LABEL, COMMUNITIES, GUEST_PREFS_KEY, INTERESTS, 
 import { saveMemberPrefsAction, setCommunityAction } from "@/app/(site)/my-t-county/actions";
 import { PREFS_CHANGED_EVENT } from "./guest-picks";
 
-type Props = { member: boolean; community: string | null; extraCommunities: string[]; interests: string[] };
+type Props = { member: boolean; community: string | null; extraCommunities: string[]; interests: string[]; /** Distinct ids when the form appears twice on a page (welcome panel). */ idPrefix?: string };
 
 function Chip({ name, value, checked, onChange, label }: { name: string; value: string; checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -24,7 +24,7 @@ function Chip({ name, value, checked, onChange, label }: { name: string; value: 
  * Members save to the account; guests save on this device (community in a
  * cookie, the rest in localStorage) until they create an account.
  */
-export function PreferencesForm({ member, community, extraCommunities, interests }: Props) {
+export function PreferencesForm({ member, community, extraCommunities, interests, idPrefix = "pref" }: Props) {
   const router = useRouter();
   const [home, setHome] = useState(community ? communitySlug(community)! : ALL_COUNTY);
   const [extra, setExtra] = useState<string[]>(extraCommunities);
@@ -67,10 +67,10 @@ export function PreferencesForm({ member, community, extraCommunities, interests
 
   const busy = pending || memberPending;
   return (
-    <form action={member ? formAction : undefined} onSubmit={member ? undefined : saveGuest} className="space-y-6" data-testid="prefs-form">
+    <form action={member ? formAction : undefined} onSubmit={member ? undefined : saveGuest} className="space-y-6" data-testid={idPrefix === "pref" ? "prefs-form" : `${idPrefix}-prefs-form`}>
       <div>
-        <label htmlFor="pref-community" className="label">Preferred community</label>
-        <select id="pref-community" name="community" value={home} onChange={(e) => setHome(e.target.value)} className="input max-w-sm">
+        <label htmlFor={`${idPrefix}-community`} className="label">Preferred community</label>
+        <select id={`${idPrefix}-community`} name="community" value={home} onChange={(e) => setHome(e.target.value)} className="input max-w-sm">
           <option value={ALL_COUNTY}>{ALL_COUNTY_LABEL}</option>
           <optgroup label="Main towns">{COMMUNITIES.filter((c) => c.main).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</optgroup>
           <optgroup label="Other communities">{COMMUNITIES.filter((c) => !c.main).map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</optgroup>

@@ -4,11 +4,14 @@ import Link from "next/link";
 import { Loader2, ThumbsUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OWN_LISTING_MESSAGE, RECOMMENDATION_TRUST_NOTE, recommendationCountText } from "@/lib/recommendations-shared";
+import { loginHref, markEngaged, registerHref } from "@/lib/resident-accounts";
 
 /**
  * Community recommendation block for a business profile: thumbs-up count + toggle.
  * Optimistic: the button and count flip immediately and are reconciled with the
- * server's answer (or rolled back on error). Guests get an inline sign-in prompt.
+ * server's answer (or rolled back on error). Guests get an inline sign-in prompt; after
+ * signing in they come back to the profile and the button is in its normal state (a
+ * recommendation is never submitted automatically).
  */
 export function RecommendButton({ businessId, initialCount, initialRecommended, signedIn, manages, profilePath }: {
   businessId: string; initialCount: number; initialRecommended: boolean; signedIn: boolean; manages: boolean; profilePath: string;
@@ -19,7 +22,6 @@ export function RecommendButton({ businessId, initialCount, initialRecommended, 
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState(false);
   const inflight = useRef(false);
-  const next = encodeURIComponent(profilePath);
 
   async function toggle() {
     if (!signedIn) { setPrompt(true); return; }
@@ -47,6 +49,7 @@ export function RecommendButton({ businessId, initialCount, initialRecommended, 
       }
       setRecommended(!!json.recommended);
       if (typeof json.count === "number") setCount(json.count);
+      if (json.recommended) markEngaged();
     } catch {
       setRecommended(prev.recommended);
       setCount(prev.count);
@@ -90,10 +93,11 @@ export function RecommendButton({ businessId, initialCount, initialRecommended, 
       {prompt && (
         <div role="status" className="mt-3 flex items-start gap-3 rounded-xl bg-slate-50 p-3 text-sm text-navy-900 ring-1 ring-slate-200" data-testid="recommend-signin-prompt">
           <p className="flex-1">
-            Sign in to recommend this business. It&rsquo;s free for every member.
+            <span className="block font-semibold">A free account is required to recommend businesses.</span>
+            <span className="block text-slate-600">It only takes a minute, and you&rsquo;ll come right back here.</span>
             <span className="mt-2 flex flex-wrap gap-2">
-              <Link href={`/login/?next=${next}`} className="btn-primary btn-sm min-h-11">Sign in</Link>
-              <Link href={`/register/?next=${next}`} className="btn-secondary btn-sm min-h-11">Create a free account</Link>
+              <Link href={loginHref(profilePath, "recommend")} className="btn-primary btn-sm min-h-11" data-testid="recommend-signin">Sign in</Link>
+              <Link href={registerHref("recommend", profilePath)} className="btn-secondary btn-sm min-h-11" data-testid="recommend-register">Create free account</Link>
             </span>
           </p>
           <button type="button" onClick={() => setPrompt(false)} className="-m-1 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-500 hover:text-navy-900" aria-label="Dismiss">

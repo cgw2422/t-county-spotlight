@@ -26,7 +26,8 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
     include: {
       businesses: { include: { business: { select: { id: true, name: true, city: true } } } },
       organizations: { include: { organization: { select: { id: true, name: true } } } },
-      _count: { select: { sessions: true, savedItems: true, follows: true, redemptions: true } },
+      newsletterSubscriber: { select: { status: true } },
+      _count: { select: { sessions: true, savedItems: true, follows: true, redemptions: true, recommendations: true } },
     },
   });
   if (!u) notFound();
@@ -86,6 +87,19 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
           )}
+        </Card>
+        <Card title="My T County (resident profile)" description="What this person set up as a resident. Visible to administrators only.">
+          <dl className="space-y-2 text-sm" data-testid="admin-user-resident">
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">First / last name</dt><dd className="text-right">{[u.firstName, u.lastName].filter(Boolean).join(" ") || "—"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Home community</dt><dd className="text-right">{u.homeCommunity ?? "All of Tuscarawas County / not chosen"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Other communities</dt><dd className="text-right">{u.extraCommunities.length ? u.extraCommunities.join(", ") : "—"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Favorite categories</dt><dd>{u.interestKeys.length}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Newsletter</dt><dd>{u.newsletterSubscriber ? u.newsletterSubscriber.status.charAt(0) + u.newsletterSubscriber.status.slice(1).toLowerCase() : "Not linked"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-slate-500">Businesses recommended</dt><dd>{u._count.recommendations}</dd></div>
+          </dl>
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <Link href={`/admin/recommendations/?user=${u.id}`} className="btn-secondary btn-sm" data-testid="admin-user-recs-link">Review recommendations and unusual activity</Link>
+          </div>
         </Card>
         <Card title="Business ownership" description="Businesses this user can manage from their dashboard.">
           <ActionForm action={linkUserBusinesses} className="space-y-3">

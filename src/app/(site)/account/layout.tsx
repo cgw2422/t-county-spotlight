@@ -38,7 +38,7 @@ function SignedOut() {
           ))}
         </ul>
         <div className="mt-8 grid gap-3">
-          <Link href="/register/" className="btn-primary w-full">Create a free account</Link>
+          <Link href="/register/?source=other&next=%2Faccount%2F" className="btn-primary w-full">Create a free account</Link>
           <Link href="/login/?next=%2Faccount%2F" className="btn-secondary w-full">Sign in</Link>
         </div>
         <p className="mt-6 text-sm text-slate-600">Own a local business? <Link href="/list-your-business/" className="font-semibold text-brand-700 hover:underline">List it for free</Link></p>

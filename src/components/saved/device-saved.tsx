@@ -41,7 +41,7 @@ export function DeviceSaved() {
         <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden />
         <span>
           These are saved on this device only.{" "}
-          <Link href={`/register/?next=${encodeURIComponent("/saved/")}`} className="font-semibold text-brand-700 underline underline-offset-2">Create a free account</Link>{" "}
+          <Link href={`/register/?source=save&next=${encodeURIComponent("/saved/")}`} className="font-semibold text-brand-700 underline underline-offset-2">Create a free account</Link>{" "}
           or <Link href={`/login/?next=${encodeURIComponent("/saved/")}`} className="font-semibold text-brand-700 underline underline-offset-2">sign in</Link> to keep them on all your devices.
         </span>
       </p>

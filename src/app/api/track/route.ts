@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
+import { getCurrentUser } from "@/lib/auth";
 import { ALL_COUNTY, communitySlug } from "@/lib/my-t-county-shared";
+import { REGISTER_SOURCES } from "@/lib/resident-accounts";
 
 /**
  * Records real engagement (views + outbound clicks). Never stores raw IPs:
@@ -33,8 +35,13 @@ const ALLOWED = new Set([
   "visit",
   // PWA signals (only measurable on supporting browsers). install_prompt_*: targetType "PWA", targetId "native" | "ios".
   "pwa_installed", "pwa_launch", "install_prompt_shown", "install_prompt_accepted",
+  // Resident accounts funnel: targetType "REGISTER", targetId = where the visitor came from (REGISTER_SOURCES).
+  // register_complete / email_verified are recorded server-side only and are refused here.
+  "register_view", "register_start",
+  // A signed-in member's visit, once per device per day (no target; aggregate only — the account is never sent).
+  "returning_member",
 ]);
-const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY", "SEARCH", "EVENTS_VIEW", "COLLECTION", "VISIT", "PWA"]);
+const TARGET_TYPES = new Set(["BUSINESS", "EVENT", "PROMOTION", "ARTICLE", "JOB", "PULSE", "GARAGE_SALE", "COMMUNITY", "SEARCH", "EVENTS_VIEW", "COLLECTION", "VISIT", "PWA", "REGISTER"]);
 /** Small fixed vocabularies for aggregate targets. */
 const EVENTS_VIEWS = new Set(["all", "today", "tonight", "tomorrow", "weekend", "week", "month", "calendar", "range"]);
 const FIXED_TARGETS: Record<string, { targetType: string | null; ids: Set<string> | null }> = {
@@ -47,9 +54,12 @@ const FIXED_TARGETS: Record<string, { targetType: string | null; ids: Set<string
   view_garage_sales: { targetType: null, ids: null },
   pwa_installed: { targetType: null, ids: null },
   pwa_launch: { targetType: null, ids: null },
+  register_view: { targetType: "REGISTER", ids: new Set(REGISTER_SOURCES) },
+  register_start: { targetType: "REGISTER", ids: new Set(REGISTER_SOURCES) },
+  returning_member: { targetType: null, ids: null },
 };
 /** Non-view signals that are still counted at most once per visitor per day. */
-const ONCE_PER_DAY = new Set(["visit", "pwa_launch", "pwa_installed", "install_prompt_shown", "install_prompt_accepted"]);
+const ONCE_PER_DAY = new Set(["visit", "pwa_launch", "pwa_installed", "install_prompt_shown", "install_prompt_accepted", "register_view", "register_start", "returning_member"]);
 const BOT_RE = /bot|crawl|spider|slurp|preview|facebookexternalhit|headless|lighthouse|pingdom|monitor/i;
 
 const schema = z.object({
@@ -113,10 +123,13 @@ export async function POST(req: Request) {
 
   // Fixed-vocabulary aggregate signals carry no business and only a known target value (or none).
   const fixed = FIXED_TARGETS[body.type];
-  if (fixed || body.targetType === "EVENTS_VIEW" || body.targetType === "VISIT" || body.targetType === "PWA") {
+  if (fixed || body.targetType === "EVENTS_VIEW" || body.targetType === "VISIT" || body.targetType === "PWA" || body.targetType === "REGISTER") {
     if (!fixed || body.businessId || (body.targetType ?? null) !== fixed.targetType) return new NextResponse(null, { status: 400 });
     if (fixed.ids ? !body.targetId || !fixed.ids.has(body.targetId) : body.targetId) return new NextResponse(null, { status: 400 });
   }
+
+  // "Returning member" only counts real signed-in visits (nothing about the account is stored).
+  if (body.type === "returning_member" && !(await getCurrentUser())) return new NextResponse(null, { status: 204 });
 
   // Collection views must reference a real, published collection.
   if (body.type === "view_collection" || body.targetType === "COLLECTION") {

@@ -5,6 +5,7 @@ import { sendTrack, trackingAllowed } from "@/components/public/track";
 /** Device-local flags (dates only; never an identifier, never sent to the server). */
 const SEEN_KEY = "tct_seen";
 const PWA_LAUNCH_KEY = "tct_pwa_launch";
+const MEMBER_KEY = "tct_member_seen";
 
 function todayKey() {
   const d = new Date();
@@ -18,10 +19,22 @@ function todayKey() {
  *   a date stored on the device and is not an identifier. Clearing site data resets it.
  * - `pwa_launch` once per day when opened as an installed app (display-mode standalone).
  * - `pwa_installed` when the browser fires `appinstalled` (Chromium only; iOS never does).
+ * - `returning_member` once per day per device while signed in (no target; the account is never
+ *   sent — the server only checks that a session exists).
  * Nothing is sent under Global Privacy Control / Do Not Track, and nothing is sent when
  * storage is unavailable (we can't tell new from returning, so we don't guess).
  */
-export function UsageSignals() {
+export function UsageSignals({ signedIn = false }: { signedIn?: boolean }) {
+  useEffect(() => {
+    if (!signedIn || !trackingAllowed()) return;
+    try {
+      const today = todayKey();
+      if (localStorage.getItem(MEMBER_KEY) !== today) {
+        localStorage.setItem(MEMBER_KEY, today);
+        sendTrack({ type: "returning_member" });
+      }
+    } catch {}
+  }, [signedIn]);
   useEffect(() => {
     if (!trackingAllowed()) return;
     const today = todayKey();

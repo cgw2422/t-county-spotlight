@@ -51,3 +51,6 @@ Done (email):
 - Push stays optional and separate.
 
 Maps are deferred: they need a tile and geocoding provider, which means a third-party service and possibly a recurring cost. Directions links are used instead.
+
+Done (resident accounts):
+- **Free resident accounts ("My T County · Your T County. Your Way.")** — `/register/` (first/last name, email, password, optional home community, optional unchecked T County Connect Weekly opt-in with double opt-in), `source` param for the aggregate funnel (`src/lib/resident-accounts.ts`), welcome onboarding at `/my-t-county/?welcome=1`, logged-out benefits page on `/my-t-county/`, homepage section type `join` (toggle in Admin → Homepage), account prompts on recommend / save / event reminders, install invitation after meaningful use, resident stats in Admin → Users, "Resident accounts" funnel in Admin → Analytics.

@@ -155,7 +155,7 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
                 ) : (
                   <Link href="/login/" className="btn-primary btn-sm min-h-11 w-full" {...linkProps}>Sign In</Link>
                 )}
-                {!signedIn && <Link href="/register/" className="btn-ghost btn-sm min-h-11 w-full" {...linkProps}>Create free account</Link>}
+                {!signedIn && <Link href="/register/?source=header" className="btn-ghost btn-sm min-h-11 w-full" {...linkProps}>Create free account</Link>}
                 <Link href="/list-your-business/" className={`btn-ghost btn-sm min-h-11 w-full${signedIn ? " col-span-2" : ""}`} {...linkProps}>List your business</Link>
               </div>
             </nav>

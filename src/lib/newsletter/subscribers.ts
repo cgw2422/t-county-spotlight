@@ -43,7 +43,7 @@ function newConfirmToken() {
   return { token, hash: hashToken(token), expiresAt: new Date(Date.now() + CONFIRM_TTL_MS) };
 }
 
-export type SubscribeInput = { email: string; firstName?: string | null; source: SignupSource; userId?: string | null; ip?: string; /** Optional "Your community" (validated names). Never changes an already-active subscription. */ communities?: string[] };
+export type SubscribeInput = { email: string; firstName?: string | null; source: SignupSource; userId?: string | null; ip?: string; /** Optional "Your community" (validated names). Never changes an already-active subscription. */ communities?: string[]; /** Exact wording shown where consent was given (defaults to the signup form's CONSENT_TEXT). */ consentText?: string };
 export type SubscribeOutcome = "confirmation_sent" | "confirmation_resent" | "resubscribe_sent" | "already_active" | "throttled";
 
 /**
@@ -56,7 +56,7 @@ export async function requestSubscription(input: SubscribeInput): Promise<Subscr
   const firstName = input.firstName?.trim().slice(0, 80) || null;
   const communities = cleanCommunities(input.communities ?? []);
   const settings = await getNewsletterSettings();
-  const consent = { consentAt: new Date(), consentText: CONSENT_TEXT, consentVersion: settings.consentVersion };
+  const consent = { consentAt: new Date(), consentText: input.consentText ?? CONSENT_TEXT, consentVersion: settings.consentVersion };
   const [existing, suppression] = await Promise.all([
     db.newsletterSubscriber.findUnique({ where: { email } }),
     db.emailSuppression.findUnique({ where: { email } }),

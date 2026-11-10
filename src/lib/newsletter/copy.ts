@@ -16,9 +16,14 @@ export const CONSENT_TEXT = `${SIGNUP_HEADLINE} ${SIGNUP_DESCRIPTION} [${SIGNUP_
 export const SIGNUP_NEUTRAL_MESSAGE =
   "Check your inbox! If this address isn't subscribed yet, we've sent a link to confirm your subscription. It expires in 48 hours.";
 
-export const SIGNUP_SOURCES = ["homepage", "footer", "article", "event", "pwa", "newsletter_page", "account", "admin_invite"] as const;
+export const SIGNUP_SOURCES = ["homepage", "footer", "article", "event", "pwa", "newsletter_page", "account", "admin_invite", "register"] as const;
 export type SignupSource = (typeof SIGNUP_SOURCES)[number];
-export const PUBLIC_SIGNUP_SOURCES = SIGNUP_SOURCES.filter((s) => s !== "admin_invite");
+/** Sources the public signup form accepts ("register" is only set by the account registration form). */
+export const PUBLIC_SIGNUP_SOURCES = SIGNUP_SOURCES.filter((s) => s !== "admin_invite" && s !== "register");
+
+/** Optional, unchecked-by-default checkbox on /register/. Its exact wording is stored as consent. */
+export const REGISTER_OPT_IN_LABEL = `Send me the free ${NEWSLETTER_NAME}`;
+export const REGISTER_CONSENT_TEXT = `[x] ${REGISTER_OPT_IN_LABEL}. ${SIGNUP_DESCRIPTION} ${SIGNUP_DISCLAIMER} We'll email you a link to confirm first. How we use your email: ${PRIVACY_PATH}`;
 
 export const SOURCE_LABELS: Record<string, string> = {
   homepage: "Homepage",
@@ -29,6 +34,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   newsletter_page: "Newsletter page",
   account: "Account",
   admin_invite: "Admin invite",
+  register: "Account registration",
 };
 
 export const TOPICS = [

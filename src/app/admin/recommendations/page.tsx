@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { DataTable, Pagination } from "@/components/admin/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { pageParams, spGet, type SP } from "../_lib/list";
+import { formatDateTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function RecommendationsAdminPage({ searchParams }: { searc
   await requireStaff();
   const sp = await searchParams;
   const q = spGet(sp, "q").slice(0, 100);
+  // Optional: one member's recommendations (linked from Admin → Users). Staff-only; never shown publicly.
+  const userFilter = spGet(sp, "user").slice(0, 40);
   const sort = SORTS.find((s) => s.key === spGet(sp, "sort"))?.key ?? "count";
   const { page, take, skip, perPage } = pageParams(sp, 25);
   const weekAgo = daysAgo(7);
@@ -58,6 +61,22 @@ export default async function RecommendationsAdminPage({ searchParams }: { searc
     getUnusualActivity(),
     Promise.all([db.businessRecommendation.count(), db.businessRecommendation.count({ where: { createdAt: { gte: weekAgo } } })]),
   ]);
+  const member = userFilter
+    ? await db.user.findUnique({
+        where: { id: userFilter },
+        select: {
+          id: true, email: true, name: true, createdAt: true, status: true,
+          recommendations: { orderBy: { createdAt: "desc" }, take: 200, select: { id: true, createdAt: true, ipHash: true, business: { select: { id: true, name: true, city: true } } } },
+        },
+      })
+    : null;
+  const memberFlags = member
+    ? {
+        newAccount: new Set(unusual.newAccounts.filter((r) => r.userId === member.id).map((r) => r.id)),
+        heavy: unusual.heavyUsers.find((h) => h.userId === member.id) ?? null,
+        sharedIp: new Set(unusual.ipClusters.filter((c) => member.recommendations.some((r) => r.ipHash === c.ipHash && r.business.id === c.businessId)).map((c) => `${c.businessId}:${c.ipHash}`)),
+      }
+    : null;
   const byId = new Map(businesses.map((b) => [b.id, b]));
   const rowsN = new Map(rowCounts.map((g) => [g.businessId, g._count._all]));
   const weekN = new Map(weekCounts.map((g) => [g.businessId, g._count._all]));
@@ -74,6 +93,42 @@ export default async function RecommendationsAdminPage({ searchParams }: { searc
         <div className="card p-4"><p className="text-sm text-slate-600">All recommendations</p><p className="text-2xl font-bold tabular-nums text-slate-900" data-testid="admin-recs-total">{grand[0]}</p></div>
         <div className="card p-4"><p className="text-sm text-slate-600">Last 7 days</p><p className="text-2xl font-bold tabular-nums text-slate-900">{grand[1]}</p></div>
       </div>
+
+      {userFilter && (
+        <div className="card mb-6 p-4 sm:p-5" data-testid="admin-recs-user">
+          {member ? (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-slate-900">Recommendations by <Link href={`/admin/users/${member.id}/`} className="text-brand-700 hover:underline">{member.name || member.email}</Link></h2>
+                  <p className="text-sm text-slate-500">{member.email} · joined {formatDateTime(member.createdAt)} · {member.recommendations.length} recommendation{member.recommendations.length === 1 ? "" : "s"}</p>
+                </div>
+                <Link href="/admin/recommendations/" className="btn-secondary btn-sm">Clear filter</Link>
+              </div>
+              {memberFlags?.heavy && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">Unusual: {memberFlags.heavy.n} recommendations within 24 hours starting {formatDateTime(memberFlags.heavy.windowStart)}.</p>}
+              {member.recommendations.length ? (
+                <ul className="mt-3 divide-y divide-slate-100 text-sm">
+                  {member.recommendations.map((r) => {
+                    const flags = [
+                      memberFlags?.newAccount.has(r.id) ? "Made soon after the account was created" : null,
+                      r.ipHash && memberFlags?.sharedIp.has(`${r.business.id}:${r.ipHash}`) ? "Same network as other recommendations for this business" : null,
+                    ].filter(Boolean);
+                    return (
+                      <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <span className="min-w-0">
+                          <Link href={`/admin/recommendations/${r.business.id}/`} className="font-medium text-slate-900 hover:text-brand-700">{r.business.name}</Link>
+                          <span className="block text-xs text-slate-500">{[r.business.city, formatDateTime(r.createdAt)].filter(Boolean).join(" · ")}</span>
+                        </span>
+                        {flags.length > 0 && <span className="flex flex-wrap gap-1">{flags.map((f) => <span key={f} className="badge-amber">{f}</span>)}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : <p className="mt-3 text-sm text-slate-500">This member hasn&apos;t recommended any businesses.</p>}
+            </>
+          ) : <p className="text-sm text-slate-600">That account wasn&apos;t found. <Link href="/admin/recommendations/" className="font-semibold text-brand-700">Clear filter</Link></p>}
+        </div>
+      )}
 
       <div className="mb-6"><UnusualActivityPanel data={unusual} /></div>
 

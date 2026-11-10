@@ -29,6 +29,7 @@ import { getCommunityPreference, getSpecialsWithCity, splitByCommunity } from "@
 import { CommunityBar } from "@/components/my-t-county/community-bar";
 import { CommunityGroups } from "@/components/my-t-county/community-groups";
 import { OpeningsHomeSection } from "@/components/openings/home-section";
+import { JoinSection } from "@/components/home/join-section";
 import { getHomepageAnnouncements } from "@/lib/announcements";
 
 export const dynamic = "force-dynamic";
@@ -207,6 +208,8 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       return <FoodTrucksHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     case "garage_sales":
       return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
+    case "join":
+      return <JoinSection key={s.id} title={s.title} subtitle={s.subtitle} />;
     case "new_coming_soon":
       return <OpeningsHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     default:

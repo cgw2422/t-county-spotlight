@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, Bookmark, ChevronRight, LogIn, Sparkles, ThumbsUp, UserRound } from "lucide-react";
+import { Bell, Bookmark, ChevronRight, Mail, MapPin, Sparkles, ThumbsUp, UserRound } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { todayWindow, tonightWindow, weekendWindow } from "@/lib/events";
@@ -28,6 +28,11 @@ import { FoodTruckStopCard } from "@/components/food-trucks/stop-card";
 import { GarageSaleCard } from "@/components/garage-sales/garage-sale-card";
 import { OpportunityCard } from "@/components/gives/cards";
 import { communityHref } from "@/lib/communities-shared";
+import { newInCommunitiesContent, memberCommunities } from "@/lib/notifications/run";
+import { TYPE_LABEL as LOCAL_TYPE_LABEL } from "@/lib/notifications/items";
+import { MY_T_COUNTY_TAGLINE, registerHref } from "@/lib/resident-accounts";
+import { BenefitsHero } from "@/components/my-t-county/benefits-hero";
+import { WelcomePanel } from "@/components/my-t-county/welcome-panel";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -64,8 +69,9 @@ function Panel({ id, title, href, linkLabel, count, localCount, community, empty
   );
 }
 
-export default async function MyTCountyPage() {
-  const [pref, user] = await Promise.all([getCommunityPreference(), getCurrentUser()]);
+export default async function MyTCountyPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+  const [pref, user, sp] = await Promise.all([getCommunityPreference(), getCurrentUser(), searchParams]);
+  const welcome = !!user && sp.welcome === "1";
   const c = pref.active;
   const order = [c, ...pref.extraCommunities];
   const prio = <T,>(items: T[], cityOf: (x: T) => string | null | undefined, n: number) => prioritizeByCommunity(items, cityOf, order).slice(0, n);
@@ -77,7 +83,7 @@ export default async function MyTCountyPage() {
   const wk = weekendWindow(now);
   const weekEnd = endOfNyDay(addDaysKey(todayKey(now), 6));
 
-  const [todayEvents, weekendEvents, truckToday, recentBiz, specials, updates, opps, picks] = await Promise.all([
+  const [todayEvents, weekendEvents, truckToday, recentBiz, specials, updates, opps, picks, newThisWeek] = await Promise.all([
     getUpcomingOccurrences({ from: now, to: tonight.end > today.end ? tonight.end : today.end }),
     getUpcomingOccurrences({ from: wk.start, to: wk.end }),
     getPublicStops({ window: "today", now }),
@@ -86,6 +92,8 @@ export default async function MyTCountyPage() {
     getArticlesForSection({ kind: "ANNOUNCEMENT" }, [], 4),
     db.volunteerOpportunity.findMany({ where: openOpportunityWhere({}, now), select: opportunityCardSelect, orderBy: [{ isOngoing: "asc" }, { startAt: { sort: "asc", nulls: "last" } }], take: 40 }),
     user && pref.interests.length ? getPicks(pref.interests, order) : Promise.resolve([]),
+    // "New in your communities this week" (same content as the opt-in Monday email; members with chosen communities only).
+    user ? newInCommunitiesContent(memberCommunities(user), now).catch(() => ({ groups: [], total: 0 })) : Promise.resolve({ groups: [], total: 0 }),
   ]);
   const trucksAreToday = truckToday.length > 0;
   const [truckStops, sales] = await Promise.all([
@@ -105,39 +113,50 @@ export default async function MyTCountyPage() {
       <TrackView type="view_my_t_county" />
       {user && <GuestPrefsMerge userId={user.id} />}
 
-      <header className="bg-gradient-to-b from-brand-50/70 to-white">
-        <div className="container-page flex flex-col gap-4 pb-4 pt-8 sm:flex-row sm:items-end sm:justify-between sm:pt-10">
-          <div className="min-w-0">
-            <p className="eyebrow">Your corner of Tuscarawas County</p>
-            <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">My T County</h1>
-            <p className="mt-1 text-slate-600">{c ? `What’s happening in ${c}, with the rest of the county close by.` : `What’s happening across ${ALL_COUNTY_LABEL}.`}</p>
-            {pref.community && communityHref(pref.community) && (
-              <Link href={communityHref(pref.community)!} className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-brand-700 hover:underline" data-testid="mtc-community-page-link">
-                Visit the {pref.community} page <ChevronRight className="h-4 w-4" aria-hidden />
-              </Link>
-            )}
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            {user ? (
+      {user ? (
+        <header className="bg-gradient-to-b from-hillside-50 to-white">
+          <div className="container-page flex flex-col gap-4 pb-4 pt-8 sm:flex-row sm:items-end sm:justify-between sm:pt-10">
+            <div className="min-w-0">
+              <p className="eyebrow">{MY_T_COUNTY_TAGLINE}</p>
+              <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">My T County</h1>
+              <p className="mt-1 text-slate-600">{c ? `What’s happening in ${c}, with the rest of the county close by.` : `What’s happening across ${ALL_COUNTY_LABEL}.`}</p>
+              {pref.community && communityHref(pref.community) && (
+                <Link href={communityHref(pref.community)!} className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-brand-700 hover:underline" data-testid="mtc-community-page-link">
+                  Visit the {pref.community} page <ChevronRight className="h-4 w-4" aria-hidden />
+                </Link>
+              )}
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
               <Link href="/account/" className="btn-secondary btn-sm min-h-11" data-testid="mtc-account-link"><UserRound className="h-4 w-4" aria-hidden /> Account</Link>
-            ) : (
-              <>
-                <Link href="/login/?next=%2Fmy-t-county%2F" className="btn-secondary btn-sm min-h-11" data-testid="mtc-signin-link"><LogIn className="h-4 w-4" aria-hidden /> Sign in</Link>
-              </>
-            )}
+            </div>
           </div>
-        </div>
-        <CommunityBar community={pref.community} active={pref.active} className="pb-6" />
+        </header>
+      ) : (
+        <BenefitsHero />
+      )}
+      {welcome && user && (
+        <WelcomePanel name={user.firstName || null}>
+          <PreferencesForm idPrefix="welcome" member community={pref.community} extraCommunities={pref.extraCommunities} interests={pref.interests} />
+        </WelcomePanel>
+      )}
+      <div className={user ? "pb-6" : "pb-6 pt-2"}>
         {!user && (
-          <div className="container-page pb-6">
+          <div className="container-page pb-3">
+            <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><MapPin className="h-5 w-5 text-hillside-600" aria-hidden /> Try it now, no account needed</h2>
             <p className="text-sm text-slate-600" data-testid="mtc-guest-note">
-              Your choices are saved in this browser. <Link href="/register/?next=%2Fmy-t-county%2F" className="font-semibold text-brand-700 hover:underline">Create a free account to sync across devices</Link>.
+              Pick your community below. Your choices are saved in this browser; <Link href={registerHref("my_t_county", "/my-t-county/")} className="font-semibold text-brand-700 hover:underline">create a free account</Link> to keep them on every device.
             </p>
           </div>
         )}
-      </header>
+        <CommunityBar community={pref.community} active={pref.active} />
+      </div>
 
       <div className="container-page space-y-12 pt-6">
+        <div>
+          <h2 className="section-title" data-testid="mtc-around">Around My Community</h2>
+          <p className="mt-1 text-slate-600">{c ? `${c} first, then the rest of Tuscarawas County.` : `Events, specials, food trucks, garage sales and updates across ${ALL_COUNTY_LABEL}.`}</p>
+        </div>
+
         <section aria-labelledby="mtc-picks" data-testid="panel-picks">
           <h2 id="mtc-picks" className="mb-3 flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><Sparkles className="h-5 w-5 text-sunset-500" aria-hidden /> Picked for you</h2>
           {user ? (
@@ -158,8 +177,23 @@ export default async function MyTCountyPage() {
           )}
         </section>
 
+        {newThisWeek.total > 0 && (
+          <section aria-labelledby="mtc-new" data-testid="panel-new-this-week">
+            <h2 id="mtc-new" className="mb-3 font-display text-xl font-semibold text-navy-900">New in your communities this week</h2>
+            <ul className="card divide-y divide-slate-100">
+              {newThisWeek.groups.flatMap((g) => g.items).slice(0, 6).map((i) => (
+                <li key={i.key}>
+                  <Link href={i.url} className="flex min-h-14 flex-col justify-center gap-0.5 p-3 hover:bg-slate-50">
+                    <span className="font-semibold text-navy-900">{i.title}</span>
+                    <span className="text-sm text-slate-500">{[LOCAL_TYPE_LABEL[i.type], i.meta].filter(Boolean).join(" · ")}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <div>
-          <h2 className="section-title mb-6">Around {c ?? "T County"}</h2>
           <div className="space-y-10">
             <Panel id="today" title="Today’s events" href={`/events/${qs({ when: "today", city: local(todayEvents, (e) => e.city) ? cityQ : undefined })}`} linkLabel={local(todayEvents, (e) => e.city) ? linkLabel : "See all"}
               count={todayEvents.length} localCount={local(todayEvents, (e) => e.city)} community={c}
@@ -216,24 +250,26 @@ export default async function MyTCountyPage() {
           </div>
         </div>
 
-        <section aria-labelledby="mtc-saved" data-testid="panel-saved">
-          <h2 id="mtc-saved" className="mb-3 flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><Bookmark className="h-5 w-5 text-brand-700" aria-hidden /> My Saved</h2>
-          <MySavedPanel userId={user?.id ?? null} />
+        <section aria-labelledby="mtc-saved" data-testid="panel-saved" className="border-t border-slate-200 pt-10">
+          <h2 id="mtc-saved" className="section-title mb-1 flex items-center gap-2"><Bookmark className="h-6 w-6 text-hillside-600" aria-hidden /> My Favorites</h2>
+          <p className="mb-4 text-sm text-slate-600">Businesses, events, food trucks, garage sales and specials you&rsquo;ve saved.</p>
+          <MySavedPanel userId={user?.id ?? null} limit={6} />
         </section>
 
-        <section aria-labelledby="mtc-recommended" data-testid="panel-recommended">
-          <h2 id="mtc-recommended" className="mb-3 flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><ThumbsUp className="h-5 w-5 text-hillside-600" aria-hidden /> Businesses I&rsquo;ve Recommended</h2>
+        <section aria-labelledby="mtc-recommended" data-testid="panel-recommended" className="border-t border-slate-200 pt-10">
+          <h2 id="mtc-recommended-group" className="section-title mb-4 flex items-center gap-2"><ThumbsUp className="h-6 w-6 text-hillside-600" aria-hidden /> My Recommendations</h2>
+          <h3 id="mtc-recommended" className="mb-3 font-display text-lg font-semibold text-navy-900">Businesses I&rsquo;ve Recommended</h3>
           {user ? (
-            <MyRecommendations userId={user.id} />
+            <MyRecommendations userId={user.id} suggestions />
           ) : (
             <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600" data-testid="mtc-recommended-guest">
-              <Link href="/login/?next=%2Fmy-t-county%2F" className="font-semibold text-brand-700 hover:underline">Sign in</Link> or <Link href="/register/?next=%2Fmy-t-county%2F" className="font-semibold text-brand-700 hover:underline">create a free account</Link> to recommend local businesses and see them here.
+              A free account is required to recommend businesses. <Link href="/login/?next=%2Fmy-t-county%2F&source=my_t_county" className="font-semibold text-brand-700 hover:underline">Sign in</Link> or <Link href={registerHref("my_t_county", "/my-t-county/")} className="font-semibold text-brand-700 hover:underline">create a free account</Link> to recommend local businesses and see them here. <Link href="/businesses/?sort=recommended" className="font-semibold text-brand-700 hover:underline">See the most recommended businesses</Link>.
             </p>
           )}
         </section>
 
-        <section id="my-preferences" aria-labelledby="mtc-prefs" className="scroll-mt-24" data-testid="panel-preferences">
-          <h2 id="mtc-prefs" className="mb-1 font-display text-xl font-semibold text-navy-900">My Preferences</h2>
+        <section id="my-preferences" aria-labelledby="mtc-prefs" className="scroll-mt-24 border-t border-slate-200 pt-10" data-testid="panel-preferences">
+          <h2 id="mtc-prefs" className="section-title mb-1">My Preferences</h2>
           <p className="mb-5 text-sm text-slate-600">{user ? "Saved to your account, so they follow you to any device." : "Saved in this browser. Create a free account to keep them on every device."}</p>
           <div className="card p-5 sm:p-6">
             <PreferencesForm member={!!user} community={pref.community} extraCommunities={pref.extraCommunities} interests={pref.interests} />
@@ -242,14 +278,22 @@ export default async function MyTCountyPage() {
             <Bell className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden />
             {user ? (
               <p className="text-sm text-slate-700">
-                Email and push updates are optional and off unless you turn them on. <Link href="/account/notifications/" className="font-semibold text-brand-700 hover:underline">Manage notification preferences</Link>.
+                Email updates (weekend summary, saved event reminders, new in my communities) and push alerts are optional and off unless you turn them on. <Link href="/account/notifications/" className="font-semibold text-brand-700 hover:underline">Manage email preferences</Link>.
               </p>
             ) : (
               <p className="text-sm text-slate-700">
-                Email updates need a free account so you can choose exactly what you get and unsubscribe any time. <Link href="/register/?next=%2Fmy-t-county%2F" className="font-semibold text-brand-700 hover:underline">Create an account</Link> or <Link href="/newsletter/" className="font-semibold text-brand-700 hover:underline">sign up for the weekly newsletter</Link>.
+                Email updates need a free account so you can choose exactly what you get and unsubscribe any time. <Link href={registerHref("my_t_county", "/my-t-county/")} className="font-semibold text-brand-700 hover:underline">Create an account</Link> or <Link href="/newsletter/" className="font-semibold text-brand-700 hover:underline">sign up for the weekly newsletter</Link>.
               </p>
             )}
           </div>
+          {user && (
+            <div className="card mt-4 flex items-start gap-3 p-5" data-testid="mtc-newsletter">
+              <Mail className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden />
+              <p className="text-sm text-slate-700">
+                The free T County Connect Weekly is separate from these updates and only arrives if you sign up and confirm. <Link href="/account/newsletter/" className="font-semibold text-brand-700 hover:underline">Newsletter settings</Link>.
+              </p>
+            </div>
+          )}
         </section>
       </div>
     </div>

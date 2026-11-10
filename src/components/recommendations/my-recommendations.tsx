@@ -4,12 +4,13 @@ import { getUserRecommendations } from "@/lib/recommendations";
 import { businessHref } from "@/lib/links";
 import { formatDate } from "@/lib/utils";
 import { removeMyRecommendationAction } from "./actions";
+import { DiscoverySuggestions } from "@/components/my-t-county/discovery-suggestions";
 
 /**
  * "Businesses I've Recommended" — the member's own community recommendations, kept separate
  * from Saved. Shows a short empty state when there are none.
  */
-export async function MyRecommendations({ userId }: { userId: string }) {
+export async function MyRecommendations({ userId, suggestions = false }: { userId: string; /** Empty state with discovery links (My T County). */ suggestions?: boolean }) {
   const rows = await getUserRecommendations(userId);
   return (
     <div data-testid="my-recommendations">
@@ -28,6 +29,8 @@ export async function MyRecommendations({ userId }: { userId: string }) {
             </li>
           ))}
         </ul>
+      ) : suggestions ? (
+        <DiscoverySuggestions intro={<>You haven&rsquo;t recommended any businesses yet. Tap <strong>Recommend This Business</strong> on a place you&rsquo;d tell a neighbor about. See what others recommend:</>} />
       ) : (
         <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
           You haven&rsquo;t recommended any businesses yet. Tap <ThumbsUp className="inline h-4 w-4 align-text-bottom" aria-label="Recommend" /> <strong>Recommend This Business</strong> on a business you&rsquo;d tell a neighbor about. <Link href="/businesses/" className="font-semibold text-brand-700 hover:underline">Browse businesses</Link>.
