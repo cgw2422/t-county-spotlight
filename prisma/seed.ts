@@ -39,18 +39,24 @@ const EVENT_CATEGORIES = [
 const HOMEPAGE_SECTIONS = [
   { key: "hero", type: "hero", title: "Discover more of T County.", subtitle: null, limit: 0 },
   { key: "explore", type: "explore", title: "Explore T County", subtitle: null, limit: 8 },
+  { key: "today", type: "today", title: "What's Happening Today", subtitle: "Events across Tuscarawas County today and tonight", limit: 4 },
   { key: "weekend", type: "weekend", title: "What's Happening This Weekend", subtitle: "Events and activities across the county", limit: 4 },
-  { key: "spotlights", type: "spotlights", title: "Latest Business Spotlights", subtitle: "Stories of the people behind T County businesses", limit: 3 },
+  { key: "food_trucks", type: "food_trucks", title: "Food Trucks Near You", subtitle: "Scheduled stops from local food trucks", limit: 4 },
+  { key: "garage_sales", type: "garage_sales", title: "Garage Sales & Community Markets", subtitle: "Yard sales, rummage sales and markets coming up", limit: 4 },
+  { key: "specials", type: "specials", title: "Local Specials", subtitle: "Deals from participating businesses", limit: 4 },
+  { key: "announcements", type: "announcements", title: "Community Updates", subtitle: null, limit: 4 },
+  { key: "gives", type: "gives", title: "T County Gives", subtitle: "Find a Cause. Meet a Need. Make a Difference.", limit: 3 },
+  { key: "spotlights", type: "spotlights", title: "Local Stories & Business Spotlights", subtitle: "Stories of the people behind T County businesses", limit: 3 },
+  { key: "community_pulse", type: "community_pulse", title: "Community Pulse", subtitle: "What people across T County are talking about and recommending", limit: 3 },
+  { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
   { key: "events", type: "events", title: "Upcoming Community Events", subtitle: null, limit: 6 },
   { key: "businesses", type: "businesses", title: "Featured Local Businesses", subtitle: null, limit: 8 },
-  { key: "specials", type: "specials", title: "Local Specials", subtitle: "Deals from participating businesses", limit: 4 },
-  { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
-  { key: "announcements", type: "announcements", title: "Community Announcements", subtitle: null, limit: 4 },
-  { key: "gives", type: "gives", title: "T County Gives", subtitle: "Find a Cause. Meet a Need. Make a Difference.", limit: 3 },
-  { key: "community_pulse", type: "community_pulse", title: "Community Pulse", subtitle: "What people across T County are talking about and recommending", limit: 3 },
   { key: "newsletter", type: "newsletter", title: "Love Local. Stay in the Loop.", subtitle: null, limit: 0 },
   { key: "cta", type: "cta", title: "Own a local business?", subtitle: "Get listed in the Tuscarawas County business directory — free.", limit: 0 },
 ];
+
+/** The homepage order as originally seeded — only an untouched install gets the new resident-first order. */
+const LEGACY_SECTION_ORDER = ["hero", "explore", "weekend", "spotlights", "events", "businesses", "specials", "things_to_do", "announcements", "gives", "newsletter", "cta", "community_pulse"];
 
 const MENU = [
   ["Home", "/"], ["Businesses", "/businesses/"], ["Events", "/events/"], ["Specials", "/specials/"],
@@ -148,6 +154,19 @@ async function main() {
   ];
   if ((await db.pulseCategory.count()) === 0) {
     await db.pulseCategory.createMany({ data: PULSE_CATEGORIES.map(([name, slug], i) => ({ name, slug, sortOrder: i })) });
+  }
+  // One-time: resident-first homepage order, only if the admin never reordered sections.
+  if (!(await db.setting.findUnique({ where: { key: "homepageResidentOrder" } }))) {
+    const current = (await db.homepageSection.findMany({ orderBy: { sortOrder: "asc" }, select: { key: true } })).map((x) => x.key);
+    const legacyNow = current.filter((k) => LEGACY_SECTION_ORDER.includes(k));
+    const untouched = legacyNow.length === LEGACY_SECTION_ORDER.length && legacyNow.every((k, i) => k === LEGACY_SECTION_ORDER[i]);
+    if (untouched) {
+      for (const [i, sec] of HOMEPAGE_SECTIONS.entries()) await db.homepageSection.updateMany({ where: { key: sec.key }, data: { sortOrder: i } });
+      // Rename the "announcements" section to "Community Updates" only if it still has the seeded title.
+      await db.homepageSection.updateMany({ where: { key: "announcements", title: "Community Announcements" }, data: { title: "Community Updates" } });
+      await db.homepageSection.updateMany({ where: { key: "spotlights", title: "Latest Business Spotlights" }, data: { title: "Local Stories & Business Spotlights" } });
+    }
+    await db.setting.create({ data: { key: "homepageResidentOrder", value: { applied: untouched, at: new Date().toISOString() } } });
   }
   await runBrandMigration(db);
   await runNamingMigration(db);
