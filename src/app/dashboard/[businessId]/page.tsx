@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, CalendarPlus, Check, Circle, ExternalLink, Eye, Globe, Heart, ImagePlus, MapPin, PencilLine, Phone, Bookmark, Tag } from "lucide-react";
+import { BarChart3, CalendarPlus, Check, Circle, ExternalLink, Eye, Globe, Heart, ImagePlus, MapPin, PencilLine, Phone, Bookmark, Tag, ThumbsUp } from "lucide-react";
 import { db } from "@/lib/db";
 import { requireBusinessAccess } from "@/lib/auth";
 import { getBusinessEntitlements } from "@/lib/entitlements";
@@ -8,6 +8,7 @@ import { PageHeader, Panel, StatusBadge } from "@/components/dashboard/shell";
 import { readHours } from "@/components/dashboard/text";
 import { PlanLimits } from "@/components/dashboard/plan-limits";
 import { countListingEvents } from "@/lib/listing-limits";
+import { RECOMMENDATION_TRUST_NOTE, recommendationCountText, visibleRecommendationCount } from "@/lib/recommendations-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
   const { user, business } = await requireBusinessAccess(businessId);
   const root = `/dashboard/${business.id}/`;
   const since = daysAgo(30);
-  const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement, eventCount] = await Promise.all([
+  const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement, eventCount, recentRecs] = await Promise.all([
     getBusinessEntitlements(business.id),
     db.business.findUnique({ where: { id: business.id }, include: { categories: { select: { id: true } }, _count: { select: { photos: true } } } }),
     db.businessFollow.count({ where: { businessId: business.id } }),
@@ -38,6 +39,8 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
     db.businessUpdate.count({ where: { businessId: business.id, status: "PENDING" } }),
     db.engagementEvent.groupBy({ by: ["type"], where: { businessId: business.id, createdAt: { gte: since } }, _count: { _all: true } }),
     countListingEvents(business.id),
+    // Read-only aggregate: no names, emails or identities are ever shown to owners.
+    db.businessRecommendation.count({ where: { businessId: business.id, createdAt: { gte: since } } }),
   ]);
   const b = full!;
   const count = (t: string) => engagement.find((e) => e.type === t)?._count._all ?? 0;
@@ -100,6 +103,21 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
           <p className="mt-2 text-xs text-slate-500">Our team reviews submissions, usually within a business day.</p>
         </Panel>
       )}
+
+      <Panel title="Community recommendations" description="Members can recommend your business with a thumbs-up. Free for every listing; you can't recommend your own listing.">
+        {b.recommendationsDisabled ? (
+          <p className="text-sm text-slate-600" data-testid="dash-recommendations-off">Recommendations are currently turned off for this listing. Contact T County Connect if you have questions.</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-4" data-testid="dash-recommendations">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-hillside-600 text-white"><ThumbsUp className="h-6 w-6" aria-hidden /></span>
+            <div>
+              <p className="text-3xl font-bold tabular-nums text-navy-900" data-testid="dash-recommendation-count">{visibleRecommendationCount(b).toLocaleString()}</p>
+              <p className="text-sm text-slate-600">{recommendationCountText(visibleRecommendationCount(b))}{recentRecs > 0 && <> · {recentRecs} new in the last 30 days</>}</p>
+            </div>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-slate-500">{RECOMMENDATION_TRUST_NOTE}</p>
+      </Panel>
 
       <Panel title="Last 30 days" description={entitlements.analytics ? "Real activity recorded on your listing. Numbers start at zero and grow as people find you." : undefined}>
         {entitlements.analytics ? (

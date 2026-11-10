@@ -24,6 +24,8 @@ const articleCardSelect = {
 const businessCardSelect = {
   id: true, slug: true, name: true, tagline: true, description: true, city: true, coverUrl: true, coverFocusX: true, coverFocusY: true, logoUrl: true,
   isSpotlighted: true, categories: { select: { name: true } },
+  // Community recommendation count for the card badge (hidden while recommendationsDisabled).
+  recommendationCount: true, recommendationsDisabled: true,
 } satisfies Prisma.BusinessSelect;
 
 const eventCardSelect = {
@@ -63,6 +65,26 @@ export async function getFeaturedBusinesses(featuredIds: string[], limit: number
     db.business.findMany({ where: publicBusinessWhere(), orderBy: [{ isFeatured: "desc" }, { isSpotlighted: "desc" }, { updatedAt: "desc" }], take: limit, select: businessCardSelect }),
   ]);
   return pinFirst(featured, rest, featuredIds, limit);
+}
+
+/**
+ * Directory "Most recommended" sort: strictly recommendationCount desc, then name — membership,
+ * featured flags and payments play no part. Listings with recommendations switched off count as 0,
+ * so they are interleaved by name with the zero-count listings. Exact pagination over two tiers:
+ * (1) enabled listings with count > 0, (2) everything else, by name.
+ */
+export async function getBusinessesByRecommendations(where: Prisma.BusinessWhereInput, skip: number, take: number) {
+  const ranked: Prisma.BusinessWhereInput = { AND: [where, { recommendationsDisabled: false, recommendationCount: { gt: 0 } }] };
+  const rest: Prisma.BusinessWhereInput = { AND: [where, { OR: [{ recommendationsDisabled: true }, { recommendationCount: { lte: 0 } }] }] };
+  const rankedTotal = await db.business.count({ where: ranked });
+  const fromRanked = skip < rankedTotal
+    ? await db.business.findMany({ where: ranked, select: businessCardSelect, orderBy: [{ recommendationCount: "desc" }, { name: "asc" }, { id: "asc" }], skip, take })
+    : [];
+  const need = take - fromRanked.length;
+  const fromRest = need > 0
+    ? await db.business.findMany({ where: rest, select: businessCardSelect, orderBy: [{ name: "asc" }, { id: "asc" }], skip: Math.max(0, skip - rankedTotal), take: need })
+    : [];
+  return [...fromRanked, ...fromRest];
 }
 
 export async function getUpcomingOccurrences(opts: { from?: Date; to?: Date; limit?: number; featuredIds?: string[]; where?: Prisma.EventWhereInput } = {}) {

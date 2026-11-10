@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Plus, Store, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { businessCardSelect, getActivePlacements, publicBusinessWhere } from "@/lib/queries";
+import { businessCardSelect, getActivePlacements, getBusinessesByRecommendations, publicBusinessWhere } from "@/lib/queries";
 import { TUSCARAWAS_CITIES, cn } from "@/lib/utils";
 import { BusinessCard } from "@/components/cards/business-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -46,6 +46,8 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
   const catSlug = param(sp, "category");
   const cityParam = param(sp, "city");
   const page = pageParam(sp);
+  // Optional "Most recommended" sort. Default ordering and search are unaffected by recommendations.
+  const sort = param(sp, "sort") === "recommended" ? "recommended" : "";
 
   const [settings, categories, cityGroups, totalAll] = await Promise.all([
     getSettings(),
@@ -69,7 +71,9 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
 
   const [total, businesses, placements] = await Promise.all([
     db.business.count({ where }),
-    db.business.findMany({ where, select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { name: "asc" }], skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
+    sort === "recommended"
+      ? getBusinessesByRecommendations(where, (page - 1) * PER_PAGE, PER_PAGE)
+      : db.business.findMany({ where, select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { name: "asc" }], skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
     page === 1 && !q ? getActivePlacements(category ? `category:${category.slug}` : "homepage_featured") : Promise.resolve([]),
   ]);
   const sponsored = placements
@@ -78,11 +82,12 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
     .filter((b) => !city || (b.city ?? "").toLowerCase() === city.toLowerCase())
     .slice(0, 4);
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const href = (o: { category?: string | null; city?: string | null; page?: number; q?: string | null }) =>
+  const href = (o: { category?: string | null; city?: string | null; page?: number; q?: string | null; sort?: string | null }) =>
     `/businesses/${qs({
       q: o.q === undefined ? q : o.q,
       category: o.category === undefined ? catSlug : o.category,
       city: o.city === undefined ? city : o.city,
+      sort: (o.sort === undefined ? sort : o.sort) || undefined,
       page: o.page && o.page > 1 ? o.page : undefined,
     })}`;
   const activeFilters = [category, city, q].filter(Boolean).length;
@@ -100,7 +105,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
       </PageHeader>
 
       <div className="container-page py-6 sm:py-8">
-        <SearchBox action="/businesses/" defaultValue={q} placeholder="Search by name, service or town…" label="Search businesses" hidden={{ category: category?.slug, city }} id="biz-q" />
+        <SearchBox action="/businesses/" defaultValue={q} placeholder="Search by name, service or town…" label="Search businesses" hidden={{ category: category?.slug, city, sort: sort || undefined }} id="biz-q" />
 
         <nav aria-label="Business categories" className="-mx-4 mt-4 overflow-x-auto px-4 scrollbar-none sm:mx-0 sm:px-0">
           <ul className="flex gap-2 pb-1 sm:flex-wrap">
@@ -134,6 +139,13 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
                   <select id="f-city" name="city" defaultValue={city} className="input">
                     <option value="">All of Tuscarawas County</option>
                     {cities.map((c) => <option key={c.name} value={c.name}>{c.name} ({c.count})</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="f-sort" className="label">Sort by</label>
+                  <select id="f-sort" name="sort" defaultValue={sort} className="input" data-testid="directory-sort">
+                    <option value="">Default</option>
+                    <option value="recommended">Most recommended</option>
                   </select>
                 </div>
                 <button className="btn-primary w-full">Apply filters</button>
@@ -171,6 +183,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
               {q && <Link href={href({ q: null, page: 1 })} className="badge-gray min-h-7 hover:bg-slate-200">“{q}” <X className="h-3 w-3" aria-label="Remove search" /></Link>}
               {category && <Link href={href({ category: null, page: 1 })} className="badge-gray min-h-7 hover:bg-slate-200">{category.name} <X className="h-3 w-3" aria-label="Remove category filter" /></Link>}
               {city && <Link href={href({ city: null, page: 1 })} className="badge-gray min-h-7 hover:bg-slate-200">{city} <X className="h-3 w-3" aria-label="Remove town filter" /></Link>}
+              {sort === "recommended" && <Link href={href({ sort: null, page: 1 })} className="badge-gray min-h-7 hover:bg-slate-200">Most recommended <X className="h-3 w-3" aria-label="Remove sort" /></Link>}
             </div>
 
             {businesses.length ? (

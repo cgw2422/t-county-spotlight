@@ -18,6 +18,7 @@ import { listingAccessRows } from "@/lib/listing-access";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { countListingEvents } from "@/lib/listing-limits";
 import { grantMembership, revokeMembership, saveBusinessArticles, savePhotos, setBusinessStatus, trashBusiness } from "../actions";
+import { setRecommendationsDisabled } from "../../recommendations/actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit business" };
@@ -102,6 +103,20 @@ export default async function EditBusinessPage({ params, searchParams }: { param
           {
             id: "owners", label: "Listing Access", badge: accessRows.length,
             content: <ListingAccessPanel kind="business" listingId={b.id} listingName={b.name} rows={accessRows} canManage={isAdmin} linkUsers={isAdmin} />,
+          },
+          {
+            id: "recommendations", label: "Recommendations", badge: b.recommendationCount,
+            content: (
+              <Card title="Community recommendations" description="Member thumbs-up count (read-only — staff can't add recommendations or edit counts). Membership has no effect.">
+                <p className="text-sm text-slate-700"><strong className="tabular-nums">{b.recommendationCount}</strong> recommendation{b.recommendationCount === 1 ? "" : "s"} · {b.recommendationsDisabled ? <span className="badge-amber">Turned off — hidden on the listing</span> : <span className="badge-green">On</span>}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a href={`/admin/recommendations/${b.id}/`} className="btn-secondary btn-sm">Review recommendations</a>
+                  {isAdmin && (b.recommendationsDisabled
+                    ? <ActionButton action={setRecommendationsDisabled} fields={{ businessId: b.id, disabled: "0" }} reloadOnSuccess className="btn-primary btn-sm">Turn recommendations on</ActionButton>
+                    : <ActionButton action={setRecommendationsDisabled} fields={{ businessId: b.id, disabled: "1" }} reloadOnSuccess prompt={{ name: "reason", label: "Reason (internal, audit log)" }} confirm={{ title: "Turn off recommendations for this listing?", body: "The button and count are hidden on the listing and new recommendations are refused. Existing ones are kept.", confirmLabel: "Turn off", danger: true }}>Turn recommendations off</ActionButton>)}
+                </div>
+              </Card>
+            ),
           },
           {
             id: "articles", label: "Articles", badge: b.articles.length,

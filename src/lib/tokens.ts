@@ -48,8 +48,14 @@ export async function sendPasswordResetEmail(user: { id: string; email: string; 
 /** Only allow same-site relative redirect targets. */
 export function safeNext(next: string | null | undefined): string | null {
   if (!next) return null;
-  if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\") || /[\r\n]/.test(next)) return null;
-  if (next.startsWith("/login") || next.startsWith("/register")) return null;
+  // Same-origin path only. Browsers strip tabs/newlines and treat "\" like "/", so reject control
+  // characters and backslashes outright, then confirm the path can't resolve to another origin.
+  if (next.length > 500 || !next.startsWith("/") || /[\u0000-\u001f\u007f\\]/.test(next)) return null;
+  try {
+    const u = new URL(next, "http://same-origin.invalid");
+    if (u.origin !== "http://same-origin.invalid") return null;
+  } catch { return null; }
+  if (next.startsWith("//") || next.startsWith("/login") || next.startsWith("/register")) return null;
   return next;
 }
 

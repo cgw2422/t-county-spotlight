@@ -7,6 +7,7 @@ import { removeSavedItemAction } from "../saved/actions";
 import { GivesAccountCard } from "@/components/gives/account-card";
 import { MyGarageSales } from "@/components/garage-sales/my-garage-sales";
 import { MySuggestions } from "@/components/suggestions/my-suggestions";
+import { MyRecommendations } from "@/components/recommendations/my-recommendations";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,10 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
         <Link href="/saved/" className="text-sm font-semibold text-brand-700 hover:underline">Open the Saved page →</Link>
       </div>
       <SavedSections items={items} remove={{ kind: "action", action: removeSavedItemAction }} />
+      <section aria-labelledby="acct-recommended">
+        <h2 id="acct-recommended" className="mb-3 font-display text-xl font-bold text-navy-900">Businesses I&rsquo;ve Recommended</h2>
+        <MyRecommendations userId={user.id} />
+      </section>
     </div>
   );
 }

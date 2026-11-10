@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, Bookmark, ChevronRight, LogIn, Sparkles, UserRound } from "lucide-react";
+import { Bell, Bookmark, ChevronRight, LogIn, Sparkles, ThumbsUp, UserRound } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { todayWindow, tonightWindow, weekendWindow } from "@/lib/events";
@@ -18,6 +18,7 @@ import { GuestPicks } from "@/components/my-t-county/guest-picks";
 import { GuestPrefsMerge } from "@/components/my-t-county/guest-prefs-merge";
 import { PickList } from "@/components/my-t-county/pick-list";
 import { MySavedPanel } from "@/components/my-t-county/my-saved-panel";
+import { MyRecommendations } from "@/components/recommendations/my-recommendations";
 import { TrackView } from "@/components/public/track";
 import { EventCard } from "@/components/cards/event-card";
 import { BusinessCard } from "@/components/cards/business-card";
@@ -218,6 +219,17 @@ export default async function MyTCountyPage() {
         <section aria-labelledby="mtc-saved" data-testid="panel-saved">
           <h2 id="mtc-saved" className="mb-3 flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><Bookmark className="h-5 w-5 text-brand-700" aria-hidden /> My Saved</h2>
           <MySavedPanel userId={user?.id ?? null} />
+        </section>
+
+        <section aria-labelledby="mtc-recommended" data-testid="panel-recommended">
+          <h2 id="mtc-recommended" className="mb-3 flex items-center gap-2 font-display text-xl font-semibold text-navy-900"><ThumbsUp className="h-5 w-5 text-hillside-600" aria-hidden /> Businesses I&rsquo;ve Recommended</h2>
+          {user ? (
+            <MyRecommendations userId={user.id} />
+          ) : (
+            <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600" data-testid="mtc-recommended-guest">
+              <Link href="/login/?next=%2Fmy-t-county%2F" className="font-semibold text-brand-700 hover:underline">Sign in</Link> or <Link href="/register/?next=%2Fmy-t-county%2F" className="font-semibold text-brand-700 hover:underline">create a free account</Link> to recommend local businesses and see them here.
+            </p>
+          )}
         </section>
 
         <section id="my-preferences" aria-labelledby="mtc-prefs" className="scroll-mt-24" data-testid="panel-preferences">

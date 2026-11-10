@@ -33,6 +33,10 @@ import { getBusinessEntitlements } from "@/lib/entitlements";
 import { publicGalleryPhotos } from "@/lib/listing-limits";
 import { FoodTruckSchedule } from "@/components/food-trucks/truck-schedule";
 import { communityHref } from "@/lib/communities-shared";
+import { getCurrentUser } from "@/lib/auth";
+import { getRecommendationState } from "@/lib/recommendations";
+import { visibleRecommendationCount } from "@/lib/recommendations-shared";
+import { RecommendButton } from "@/components/public/recommend-button";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +99,8 @@ export default async function BusinessPage({ params }: Props) {
   }
 
   const now = new Date();
-  const [articles, rawEvents, specials, updates, saved, following, { entitlements }, offerings, pulseRec] = await Promise.all([
+  const viewer = await getCurrentUser();
+  const [articles, rawEvents, specials, updates, saved, following, { entitlements }, offerings, pulseRec, recState] = await Promise.all([
     db.article.findMany({ where: publishedArticleWhere({ businesses: { some: { businessId: b.id } } }), orderBy: { publishedAt: "desc" }, take: 6, select: articleCardSelect }),
     db.event.findMany({ where: { AND: [upcomingEventWhere(now), { businessId: b.id }] }, select: eventCardSelect, take: 50 }),
     db.promotion.findMany({
@@ -113,6 +118,7 @@ export default async function BusinessPage({ params }: Props) {
       include: { items: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
     }),
     getPulseRecommendation(b.id),
+    getRecommendationState(viewer?.id, b.id),
   ]);
   const opening = await getCurrentOpeningForBusiness(b.id);
   const openingKind = opening && isOpeningKind(opening.kind) ? opening.kind : null;
@@ -189,13 +195,25 @@ export default async function BusinessPage({ params }: Props) {
                 <p className="mt-2 text-sm" data-testid="pulse-recommended">
                   <Link href={pulseHref(pulseRec)} className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-hillside-50 px-3 py-1 font-medium text-hillside-700 ring-1 ring-hillside-200 hover:bg-hillside-100">
                     <MessagesSquare className="h-4 w-4 shrink-0" aria-hidden />
-                    <span className="min-w-0 truncate">Recommended in Community Pulse: {pulseRec.title}</span>
+                    <span className="min-w-0 truncate">Mentioned in Community Pulse: {pulseRec.title}</span>
                   </Link>
                 </p>
               )}
               {b.tagline && <p className="mt-2 max-w-2xl text-lg text-slate-700">{b.tagline}</p>}
             </div>
           </div>
+
+          {/* Community recommendations (member thumbs-up) — separate from Community Pulse mentions; hidden entirely while staff have them switched off. */}
+          {!b.recommendationsDisabled && (
+            <RecommendButton
+              businessId={b.id}
+              initialCount={visibleRecommendationCount(b)}
+              initialRecommended={recState.recommended}
+              signedIn={!!viewer}
+              manages={recState.manages}
+              profilePath={businessHref(b)}
+            />
+          )}
 
           <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {tel && <TrackedLink href={`tel:${tel}`} track={track("click_phone")} className="btn-primary"><Phone className="h-4 w-4" aria-hidden /> Call</TrackedLink>}

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
   CalendarDays, CalendarCog, BadgePercent, Home, Sparkles, Menu as MenuIcon, ArrowRightLeft, Users, CreditCard,
   Palette, Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
-  MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck, Compass, MapPinned, Lightbulb,
+  MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck, Compass, MapPinned, Lightbulb, ThumbsUp,
   type LucideIcon,
 } from "lucide-react";
 import { OhioMark } from "@/components/site/logo";
@@ -45,6 +45,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { href: "/admin/applications/", label: "Applications", icon: ClipboardList, badge: "applications" },
       { href: "/admin/businesses/categories/", label: "Business categories", icon: Tags },
       { href: "/admin/updates/", label: "Business updates", icon: Megaphone, badge: "updates" },
+      { href: "/admin/recommendations/", label: "Recommendations", icon: ThumbsUp },
       { href: "/admin/jobs/", label: "Jobs", icon: Briefcase, badge: "jobs" },
     ],
   },
