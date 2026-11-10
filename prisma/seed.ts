@@ -10,6 +10,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { runBrandMigration, runNamingMigration } from "../src/lib/brand-migration";
 import { runEntityRepair } from "../src/lib/data-repairs";
+import { runMembershipLimitsMigration } from "../src/lib/membership-migration";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
@@ -106,15 +107,15 @@ async function main() {
     { slug: "free", name: "Free Listing", priceCents: 0, interval: "FREE" as const, sortOrder: 0, isActive: true,
       description: "A standard profile in the T County business directory.",
       features: ["Standard business profile", "Basic contact information", "Business category", "Associated editorial articles"],
-      entitlements: { promotions: false, events: true, updates: false, analytics: false, maxPhotos: 6 } },
+      entitlements: { promotions: false, events: true, updates: false, analytics: false, maxPhotos: 3, maxEvents: 3, descriptionLimit: 500, googleReviews: false, servicesMenus: false } },
     { slug: "business-insider", name: "Business Insider", priceCents: 2900, interval: "MONTH" as const, sortOrder: 1, isActive: false,
       description: "Everything you need to stay in front of local customers.",
       features: ["Enhanced business profile", "Expanded photo gallery", "Business-managed promotions", "Event submissions", "Business updates", "Engagement analytics"],
-      entitlements: { promotions: true, events: true, updates: true, analytics: true, maxPhotos: 40 } },
+      entitlements: { promotions: true, events: true, updates: true, analytics: true, maxPhotos: 20, maxEvents: null, descriptionLimit: 2000, googleReviews: true, servicesMenus: true } },
     { slug: "founding-business", name: "Founding Business", priceCents: 24900, interval: "YEAR" as const, sortOrder: 2, isActive: false,
       description: "Lock in founding-member pricing for a full year.",
       features: ["All Business Insider features", "Founding Business badge", "Annual billing — two months free"],
-      entitlements: { promotions: true, events: true, updates: true, analytics: true, maxPhotos: 60 } },
+      entitlements: { promotions: true, events: true, updates: true, analytics: true, maxPhotos: 20, maxEvents: null, descriptionLimit: 2000, googleReviews: true, servicesMenus: true } },
   ];
   for (const p of plans) await db.membershipPlan.upsert({ where: { slug: p.slug }, create: p, update: {} });
 
@@ -151,6 +152,7 @@ async function main() {
   await runBrandMigration(db);
   await runNamingMigration(db);
   await runEntityRepair(db);
+  await runMembershipLimitsMigration(db);
   console.log("Seed complete.");
 }
 

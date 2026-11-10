@@ -177,6 +177,7 @@ model Business {
   placements    Placement[]
   jobs          Job[]
   pulseResults  PulseResult[]
+  offeringSections BusinessOfferingSection[]
   applications  BusinessApplication[]
 
   @@unique([wpType, wpId])
@@ -192,6 +193,11 @@ model BusinessPhoto {
   alt        String?
   caption    String?
   sortOrder  Int      @default(0)
+  /// The photo shown first / used as the gallery's lead image.
+  isPrimary  Boolean  @default(false)
+  /// Chosen by the owner to stay visible when the listing is on the Free plan
+  /// (photos are never deleted on downgrade; only the allowed number is shown).
+  visibleOnFree Boolean @default(false)
   createdAt  DateTime @default(now())
 }
 
@@ -1359,4 +1365,43 @@ model AccountInvitation {
   @@index([userId, status])
   @@index([businessId])
   @@index([organizationId])
+}
+
+// ───────────────────────────── Services & menus (Premium) ─────────────────────────────
+// Kept when a membership lapses; shown publicly only while the listing has the
+// servicesMenus entitlement.
+
+enum OfferingKind {
+  SERVICES
+  MENU
+}
+
+model BusinessOfferingSection {
+  id          String         @id @default(cuid())
+  businessId  String
+  business    Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  kind        OfferingKind   @default(SERVICES)
+  title       String         // e.g. "Services", "Breakfast", "Brake repair"
+  description String?
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  items BusinessOfferingItem[]
+
+  @@index([businessId, sortOrder])
+}
+
+model BusinessOfferingItem {
+  id          String                  @id @default(cuid())
+  sectionId   String
+  section     BusinessOfferingSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       String?                 // free text: "$12", "from $40", "Market price"
+  sortOrder   Int                     @default(0)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([sectionId, sortOrder])
 }
