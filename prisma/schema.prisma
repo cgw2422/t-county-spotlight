@@ -1200,6 +1200,8 @@ model NewsletterSubscriber {
   unsubscribedAt     DateTime?
   unsubscribeReason  String?
   preferences        Json?            // { events, stories, spotlights, specials, gives }
+  /// Communities this subscriber cares about (TUSCARAWAS_CITIES values); empty = all of Tuscarawas County
+  communities        String[]         @default([])
   userId             String?          @unique
   user               User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt          DateTime         @default(now())
@@ -1665,4 +1667,24 @@ model CommunitySuggestion {
   updatedAt       DateTime         @updatedAt
 
   @@index([status, createdAt])
+}
+
+
+// ───────────────────────────── Phase 4: retention ─────────────────────────────
+
+/// One row per opt-in email actually sent (weekend summary, saved-event reminder, new-in-my-communities).
+/// The unique key makes sending idempotent: a cron re-run never emails the same thing twice.
+model NotificationDelivery {
+  id        String   @id @default(cuid())
+  /// Member user id, or "sub:<subscriberId>" for newsletter-only subscribers
+  recipient String
+  kind      String   // weekend_summary | saved_event_reminders | new_in_my_communities
+  /// What was sent, e.g. "2026-11-14" (weekend) or "EVENT:<id>:2026-11-14" (reminder)
+  refKey    String
+  status    String   @default("sent") // sent | failed | skipped
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@unique([recipient, kind, refKey])
+  @@index([kind, createdAt])
 }
