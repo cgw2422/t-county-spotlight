@@ -39,6 +39,12 @@ model User {
   totpSecret      String?
   totpEnabled     Boolean    @default(false)
   notificationPrefs Json?
+  /// My T County: preferred community (a TUSCARAWAS_CITIES value) — null means all of Tuscarawas County
+  homeCommunity      String?
+  /// Additional communities of interest
+  extraCommunities   String[] @default([])
+  /// Favorite content categories (allowlisted keys, see src/lib/my-t-county.ts)
+  interestKeys       String[] @default([])
   lastLoginAt     DateTime?
   firstName       String?
   lastName        String?
@@ -534,6 +540,9 @@ enum SavedType {
   EVENT
   PROMOTION
   ARTICLE
+  GARAGE_SALE
+  ORGANIZATION
+  PULSE
 }
 
 model SavedItem {
