@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { TrackedLink } from "@/components/public/track";
 import { mentionsLabel, resultProfileHref, type PulseResultRow } from "@/lib/pulse";
 import { cn } from "@/lib/utils";
+import { rankBadgeClass, rankBarClass } from "@/components/pulse/rank-colors";
 
 /** Result name: public directory profile → external website → plain text. */
 export function ResultName({ r, pulseId, className }: { r: PulseResultRow; pulseId: string; className?: string }) {
@@ -64,7 +65,7 @@ export function PulseResults({ rows, displayMode, pulseId }: { rows: PulseResult
                   <span className="text-sm font-semibold tabular-nums text-slate-700">{mentionsLabel(r.mentions ?? 0)}</span>
                 </div>
                 <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100" aria-hidden>
-                  <div className={cn("h-full rounded-full", i === 0 ? "bg-sunset-500" : "bg-hillside-600")} style={{ width: `${pct}%` }} />
+                  <div className={cn("h-full rounded-full", rankBarClass(i))} style={{ width: `${pct}%` }} />
                 </div>
                 {r.description && <p className="mt-2 text-sm text-slate-600">{r.description}</p>}
               </div>
@@ -79,7 +80,7 @@ export function PulseResults({ rows, displayMode, pulseId }: { rows: PulseResult
     <ol className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
       {rows.map((r, i) => (
         <li key={r.id} className="flex gap-3 p-4 sm:gap-4 sm:p-5">
-          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold", i === 0 ? "bg-sunset-500 text-white" : "bg-hillside-50 text-hillside-700 ring-1 ring-hillside-200")}>
+          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold", rankBadgeClass(i))}>
             {i + 1}<span className="sr-only">.</span>
           </span>
           <div className="min-w-0 flex-1">

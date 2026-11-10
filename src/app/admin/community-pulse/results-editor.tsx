@@ -7,6 +7,7 @@ import { SearchSelect } from "@/components/admin/search-select";
 import type { LookupItem } from "@/app/admin/_actions/common";
 import { cn, toDateInput } from "@/lib/utils";
 import { savePulseResults } from "./actions";
+import { rankBarClass } from "@/components/pulse/rank-colors";
 
 export type ResultRowInput = {
   id: string;
@@ -118,7 +119,7 @@ export function ResultsEditor({ pulseId, displayMode, initial, resultsUpdatedAt 
                 </div>
                 {!editorial && r.mentions !== "" && (
                   <div className="h-1.5 overflow-hidden rounded-full bg-slate-100 sm:col-span-2" aria-hidden>
-                    <div className={cn("h-full rounded-full", i === 0 ? "bg-sunset-500" : "bg-hillside-600")} style={{ width: `${Math.max(2, (Number(r.mentions) / max) * 100)}%` }} />
+                    <div className={cn("h-full rounded-full", rankBarClass(i))} style={{ width: `${Math.max(2, (Number(r.mentions) / max) * 100)}%` }} />
                   </div>
                 )}
               </div>

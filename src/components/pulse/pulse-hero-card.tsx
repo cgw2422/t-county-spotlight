@@ -3,6 +3,7 @@ import { ArrowRight, ExternalLink } from "lucide-react";
 import { TrackedLink } from "@/components/public/track";
 import { mentionsLabel, orderResults, pulseHref, type FeaturedPulse } from "@/lib/pulse";
 import { cn } from "@/lib/utils";
+import { rankBadgeClass, rankBarClass } from "@/components/pulse/rank-colors";
 
 /**
  * Featured Community Pulse card for the homepage hero `aside`. Translucent
@@ -38,7 +39,7 @@ export function PulseHeroCard({ pulse }: { pulse: FeaturedPulse }) {
                   <span className="shrink-0 tabular-nums text-white/80">{mentionsLabel(r.mentions ?? 0)}</span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/15" aria-hidden>
-                  <div className={cn("h-full rounded-full", i === 0 ? "bg-sunset-500" : "bg-hillside-500")} style={{ width: `${Math.max(3, Math.round(((r.mentions ?? 0) / max) * 100))}%` }} />
+                  <div className={cn("h-full rounded-full", rankBarClass(i))} style={{ width: `${Math.max(3, Math.round(((r.mentions ?? 0) / max) * 100))}%` }} />
                 </div>
               </li>
             ))}
@@ -48,7 +49,7 @@ export function PulseHeroCard({ pulse }: { pulse: FeaturedPulse }) {
             {rows.map((r, i) => (
               <li key={r.id} className={cn("flex items-center gap-3 px-3 py-2.5 text-sm", i >= 3 && "hidden sm:flex")}>
                 {mode === "RANKED_LIST" ? (
-                  <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold", i === 0 ? "bg-sunset-500 text-navy-950" : "bg-hillside-600 text-white")}>{i + 1}<span className="sr-only">.</span></span>
+                  <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold", rankBadgeClass(i))}>{i + 1}<span className="sr-only">.</span></span>
                 ) : (
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-hillside-500" aria-hidden />
                 )}
