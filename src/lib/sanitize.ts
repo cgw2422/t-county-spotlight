@@ -1,5 +1,5 @@
 import sanitizeHtml from "sanitize-html";
-import { decodePlainText } from "./text";
+import { collapseDoubleEncoded, decodePlainText } from "./text";
 
 const IFRAME_HOSTS = [
   "www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "player.vimeo.com",
@@ -13,7 +13,8 @@ const IFRAME_HOSTS = [
  */
 export function sanitizeRichText(html: string | null | undefined) {
   if (!html) return "";
-  return sanitizeHtml(html, {
+  // Imported/re-saved text is sometimes double-encoded ("&amp;amp;" shows as "&amp;").
+  return sanitizeHtml(collapseDoubleEncoded(html), {
     allowedTags: [
       "p", "br", "hr", "h1", "h2", "h3", "h4", "h5", "h6", "strong", "b", "em", "i", "u", "s", "del", "ins",
       "sub", "sup", "small", "mark", "a", "ul", "ol", "li", "blockquote", "cite", "q", "code", "pre",

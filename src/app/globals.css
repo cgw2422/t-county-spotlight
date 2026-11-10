@@ -112,3 +112,8 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Phones/tablets: keep focused fields and anchor targets clear of the fixed bottom app bar. */
+@media (max-width: 1023.98px) {
+  html { scroll-padding-bottom: calc(4.5rem + var(--safe-bottom)); }
+}

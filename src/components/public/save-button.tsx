@@ -132,7 +132,7 @@ export function SaveButton({ type, targetId, initial, label, savedLabel, classNa
         <span
           role="status"
           data-testid="guest-save-hint"
-          className="fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-navy-900 px-4 py-3 text-left text-sm text-white shadow-lg lg:bottom-6"
+          className="fixed inset-x-4 bottom-[calc(4.5rem+var(--safe-bottom))] z-50 mx-auto flex max-w-md items-start gap-3 rounded-2xl bg-navy-900 px-4 py-3 text-left text-sm text-white shadow-lg lg:bottom-6"
         >
           <span className="flex-1">
             Saved on this device.{" "}

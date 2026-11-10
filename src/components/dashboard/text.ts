@@ -1,3 +1,4 @@
+import { decodePlainText } from "@/lib/text";
 /** Helpers for the owner-facing plain-text editors (no HTML knowledge required). */
 
 const ENTITIES: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&#039;": "'", "&nbsp;": " ", "&#8217;": "’", "&rsquo;": "’", "&#8220;": "“", "&#8221;": "”", "&#8211;": "–", "&#8212;": "—", "&hellip;": "…", "&#8230;": "…" };
@@ -12,6 +13,8 @@ export function htmlToText(html: string | null | undefined) {
     .replace(/<li[^>]*>/gi, "• ")
     .replace(/<[^>]+>/g, "")
     .replace(/&[#a-z0-9]+;/gi, (m) => ENTITIES[m.toLowerCase()] ?? m)
+    // Double-encoded imports ("&amp;amp;") — decode the remainder so re-saving never re-encodes it.
+    .replace(/&(?:amp;)*(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, (m) => decodePlainText(m))
     .replace(/[ \t]+/g, " ")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

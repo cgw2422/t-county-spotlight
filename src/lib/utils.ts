@@ -1,3 +1,4 @@
+import { decodePlainText } from "./text";
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -36,25 +37,12 @@ export function formatMoney(cents: number, currency = "usd") {
 
 export function stripHtml(html: string | null | undefined) {
   if (!html) return "";
-  return html
+  const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&#8217;|&rsquo;/g, "’")
-    .replace(/&#8216;|&lsquo;/g, "‘")
-    .replace(/&#8220;|&ldquo;/g, "“")
-    .replace(/&#8221;|&rdquo;/g, "”")
-    .replace(/&#8211;|&ndash;/g, "–")
-    .replace(/&#8212;|&mdash;/g, "—")
-    .replace(/&#8230;|&hellip;/g, "…")
-    .replace(/&#0?39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/<[^>]+>/g, " ");
+  // Plain-text result (decodes double-encoded entities too); render as React text only.
+  return decodePlainText(text).replace(/\s+/g, " ").trim();
 }
 
 export function truncate(text: string, len = 160) {

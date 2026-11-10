@@ -8,6 +8,29 @@ import type { NavItem } from "./nav-data";
 
 const noopSubscribe = () => () => {};
 
+// Menu items come from Admin → Menus; they're grouped by destination. Anything
+// unrecognised lands in "More", so no admin-added link is ever dropped.
+const GROUPS: { title: string; match: RegExp }[] = [
+  { title: "Happening now", match: /^\/(events|food-trucks|garage-sales|things-to-do|specials)(\/|$)/ },
+  { title: "Local", match: /^\/(businesses|jobs|new|communities|explore)(\/|$)/ },
+  { title: "Community", match: /^\/(gives|churches|organizations|community-pulse|articles|announcements|spotlights)(\/|$)/ },
+];
+
+function groupItems(items: NavItem[]) {
+  const groups = GROUPS.map((g) => ({ title: g.title, items: [] as NavItem[] }));
+  const more: NavItem[] = [];
+  let home: NavItem | null = null;
+  for (const i of items) {
+    if (i.href === "/" && !home) { home = i; continue; }
+    const idx = GROUPS.findIndex((g) => g.match.test(i.href));
+    (idx >= 0 ? groups[idx].items : more).push(i);
+  }
+  if (more.length) groups.push({ title: "More", items: more });
+  return { home, groups: groups.filter((g) => g.items.length) };
+}
+
+const samePath = (a: string, b: string) => a.replace(/\/+$/, "") === b.replace(/\/+$/, "");
+
 /**
  * Phone/tablet navigation menu.
  *
@@ -67,6 +90,9 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
   }, [open, close]);
 
   const linkProps = { onClick: () => close() };
+  const { home, groups } = groupItems(items);
+  const linkCls = (active: boolean) =>
+    `flex min-h-11 items-center rounded-lg px-3 text-[15px] font-medium ${active ? "bg-hillside-50 text-hillside-700" : "text-navy-900 hover:bg-slate-50 active:bg-slate-100"}`;
 
   return (
     <div className="xl:hidden">
@@ -90,35 +116,43 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
           <div
             ref={panelRef}
             id="mobile-menu"
-            className="fixed inset-x-0 top-[calc(4rem+var(--safe-top))] z-50 max-h-[calc(100dvh-4rem-var(--safe-top)-3.5rem-var(--safe-bottom))] overflow-y-auto overscroll-contain border-t border-slate-200 bg-white shadow-xl lg:top-[calc(72px+var(--safe-top))] lg:max-h-[calc(100dvh-72px-var(--safe-top))] xl:hidden"
+            className="fixed inset-x-0 top-[calc(4rem+var(--safe-top))] z-50 max-h-[calc(100dvh-4rem-var(--safe-top)-3.5rem-var(--safe-bottom))] overflow-y-auto overscroll-contain rounded-b-2xl border-t border-slate-200 bg-white shadow-xl lg:top-[calc(72px+var(--safe-top))] lg:max-h-[calc(100dvh-72px-var(--safe-top))] xl:hidden"
           >
-            <nav aria-label="Mobile" className="container-page py-4">
-              <ul className="divide-y divide-slate-100">
-                {items.map((i) => (
-                  <li key={i.href + i.label}>
-                    <Link
-                      href={i.href}
-                      target={i.newTab ? "_blank" : undefined}
-                      aria-current={i.href === path ? "page" : undefined}
-                      className="flex min-h-12 items-center py-3 text-lg font-medium text-navy-900"
-                      {...linkProps}
-                    >
-                      {i.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-6 grid gap-3 pb-2">
-                <Link href="/my-t-county/" className="btn-secondary w-full" {...linkProps}>My T County</Link>
+            <nav aria-label="Mobile" className="container-page py-3">
+              {home && (
+                <Link href={home.href} aria-current={samePath(home.href, path) ? "page" : undefined} className={linkCls(samePath(home.href, path))} {...linkProps}>
+                  {home.label}
+                </Link>
+              )}
+              {groups.map((g) => (
+                <section key={g.title} aria-labelledby={`mm-${g.title}`} className="mt-3 first:mt-0">
+                  <h2 id={`mm-${g.title}`} className="px-3 pb-1 font-display text-[11px] font-bold uppercase tracking-wider text-slate-500">{g.title}</h2>
+                  <ul className="grid grid-cols-2 gap-x-2">
+                    {g.items.map((i) => (
+                      <li key={i.href + i.label}>
+                        <Link
+                          href={i.href}
+                          target={i.newTab ? "_blank" : undefined}
+                          aria-current={samePath(i.href, path) ? "page" : undefined}
+                          className={linkCls(samePath(i.href, path))}
+                          {...linkProps}
+                        >
+                          {i.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
+                <Link href="/my-t-county/" className="btn-secondary btn-sm min-h-11 w-full" {...linkProps}>My T County</Link>
                 {signedIn ? (
-                  <Link href={accountHref} className="btn-primary w-full" {...linkProps}>My Account</Link>
+                  <Link href={accountHref} className="btn-primary btn-sm min-h-11 w-full" {...linkProps}>My Account</Link>
                 ) : (
-                  <>
-                    <Link href="/login/" className="btn-primary w-full" {...linkProps}>Sign In</Link>
-                    <Link href="/register/" className="btn-secondary w-full" {...linkProps}>Create a free account</Link>
-                  </>
+                  <Link href="/login/" className="btn-primary btn-sm min-h-11 w-full" {...linkProps}>Sign In</Link>
                 )}
-                <Link href="/list-your-business/" className="btn-ghost w-full" {...linkProps}>List your business</Link>
+                {!signedIn && <Link href="/register/" className="btn-ghost btn-sm min-h-11 w-full" {...linkProps}>Create free account</Link>}
+                <Link href="/list-your-business/" className={`btn-ghost btn-sm min-h-11 w-full${signedIn ? " col-span-2" : ""}`} {...linkProps}>List your business</Link>
               </div>
             </nav>
           </div>

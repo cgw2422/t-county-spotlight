@@ -31,3 +31,20 @@ export function escapeHtml(s: string | null | undefined): string {
 export function oneLine(s: string | null | undefined, max = 150): string {
   return (s ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, max);
 }
+
+/**
+ * Collapse double-encoded entities in an HTML string ("&amp;amp;" → "&amp;",
+ * "&amp;#8217;" → "&#8217;"). Only rewrites "&amp;" directly followed by a
+ * complete entity reference, so the result is still escaped HTML — it can
+ * never create tags or attributes. Always run the result through the
+ * sanitizer before rendering it as HTML.
+ */
+export function collapseDoubleEncoded(html: string | null | undefined): string {
+  let out = html ?? "";
+  for (let i = 0; i < 3; i++) {
+    const next = out.replace(/&amp;(#x[0-9a-f]+;|#\d+;|[a-z][a-z0-9]*;)/gi, "&$1");
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+}

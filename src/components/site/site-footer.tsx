@@ -11,7 +11,7 @@ export async function SiteFooter() {
   const socials = Object.entries(s.socials || {}).filter(([, v]) => v);
   const link = "rounded-sm text-white underline-offset-4 hover:underline focus-visible:outline-white";
   return (
-    <footer className="mt-16 bg-navy-950 pb-24 text-white lg:pb-0">
+    <footer className="mt-16 bg-navy-950 pb-[calc(5rem+var(--safe-bottom))] text-white lg:pb-0">
       <div className="border-b border-white/10">
         <div className="container-page max-w-3xl py-10">
           <NewsletterSignup source="footer" variant="compact" tone="dark" />
