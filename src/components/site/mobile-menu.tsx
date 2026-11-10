@@ -10,11 +10,13 @@ const noopSubscribe = () => () => {};
 
 // Menu items come from Admin → Menus; they're grouped by destination. Anything
 // unrecognised lands in "More", so no admin-added link is ever dropped.
-const GROUPS: { title: string; match: RegExp }[] = [
-  { title: "Happening now", match: /^\/(events|food-trucks|garage-sales|things-to-do|specials)(\/|$)/ },
-  { title: "Local", match: /^\/(businesses|jobs|new|communities|explore)(\/|$)/ },
-  { title: "Community", match: /^\/(gives|churches|organizations|community-pulse|articles|announcements|spotlights)(\/|$)/ },
+// `order` sets the display order within a section (first path segment); others follow in menu order.
+const GROUPS: { title: string; order: string[] }[] = [
+  { title: "Happening now", order: ["events", "specials", "things-to-do", "food-trucks", "garage-sales"] },
+  { title: "Local", order: ["businesses", "jobs", "new", "communities", "explore"] },
+  { title: "Community", order: ["articles", "gives", "churches", "community-pulse", "organizations", "announcements", "spotlights"] },
 ];
+const segment = (href: string) => href.replace(/^\/+/, "").split(/[/?#]/)[0];
 
 function groupItems(items: NavItem[]) {
   const groups = GROUPS.map((g) => ({ title: g.title, items: [] as NavItem[] }));
@@ -22,9 +24,10 @@ function groupItems(items: NavItem[]) {
   let home: NavItem | null = null;
   for (const i of items) {
     if (i.href === "/" && !home) { home = i; continue; }
-    const idx = GROUPS.findIndex((g) => g.match.test(i.href));
+    const idx = GROUPS.findIndex((g) => g.order.includes(segment(i.href)));
     (idx >= 0 ? groups[idx].items : more).push(i);
   }
+  groups.forEach((g, gi) => g.items.sort((a, b) => GROUPS[gi].order.indexOf(segment(a.href)) - GROUPS[gi].order.indexOf(segment(b.href))));
   if (more.length) groups.push({ title: "More", items: more });
   return { home, groups: groups.filter((g) => g.items.length) };
 }
@@ -92,7 +95,7 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
   const linkProps = { onClick: () => close() };
   const { home, groups } = groupItems(items);
   const linkCls = (active: boolean) =>
-    `flex min-h-11 items-center rounded-lg px-3 text-[15px] font-medium ${active ? "bg-hillside-50 text-hillside-700" : "text-navy-900 hover:bg-slate-50 active:bg-slate-100"}`;
+    `flex min-h-11 items-center rounded-lg px-3 text-[15px] font-medium ${active ? "bg-hillside-50 font-semibold text-hillside-700 ring-1 ring-inset ring-hillside-200" : "text-navy-900 hover:bg-slate-50 active:bg-slate-100"}`;
 
   return (
     <div className="xl:hidden">
@@ -125,9 +128,10 @@ export function MobileMenu({ items, signedIn, accountHref }: { items: NavItem[];
                 </Link>
               )}
               {groups.map((g) => (
-                <section key={g.title} aria-labelledby={`mm-${g.title}`} className="mt-3 first:mt-0">
-                  <h2 id={`mm-${g.title}`} className="px-3 pb-1 font-display text-[11px] font-bold uppercase tracking-wider text-slate-500">{g.title}</h2>
-                  <ul className="grid grid-cols-2 gap-x-2">
+                <section key={g.title} aria-labelledby={`mm-${g.title}`} className="mt-2">
+                  {/* Full-width section header (spans both link columns) */}
+                  <h2 id={`mm-${g.title}`} className="w-full rounded-lg bg-hillside-50 px-3 py-2 font-display text-xs font-bold uppercase tracking-wider text-hillside-700">{g.title}</h2>
+                  <ul className="mt-1 grid grid-cols-2 gap-x-2">
                     {g.items.map((i) => (
                       <li key={i.href + i.label}>
                         <Link
