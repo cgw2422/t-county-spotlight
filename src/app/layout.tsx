@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 // Brand typography: Montserrat Bold (headings, navigation, labels) + Open Sans (body)
 import "@fontsource/montserrat/700.css";
 import "@fontsource/montserrat/800.css";
@@ -11,6 +12,7 @@ import { getSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
 import { ServiceWorkerRegister } from "@/components/site/sw-register";
 import { getBrandAssetUrls } from "@/lib/brand-assets";
+import { getRequestTheme } from "@/lib/seasonal-theme";
 
 export async function generateMetadata(): Promise<Metadata> {
   const [s, brand] = await Promise.all([getSettings(), getBrandAssetUrls()]);
@@ -44,10 +46,19 @@ export async function generateViewport(): Promise<Viewport> {
   return { themeColor: s.pwaThemeColor, width: "device-width", initialScale: 1, viewportFit: "cover" };
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Seasonal theme (Admin → Homepage → Seasonal themes): computed per request from the
+  // published settings (or a staff draft preview). Null = normal brand look, no data-season.
+  const theme = await getRequestTheme();
   return (
-    <html lang="en">
+    <html lang="en" data-season={theme?.season} style={theme?.style as React.CSSProperties | undefined}>
       <body className="min-h-dvh">
+        {theme?.preview && (
+          <div role="status" data-testid="season-preview-banner" className="relative z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-sunset-500 px-4 py-2 text-center text-sm font-semibold text-navy-900">
+            <span>{theme.preview.label}</span>
+            <Link href="/admin/homepage/appearance/seasons/" className="underline" target="_top">Seasonal themes</Link>
+          </div>
+        )}
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow-lg">Skip to content</a>
         {children}
         <ServiceWorkerRegister />

@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { heroAppearanceImageUrls } from "@/lib/hero-appearance";
+import { seasonalImageUrls } from "@/lib/seasonal-theme";
 
 export type Usage = { type: string; id: string; title: string; href: string; field: string; live: boolean };
 
@@ -34,5 +35,8 @@ export async function findMediaUsage(url: string): Promise<Usage[]> {
   // Homepage hero background (published + draft; legacy heroImageUrl is covered via the published fallback)
   if (hero.published.includes(url) || settings.heroImageUrl === url) out.push({ type: "Homepage appearance", id: "heroAppearance", title: "Homepage hero background", href: "/admin/homepage/appearance/", field: "Published hero image", live: true });
   else if (hero.draft.includes(url)) out.push({ type: "Homepage appearance", id: "heroAppearance", title: "Homepage hero background", href: "/admin/homepage/appearance/", field: "Draft hero image", live: false });
+  const seasonal = await seasonalImageUrls().catch(() => ({ published: [] as string[], draft: [] as string[] }));
+  if (seasonal.published.includes(url)) out.push({ type: "Homepage appearance", id: "seasonalThemes", title: "Seasonal hero photo", href: "/admin/homepage/appearance/seasons/", field: "Published seasonal hero image", live: true });
+  else if (seasonal.draft.includes(url)) out.push({ type: "Homepage appearance", id: "seasonalThemes", title: "Seasonal hero photo", href: "/admin/homepage/appearance/seasons/", field: "Seasonal hero image (draft / not live)", live: false });
   return out;
 }

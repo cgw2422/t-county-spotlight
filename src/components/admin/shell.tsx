@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
   CalendarDays, CalendarCog, BadgePercent, Home, Sparkles, Menu as MenuIcon, ArrowRightLeft, Users, CreditCard,
-  Palette, Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
+  Palette, Leaf, Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
   MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck, Compass, MapPinned, Lightbulb, ThumbsUp,
   type LucideIcon,
 } from "lucide-react";
@@ -84,6 +84,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/homepage/", label: "Homepage", icon: Home },
       { href: "/admin/homepage/appearance/", label: "Homepage appearance", icon: Palette, adminOnly: true },
+      { href: "/admin/homepage/appearance/seasons/", label: "Seasonal themes", icon: Leaf },
       { href: "/admin/placements/", label: "Sponsored placements", icon: Sparkles },
       { href: "/admin/menus/", label: "Menus", icon: MenuIcon, adminOnly: true },
       { href: "/admin/redirects/", label: "Redirects", icon: ArrowRightLeft },

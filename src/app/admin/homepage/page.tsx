@@ -29,6 +29,7 @@ const TYPE_LABEL: Record<string, string> = {
   hero: "Hero banner", explore: "Explore categories grid", today: "Today and tonight's events (hidden when none)", weekend: "This weekend's events", events: "Upcoming events", businesses: "Featured businesses",
   spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner", community_pulse: "Community Pulse (recent entries)", new_coming_soon: "New & Coming Soon (openings; each leaves after its homepage date)",
   join: "Free account invitation (signed-in members see a small “Go to My T County” link)", newsletter: "Newsletter signup", gives: "T County Gives", food_trucks: "Food trucks", garage_sales: "Garage sales",
+  seasonal: "Around T County This Season (seasonal picks; hidden unless a seasonal theme is on and there are real items — set up in Seasonal themes)",
 };
 
 async function resolveFeatured(type: LookupType, ids: string[]): Promise<LookupItem[]> {

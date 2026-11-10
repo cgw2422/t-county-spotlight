@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { HeroBackground, type HeroAppearance } from "./hero-background";
 import { cn } from "@/lib/utils";
+import type { Season } from "@/lib/seasons";
+import { SeasonIcon } from "./season-icon";
 
 /**
  * Homepage hero. Left: headline, description, search, quick links.
@@ -10,12 +12,19 @@ import { cn } from "@/lib/utils";
  * layout is used. The background (admin-managed image or default gradient) is
  * rendered by <HeroBackground>.
  */
-export function Hero({ headline, sub, appearance, aside }: { headline: string; sub: string; appearance?: HeroAppearance | null; aside?: React.ReactNode }) {
+/** `season`: active seasonal theme (Admin → Seasonal themes) — adds the eyebrow line and a thin accent edge; null = the normal hero. */
+export function Hero({ headline, sub, appearance, aside, season }: { headline: string; sub: string; appearance?: HeroAppearance | null; aside?: React.ReactNode; season?: { season: Season; eyebrow: string; showAccents: boolean } | null }) {
   return (
     <section className="relative isolate overflow-hidden bg-navy-900">
       <HeroBackground appearance={appearance} />
       <div className={cn("container-page py-14 sm:py-20 lg:py-28", !!aside && "grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-12")}>
         <div className="max-w-3xl">
+          {season && (
+            <p className="mb-3 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-[var(--season-hero-eyebrow)]" data-testid="season-eyebrow">
+              {season.showAccents && <SeasonIcon season={season.season} />}
+              {season.eyebrow}
+            </p>
+          )}
           <h1 className="font-display text-4xl font-bold leading-[1.05] text-white sm:text-5xl lg:text-6xl text-balance">{headline.replace(/\bT County\b/g, "T County")}</h1>
           <p className="mt-4 max-w-xl text-base text-white/90 sm:text-lg">{sub}</p>
           <form action="/search/" role="search" className="mt-8 flex max-w-xl items-center gap-2 rounded-xl bg-white p-1.5 shadow-xl">
@@ -32,6 +41,7 @@ export function Hero({ headline, sub, appearance, aside }: { headline: string; s
         </div>
         {aside && <div className="min-w-0">{aside}</div>}
       </div>
+      {season && <div aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-[var(--season-decor)] opacity-80" data-testid="season-hero-edge" />}
     </section>
   );
 }

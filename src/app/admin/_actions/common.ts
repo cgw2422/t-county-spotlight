@@ -5,7 +5,7 @@ import { destroySession, requireStaff } from "@/lib/auth";
 import { sanitizeRichText } from "@/lib/sanitize";
 import type { Prisma } from "@/generated/prisma/client";
 
-export type LookupType = "business" | "article" | "event" | "promotion" | "user" | "page" | "organization";
+export type LookupType = "business" | "article" | "event" | "promotion" | "user" | "page" | "organization" | "collection";
 export type LookupItem = { id: string; label: string; sub?: string | null };
 
 /** Typeahead search used by SearchSelect. Staff only. */
@@ -44,6 +44,11 @@ export async function lookupRecords(type: LookupType, q: string, opts: { publish
       const where: Prisma.OrganizationWhereInput = { deletedAt: null, ...(query ? { name: contains } : {}), ...(opts.publishedOnly ? { status: "APPROVED", isPublished: true } : {}) };
       const rows = await db.organization.findMany({ where, take, orderBy: { name: "asc" }, select: { id: true, name: true, city: true, kind: true, status: true, isPublished: true } });
       return rows.map((r) => ({ id: r.id, label: r.name, sub: [r.kind === "CHURCH" ? "Church" : r.kind === "COMMUNITY_GROUP" ? "Community group" : "Nonprofit", r.city, r.status !== "APPROVED" ? r.status.toLowerCase() : !r.isPublished ? "draft" : null].filter(Boolean).join(" · ") }));
+    }
+    case "collection": {
+      const where: Prisma.ExploreCollectionWhereInput = { ...(query ? { title: contains } : {}), ...(opts.publishedOnly ? { status: "PUBLISHED" } : {}) };
+      const rows = await db.exploreCollection.findMany({ where, take, orderBy: { title: "asc" }, select: { id: true, title: true, status: true } });
+      return rows.map((r) => ({ id: r.id, label: r.title, sub: `Explore collection · ${r.status.toLowerCase()}` }));
     }
     case "page": {
       const where: Prisma.PageWhereInput = { deletedAt: null, ...(query ? { title: contains } : {}), ...(opts.publishedOnly ? { status: "PUBLISHED" } : {}) };

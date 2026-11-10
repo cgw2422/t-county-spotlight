@@ -17,7 +17,9 @@ export const EXPLORE_ITEMS = [
 
 export function ExploreGrid({ title }: { title?: string }) {
   return (
-    <section aria-labelledby="explore-title" className="container-page py-8 sm:py-10">
+    <section aria-labelledby="explore-title" className="bg-[var(--season-tint)]">
+      {/* --season-tint is transparent unless a seasonal theme is active */}
+      <div className="container-page py-8 sm:py-10">
       <h2 id="explore-title" className="sr-only">{title || "Explore T County"}</h2>
       <ul className="grid grid-cols-5 gap-x-1 gap-y-3 sm:gap-4 lg:grid-cols-10">
         {EXPLORE_ITEMS.map(({ label, href, icon: Icon, color }) => (
@@ -31,6 +33,7 @@ export function ExploreGrid({ title }: { title?: string }) {
           </li>
         ))}
       </ul>
+      </div>
     </section>
   );
 }

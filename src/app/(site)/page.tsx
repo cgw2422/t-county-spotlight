@@ -7,6 +7,8 @@ import { CalendarDays, Store } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getHeroAppearance } from "@/lib/hero-appearance";
+import { getSeasonalHero } from "@/lib/seasonal-theme";
+import { SeasonalSection } from "@/components/home/seasonal-section";
 import { weekendWindow } from "@/lib/events";
 import { getActivePlacements, getActiveSpecials, getArticlesForSection, getFeaturedBusinesses, getUpcomingOccurrences } from "@/lib/queries";
 import { Hero } from "@/components/home/hero";
@@ -45,8 +47,9 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
 async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null) {
   switch (s.type) {
     case "hero": {
-      const [pulse, appearance] = await Promise.all([getFeaturedPulse(), getHeroAppearance()]);
-      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={appearance} aside={pulse ? <PulseHeroCard pulse={pulse} /> : null} />;
+      const [pulse, appearance, seasonal] = await Promise.all([getFeaturedPulse(), getHeroAppearance(), getSeasonalHero()]);
+      // Seasonal photo when the active season has one; otherwise the normal hero appearance (never blank).
+      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={seasonal?.appearance ?? appearance} season={seasonal} aside={pulse ? <PulseHeroCard pulse={pulse} /> : null} />;
     }
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
@@ -210,6 +213,8 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     case "join":
       return <JoinSection key={s.id} title={s.title} subtitle={s.subtitle} />;
+    case "seasonal":
+      return <SeasonalSection key={s.id} title={s.title} subtitle={s.subtitle} />;
     case "new_coming_soon":
       return <OpeningsHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     default:

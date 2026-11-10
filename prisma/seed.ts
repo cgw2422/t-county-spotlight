@@ -44,6 +44,8 @@ const HOMEPAGE_SECTIONS = [
   { key: "food_trucks", type: "food_trucks", title: "Food Trucks Near You", subtitle: "Scheduled stops from local food trucks", limit: 4 },
   { key: "garage_sales", type: "garage_sales", title: "Garage Sales & Community Markets", subtitle: "Yard sales, rummage sales and markets coming up", limit: 4 },
   { key: "join", type: "join", title: "Make T County Yours.", subtitle: "Save your favorite places, recommend businesses, and stay connected to your community with a free account.", limit: 0 },
+  // Seasonal picks (Admin → Seasonal themes). Added disabled so nothing changes until the admin turns it on.
+  { key: "seasonal", type: "seasonal", title: "Around T County This Season", subtitle: null, limit: 0, isEnabled: false },
   { key: "specials", type: "specials", title: "Local Specials", subtitle: "Deals from participating businesses", limit: 4 },
   { key: "new_coming_soon", type: "new_coming_soon", title: "New & Coming Soon", subtitle: "Businesses opening, moving and growing across T County", limit: 4 },
   { key: "announcements", type: "announcements", title: "Community Updates", subtitle: null, limit: 4 },
