@@ -25,17 +25,25 @@ export default async function SpecialsPage({ params, searchParams }: { params: P
   const { saved } = await searchParams;
   const { business } = await requireBusinessAccess(businessId);
   const { entitlements } = await getBusinessEntitlements(business.id);
-  if (!entitlements.promotions) return <><PageHeader title="Specials" /><Upsell businessId={business.id} feature="Specials and promotions" /></>;
+  const entitled = entitlements.promotions;
   const promos = await db.promotion.findMany({
     where: { businessId: business.id, deletedAt: null },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { redemptions: true } } },
   });
+  // Not entitled (e.g. after a downgrade): existing specials stay listed read-only — hidden from the public,
+  // never deleted — and can still be ended/deleted. Creating and editing stay Premium (enforced server-side).
+  if (!entitled && promos.length === 0) return <><PageHeader title="Specials" /><Upsell businessId={business.id} feature="Specials and promotions" /></>;
   const root = `/dashboard/${business.id}/specials/`;
   return (
     <>
       <PageHeader title="Specials" description="Share deals and offers with Tuscarawas County shoppers."
-        action={<Link href={`${root}new/`} className="btn-primary min-h-12 w-full sm:w-auto"><Tag className="h-5 w-5" aria-hidden /> Create a special</Link>} />
+        action={entitled ? <Link href={`${root}new/`} className="btn-primary min-h-12 w-full sm:w-auto"><Tag className="h-5 w-5" aria-hidden /> Create a special</Link> : undefined} />
+      {!entitled && (
+        <p role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" data-testid="specials-hidden-banner">
+          Your current membership doesn&apos;t include specials, so these are hidden from the public. They&apos;ll reappear if you upgrade. You can end or delete them anytime.
+        </p>
+      )}
       {saved && SAVED[saved] && <p role="status" className="mb-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{SAVED[saved]}</p>}
       {promos.length === 0 ? (
         <EmptyState icon={Tag} title="No specials yet">Weekly deals, seasonal offers and coupons all work great here.</EmptyState>
@@ -56,8 +64,15 @@ export default async function SpecialsPage({ params, searchParams }: { params: P
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={eff} />
-                  {editable && <Link href={`${root}${p.id}/`} className="btn-secondary btn-sm">Edit</Link>}
-                  {eff === "Active" && <Link href={specialHref(p)} className="btn-ghost btn-sm">View</Link>}
+                  {entitled && editable && <Link href={`${root}${p.id}/`} className="btn-secondary btn-sm">Edit</Link>}
+                  {entitled && eff === "Active" && <Link href={specialHref(p)} className="btn-ghost btn-sm">View</Link>}
+                  {!entitled && editable && (
+                    <form action={endSpecialAction}>
+                      <input type="hidden" name="businessId" value={business.id} />
+                      <input type="hidden" name="promotionId" value={p.id} />
+                      <button className="btn-ghost btn-sm text-red-600 hover:bg-red-50">Delete</button>
+                    </form>
+                  )}
                   {(eff === "Active" || eff === "Scheduled") && (
                     <form action={endSpecialAction}>
                       <input type="hidden" name="businessId" value={business.id} />
@@ -72,6 +87,7 @@ export default async function SpecialsPage({ params, searchParams }: { params: P
         </ul>
       )}
       <Hint className="mt-6">“Redeemed” counts members who tapped <em>Redeem</em> on your special. Approved specials can&apos;t be edited — end it and create a new one instead.</Hint>
+      {!entitled && <div className="mt-6"><Upsell businessId={business.id} feature="Specials and promotions" /></div>}
     </>
   );
 }

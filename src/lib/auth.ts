@@ -135,25 +135,54 @@ export async function requireAdmin() {
   return requireStaff(["ADMIN"]);
 }
 
+export type BusinessAccessRole = "OWNER" | "MANAGER" | "STAFF";
+
+/** Message for owner-only actions attempted by a manager. */
+export const OWNER_ONLY_MESSAGE = "Only a listing owner can do this.";
+
 /**
- * Server-side ownership check. Staff may access any business; owners only
- * businesses linked to their account. Throws (404-like) otherwise.
+ * Server-side ownership check. Staff may access any business; owners and
+ * managers only businesses linked to their account. Returns the caller's
+ * `role` for this listing ("OWNER" | "MANAGER" | "STAFF").
+ *
+ * Never loops: a suspended listing goes to /dashboard/?suspended=<id> (which
+ * shows a message and never auto-redirects into a suspended listing); a
+ * missing/deleted/unlinked listing goes to /dashboard/ (which only lists
+ * non-deleted listings the user is linked to).
  */
 export async function requireBusinessAccess(businessId: string) {
   const user = await requireUser("/dashboard");
   if (isStaff(user)) {
     const b = await db.business.findUnique({ where: { id: businessId } });
     if (!b) redirect("/dashboard");
-    return { user, business: b };
+    return { user, business: b, role: "STAFF" as BusinessAccessRole };
   }
   const link = await db.businessOwner.findUnique({
     where: { userId_businessId: { userId: user.id, businessId } },
     include: { business: true },
   });
-  if (!link || link.business.deletedAt || link.business.status === "SUSPENDED") redirect("/dashboard");
-  return { user, business: link.business };
+  if (!link || link.business.deletedAt) redirect("/dashboard/");
+  if (link.business.status === "SUSPENDED") redirect(`/dashboard/?suspended=${encodeURIComponent(link.business.id)}`);
+  return { user, business: link.business, role: (link.role === "OWNER" ? "OWNER" : "MANAGER") as BusinessAccessRole };
 }
 
+/** True for listing owners and staff (managers are excluded). */
+export function canManageOwnership(role: BusinessAccessRole) {
+  return role === "OWNER" || role === "STAFF";
+}
+
+/**
+ * Owner-only pages/actions (membership & billing, analytics, team & ownership).
+ * Owners and staff pass; managers are redirected to the dashboard overview,
+ * which shows a friendly "owner only" notice.
+ */
+export async function requireBusinessOwner(businessId: string) {
+  const access = await requireBusinessAccess(businessId);
+  if (!canManageOwnership(access.role)) redirect(`/dashboard/${access.business.id}/?notice=owner-only`);
+  return access;
+}
+
+/** Non-deleted listings linked to the user (suspended ones included — callers decide how to show them). */
 export async function getOwnedBusinesses(userId: string) {
   return db.business.findMany({
     where: { owners: { some: { userId } }, deletedAt: null },

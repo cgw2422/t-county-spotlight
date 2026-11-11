@@ -3,6 +3,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { prioritizeByCommunity } from "./my-t-county-shared";
 import { isArchivedOpening } from "./openings-shared";
+import { publicUpdateEntitlementWhere } from "./entitlements";
 
 export * from "./openings-shared";
 
@@ -10,12 +11,15 @@ export * from "./openings-shared";
  * Public New & Coming Soon entries: published BusinessUpdate with kind != GENERAL,
  * either unlisted (no business) or connected to a public business listing.
  * Shared contract — used by /new/, the homepage, community pages and search.
+ * Owner-submitted entries are only public while the listing has the `updates`
+ * entitlement (see publicUpdateEntitlementWhere); staff announcements always are.
  */
-export function publicOpeningsWhere(extra: Prisma.BusinessUpdateWhereInput = {}): Prisma.BusinessUpdateWhereInput {
+export async function publicOpeningsWhere(extra: Prisma.BusinessUpdateWhereInput = {}, now = new Date()): Promise<Prisma.BusinessUpdateWhereInput> {
   return {
     AND: [
       { status: "PUBLISHED", kind: { not: "GENERAL" } },
       { OR: [{ businessId: null }, { business: { status: "PUBLISHED", deletedAt: null } }] },
+      await publicUpdateEntitlementWhere(now),
       extra,
     ],
   };
@@ -57,7 +61,7 @@ export async function getOpenings(opts: { kind?: string | null; city?: string | 
   if (opts.kind) extra.push({ kind: opts.kind as Prisma.BusinessUpdateWhereInput["kind"] });
   if (opts.city) extra.push(openingCityWhere(opts.city));
   const rows = await db.businessUpdate.findMany({
-    where: publicOpeningsWhere(extra.length ? { AND: extra } : {}),
+    where: await publicOpeningsWhere(extra.length ? { AND: extra } : {}),
     orderBy: ORDER,
     take: 300,
     select: openingCardSelect,
@@ -76,7 +80,7 @@ export async function getOpenings(opts: { kind?: string | null; city?: string | 
 export async function getHomepageOpenings(communities: (string | null)[], limit = 4) {
   const now = new Date();
   const rows = await db.businessUpdate.findMany({
-    where: publicOpeningsWhere({ OR: [{ featuredUntil: null }, { featuredUntil: { gt: now } }] }),
+    where: await publicOpeningsWhere({ OR: [{ featuredUntil: null }, { featuredUntil: { gt: now } }] }, now),
     orderBy: ORDER,
     take: 60,
     select: openingCardSelect,
@@ -88,7 +92,7 @@ export async function getHomepageOpenings(communities: (string | null)[], limit 
 /** The current published opening/relocation entry for a business profile badge (null when none). */
 export async function getCurrentOpeningForBusiness(businessId: string) {
   const rows = await db.businessUpdate.findMany({
-    where: publicOpeningsWhere({ businessId }),
+    where: await publicOpeningsWhere({ businessId }),
     orderBy: ORDER,
     take: 5,
     select: openingCardSelect,

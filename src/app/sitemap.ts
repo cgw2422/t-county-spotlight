@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/lib/db";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { upcomingEventWhere } from "@/lib/events";
 import { publicBusinessWhere, publishedArticleWhere } from "@/lib/queries";
 import { articleHref, businessHref, eventHref, jobHref, pageHref, specialHref } from "@/lib/links";
@@ -44,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       db.business.findMany({ where: publicBusinessWhere(), select: { slug: true, updatedAt: true } }),
       db.page.findMany({ where: { status: "PUBLISHED", deletedAt: null }, select: { slug: true, legacyPath: true, updatedAt: true } }),
       db.event.findMany({ where: upcomingEventWhere(now), select: { slug: true, updatedAt: true } }),
-      db.promotion.findMany({ where: activePromotionWhere(now), select: { slug: true, updatedAt: true } }),
+      db.promotion.findMany({ where: await publicPromotionWhere(now), select: { slug: true, updatedAt: true } }),
       db.job.findMany({ where: { status: "PUBLISHED", deletedAt: null, OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }, select: { slug: true, updatedAt: true } }),
       db.businessCategory.findMany({ where: { businesses: { some: publicBusinessWhere() } }, select: { slug: true } }),
       db.communityPulse.findMany({ where: publicPulseWhere({}, { includeArchived: true }), select: { slug: true, updatedAt: true, resultsUpdatedAt: true }, orderBy: { publishedAt: "desc" } }),
@@ -65,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...(await getPublicCollections(now)).map((c) => ({ url: absoluteUrl(collectionHref(c)), lastModified: c.updatedAt, changeFrequency: "weekly" as const, priority: 0.6 })),
       // Community pages that have at least some listed content (empty ones still render, but are left out here).
       ...(await getCommunityCounts(now).then((m) => COMMUNITIES.filter((c) => hasCommunityContent(m.get(c.slug))))).map((c) => ({ url: absoluteUrl(`/communities/${c.slug}/`), changeFrequency: "daily" as const, priority: 0.7 })),
-      ...(await db.businessUpdate.findMany({ where: publicOpeningsWhere(), select: { id: true, updatedAt: true }, take: 5000 })).map((o) => ({ url: absoluteUrl(openingHref(o)), lastModified: o.updatedAt, changeFrequency: "weekly" as const, priority: 0.5 })),
+      ...(await db.businessUpdate.findMany({ where: await publicOpeningsWhere(), select: { id: true, updatedAt: true }, take: 5000 })).map((o) => ({ url: absoluteUrl(openingHref(o)), lastModified: o.updatedAt, changeFrequency: "weekly" as const, priority: 0.5 })),
       ...(await db.garageSale.findMany({ where: activeSaleWhere(now), select: { slug: true, updatedAt: true } })).map((g) => ({ url: absoluteUrl(garageSaleHref(g)), lastModified: g.updatedAt, changeFrequency: "daily" as const, priority: 0.5 })),
     ];
   } catch (e) {

@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { getUpcomingOccurrences, publishedArticleWhere, articleCardSelect } from "@/lib/queries";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { articleHref, eventHref, specialHref } from "@/lib/links";
 import { orgHref, needHref } from "@/lib/gives/constants";
 import { publicOrgWhere } from "@/lib/gives/queries";
@@ -61,7 +61,7 @@ export async function autoPopulate(current: NewsletterContent): Promise<Newslett
   const [events, spotlights, specials, needs, orgs] = await Promise.all([
     getUpcomingOccurrences({ from: now, to: new Date(now.getTime() + 14 * 86400_000), limit: 6 }),
     db.article.findMany({ where: publishedArticleWhere({ kind: "SPOTLIGHT" }), orderBy: { publishedAt: "desc" }, take: 3, select: articleCardSelect }),
-    db.promotion.findMany({ where: activePromotionWhere(now), orderBy: [{ isFeatured: "desc" }, { startsAt: "desc" }], take: 4, select: promoSelect }),
+    db.promotion.findMany({ where: await publicPromotionWhere(now), orderBy: [{ isFeatured: "desc" }, { startsAt: "desc" }], take: 4, select: promoSelect }),
     db.communityNeed.findMany({ where: openNeedWhere(), take: 30, orderBy: [{ deadline: "asc" }, { createdAt: "desc" }], select: needSelect }),
     db.organization.findMany({ where: approvedOrgWhere(), orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }], take: 3, select: orgSelect }),
   ]);
@@ -91,7 +91,7 @@ export async function searchItems(section: NLSectionKey, q: string): Promise<NLI
       return rows.map(articleItem);
     }
     case "promotion": {
-      const rows = await db.promotion.findMany({ where: { ...activePromotionWhere(), ...(query ? { title: contains } : {}) }, orderBy: { startsAt: "desc" }, take: 12, select: promoSelect });
+      const rows = await db.promotion.findMany({ where: { ...(await publicPromotionWhere()), ...(query ? { title: contains } : {}) }, orderBy: { startsAt: "desc" }, take: 12, select: promoSelect });
       return rows.map(promoItem);
     }
     case "need": {

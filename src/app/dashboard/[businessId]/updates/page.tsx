@@ -18,16 +18,24 @@ export default async function UpdatesPage({ params }: { params: Promise<{ busine
   const { businessId } = await params;
   const { business } = await requireBusinessAccess(businessId);
   const { entitlements } = await getBusinessEntitlements(business.id);
-  if (!entitlements.updates) return <><PageHeader title="Updates" /><Upsell businessId={business.id} feature="Business updates" /></>;
+  const entitled = entitlements.updates;
   const [updates, settings, followers] = await Promise.all([
     db.businessUpdate.findMany({ where: { businessId: business.id }, orderBy: { createdAt: "desc" }, take: 50 }),
     getSettings(),
     db.businessFollow.count({ where: { businessId: business.id } }),
   ]);
+  // Not entitled (e.g. after a downgrade): existing updates stay listed read-only — the ones you posted are hidden
+  // from the public, never deleted — and can still be deleted. Posting stays Premium (enforced server-side).
+  if (!entitled && updates.length === 0) return <><PageHeader title="Updates" /><Upsell businessId={business.id} feature="Business updates" /></>;
   return (
     <>
       <PageHeader title="Updates" description={<>Share news like new menu items, holiday hours or a new hire. Updates appear on your listing{followers ? ` and reach your ${followers} follower${followers === 1 ? "" : "s"}` : ""}.</>} />
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      {!entitled && (
+        <p role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" data-testid="updates-hidden-banner">
+          Your current membership doesn&apos;t include business updates, so the updates you posted are hidden from the public. They&apos;ll reappear if you upgrade. You can delete them anytime.
+        </p>
+      )}
+      <div className={entitled ? "grid gap-6 lg:grid-cols-[1fr_360px]" : ""}>
         <div>
           {updates.length === 0 ? (
             <EmptyState icon={Megaphone} title="No updates yet">Post your first update to let people know what&apos;s new.</EmptyState>
@@ -54,10 +62,13 @@ export default async function UpdatesPage({ params }: { params: Promise<{ busine
             </ul>
           )}
         </div>
-        <Panel title="Post an update" description={settings.requireUpdateApproval ? "Our team gives updates a quick look before they go live." : undefined}>
-          <UpdateForm businessId={business.id} />
-        </Panel>
+        {entitled && (
+          <Panel title="Post an update" description={settings.requireUpdateApproval ? "Our team gives updates a quick look before they go live." : undefined}>
+            <UpdateForm businessId={business.id} />
+          </Panel>
+        )}
       </div>
+      {!entitled && <div className="mt-6"><Upsell businessId={business.id} feature="Business updates" /></div>}
     </>
   );
 }

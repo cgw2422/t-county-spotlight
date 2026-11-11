@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Hourglass } from "lucide-react";
-import { requireBusinessAccess } from "@/lib/auth";
+import { requireBusinessOwner } from "@/lib/auth";
 import { Panel } from "@/components/dashboard/shell";
 
 export const metadata: Metadata = { title: "Payment processing" };
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function CheckoutSuccessPage({ params, searchParams }: { params: Promise<{ businessId: string }>; searchParams: Promise<{ type?: string }> }) {
   const { businessId } = await params;
   const { type } = await searchParams;
-  const { business } = await requireBusinessAccess(businessId);
+  const { business } = await requireBusinessOwner(businessId);
   const sponsorship = type === "sponsorship";
   return (
     <Panel className="mx-auto max-w-xl text-center">

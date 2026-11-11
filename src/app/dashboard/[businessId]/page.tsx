@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BarChart3, CalendarPlus, Check, Circle, ExternalLink, Eye, Globe, Heart, ImagePlus, MapPin, PencilLine, Phone, Bookmark, Tag, ThumbsUp } from "lucide-react";
 import { db } from "@/lib/db";
-import { requireBusinessAccess } from "@/lib/auth";
+import { canManageOwnership, requireBusinessAccess } from "@/lib/auth";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { businessHref } from "@/lib/links";
 import { PageHeader, Panel, StatusBadge } from "@/components/dashboard/shell";
@@ -24,20 +24,23 @@ function Stat({ icon: Icon, label, value, hint }: { icon: typeof Eye; label: str
   );
 }
 
-export default async function OverviewPage({ params }: { params: Promise<{ businessId: string }> }) {
+export default async function OverviewPage({ params, searchParams }: { params: Promise<{ businessId: string }>; searchParams: Promise<{ notice?: string }> }) {
   const { businessId } = await params;
-  const { user, business } = await requireBusinessAccess(businessId);
+  const { notice } = await searchParams;
+  const { user, business, role } = await requireBusinessAccess(businessId);
+  // Analytics are owner-only: managers see the rest of the overview, and the engagement data is never queried for them.
+  const showAnalytics = canManageOwnership(role);
   const root = `/dashboard/${business.id}/`;
   const since = daysAgo(30);
   const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement, eventCount, recentRecs] = await Promise.all([
     getBusinessEntitlements(business.id),
     db.business.findUnique({ where: { id: business.id }, include: { categories: { select: { id: true } }, _count: { select: { photos: true } } } }),
-    db.businessFollow.count({ where: { businessId: business.id } }),
-    db.savedItem.count({ where: { type: "BUSINESS", targetId: business.id } }),
+    showAnalytics ? db.businessFollow.count({ where: { businessId: business.id } }) : Promise.resolve(0),
+    showAnalytics ? db.savedItem.count({ where: { type: "BUSINESS", targetId: business.id } }) : Promise.resolve(0),
     db.event.count({ where: { businessId: business.id, status: "PENDING", deletedAt: null } }),
     db.promotion.count({ where: { businessId: business.id, status: "PENDING", deletedAt: null } }),
     db.businessUpdate.count({ where: { businessId: business.id, status: "PENDING" } }),
-    db.engagementEvent.groupBy({ by: ["type"], where: { businessId: business.id, createdAt: { gte: since } }, _count: { _all: true } }),
+    showAnalytics ? db.engagementEvent.groupBy({ by: ["type"], where: { businessId: business.id, createdAt: { gte: since } }, _count: { _all: true } }) : Promise.resolve([]),
     countListingEvents(business.id),
     // Read-only aggregate: no names, emails or identities are ever shown to owners.
     db.businessRecommendation.count({ where: { businessId: business.id, createdAt: { gte: since } } }),
@@ -75,6 +78,12 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
         description={<>Here&apos;s how <strong>{b.name}</strong> is doing on T County Connect.</>}
         action={b.status === "PUBLISHED" ? <Link href={businessHref(b)} className="btn-secondary"><ExternalLink className="h-4 w-4" aria-hidden /> View my listing</Link> : undefined}
       />
+
+      {notice === "owner-only" && (
+        <p role="status" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900" data-testid="owner-only-notice">
+          That page is only available to listing owners. Ask an owner of {b.name} if you need changes to the membership, billing, analytics or team.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-slate-600">Listing status:</span> <StatusBadge status={b.status} />
@@ -119,7 +128,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
         <p className="mt-3 text-xs text-slate-500">{RECOMMENDATION_TRUST_NOTE}</p>
       </Panel>
 
-      <Panel title="Last 30 days" description={entitlements.analytics ? "Real activity recorded on your listing. Numbers start at zero and grow as people find you." : undefined}>
+      {showAnalytics && <Panel title="Last 30 days" description={entitlements.analytics ? "Real activity recorded on your listing. Numbers start at zero and grow as people find you." : undefined}>
         {entitlements.analytics ? (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <Stat icon={Eye} label="Profile views" value={count("view_business")} />
@@ -139,7 +148,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ busin
             </div>
           </div>
         )}
-      </Panel>
+      </Panel>}
 
       <Panel title="Complete your profile" description="Complete listings get noticed more. Tap any item to finish it.">
         <div className="mb-4 flex items-center gap-3">

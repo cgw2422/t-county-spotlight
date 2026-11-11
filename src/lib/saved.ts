@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./db";
 import { expandOccurrences } from "./events";
-import { activePromotionWhere, promotionStatus } from "./promotions";
+import { promotionBusinessWhere, promotionStatus, publicPromotionWhere } from "./promotions";
 import { publicBusinessWhere, publishedArticleWhere } from "./queries";
 import { articleHref, businessHref, eventHref, specialHref } from "./links";
 import { garageSaleCardSelect, garageSaleHref, isSaleEnded, todayKey, toPublicSale } from "./garage-sales";
@@ -40,8 +40,8 @@ export async function findSaveableTarget(type: SavedKind | "BUSINESS_FOLLOW", ta
     }
     case "PROMOTION": {
       const where = opts.allowEnded
-        ? { id: targetId, status: "APPROVED" as const, deletedAt: null, business: { deletedAt: null, status: "PUBLISHED" as const } }
-        : { ...activePromotionWhere(now), id: targetId };
+        ? { id: targetId, status: "APPROVED" as const, deletedAt: null, business: await promotionBusinessWhere(now) }
+        : { ...(await publicPromotionWhere(now)), id: targetId };
       const p = await db.promotion.findFirst({ where, select: { businessId: true } });
       return p ? { businessId: p.businessId } : null;
     }
@@ -109,7 +109,7 @@ export async function resolveSavedItems(refs: SavedRef[], now = new Date()): Pro
   const [businesses, events, promos, articles, sales, orgs, pulses] = await Promise.all([
     has("BUSINESS") ? db.business.findMany({ where: publicBusinessWhere({ id: { in: ids("BUSINESS") } }), select: { id: true, slug: true, name: true, city: true, logoUrl: true, coverUrl: true, isFoodTruck: true, cuisine: true, tagline: true } }) : [],
     has("EVENT") ? db.event.findMany({ where: { id: { in: ids("EVENT") }, status: "PUBLISHED", deletedAt: null }, select: { id: true, slug: true, title: true, startAt: true, endAt: true, allDay: true, recurrence: true, imageUrl: true, locationName: true, city: true } }) : [],
-    has("PROMOTION") ? db.promotion.findMany({ where: { id: { in: ids("PROMOTION") }, deletedAt: null, business: { deletedAt: null, status: "PUBLISHED" } }, select: { id: true, slug: true, title: true, imageUrl: true, status: true, startsAt: true, endsAt: true, business: { select: { name: true, city: true, logoUrl: true } } } }) : [],
+    has("PROMOTION") ? promotionBusinessWhere(now).then((business) => db.promotion.findMany({ where: { id: { in: ids("PROMOTION") }, deletedAt: null, business }, select: { id: true, slug: true, title: true, imageUrl: true, status: true, startsAt: true, endsAt: true, business: { select: { name: true, city: true, logoUrl: true } } } })) : [],
     has("ARTICLE") ? db.article.findMany({ where: publishedArticleWhere({ id: { in: ids("ARTICLE") } }), select: { id: true, slug: true, legacyPath: true, title: true, featuredImageUrl: true, publishedAt: true } }) : [],
     has("GARAGE_SALE") ? db.garageSale.findMany({ where: { id: { in: ids("GARAGE_SALE") }, status: "PUBLISHED" }, select: garageSaleCardSelect }) : [],
     has("ORGANIZATION") ? db.organization.findMany({ where: publicOrgWhere({ id: { in: ids("ORGANIZATION") } }), select: { id: true, slug: true, name: true, kind: true, city: true, logoUrl: true, coverUrl: true, tagline: true } }) : [],

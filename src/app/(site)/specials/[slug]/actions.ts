@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import type { ActionState } from "@/components/ui/form-message";
 
 /** Records a single redemption per member, honoring the offer's redemption limit (counted from real rows). */
@@ -12,7 +12,7 @@ export async function redeemPromotion(_prev: ActionState, fd: FormData): Promise
   if (!user) return { error: "Please sign in to redeem this offer." };
   if (!rateLimit(`redeem:${user.id}`, 20, 60_000).ok) return { error: "Too many attempts. Try again in a minute." };
   const id = fd.get("promotionId")?.toString() ?? "";
-  const promo = await db.promotion.findFirst({ where: { ...activePromotionWhere(), id }, select: { id: true, slug: true, redemptionLimit: true } });
+  const promo = await db.promotion.findFirst({ where: { ...(await publicPromotionWhere()), id }, select: { id: true, slug: true, redemptionLimit: true } });
   if (!promo) return { error: "This offer is no longer available." };
 
   try {

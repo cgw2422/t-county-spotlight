@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Search, Shield, Store } from "lucide-react";
+import { ChevronRight, Search, Shield, ShieldAlert, Store } from "lucide-react";
 import { getOwnedBusinesses, isStaff, requireUser } from "@/lib/auth";
+import { getSettings } from "@/lib/settings";
 import { PlainShell } from "@/components/dashboard/shell";
 import { StatusBadge } from "@/components/dashboard/shell";
 import { LogoutButton } from "@/components/account/logout-button";
@@ -10,12 +11,52 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED_TO = ["membership", "profile", "photos", "services", "events", "specials", "updates", "invoices"];
 
-export default async function DashboardHome({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
+/** Shown for suspended listings — never a link into the listing (requireBusinessAccess would send it straight back here). */
+function SuspendedNotice({ name, contactEmail }: { name: string; contactEmail: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" data-testid="suspended-notice">
+      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+      <p>
+        <strong className="block text-base">{name}</strong>
+        This listing is suspended. Contact T County Connect for help
+        {contactEmail ? <>: <a className="font-semibold underline" href={`mailto:${contactEmail}`}>{contactEmail}</a>.</> : "."}
+      </p>
+    </div>
+  );
+}
+
+export default async function DashboardHome({ searchParams }: { searchParams: Promise<{ to?: string; suspended?: string }> }) {
   const user = await requireUser("/dashboard/");
-  const { to } = await searchParams;
-  const businesses = await getOwnedBusinesses(user.id);
+  const { to, suspended: suspendedParam } = await searchParams;
+  const all = await getOwnedBusinesses(user.id);
+  // Suspended listings can't be managed: list them with a message, and never auto-redirect into one (that looped).
+  const businesses = all.filter((b) => b.status !== "SUSPENDED");
+  const suspended = all.filter((b) => b.status === "SUSPENDED");
   const sub = to && ALLOWED_TO.includes(to) ? `${to}/` : "";
-  if (businesses.length === 1) redirect(`/dashboard/${businesses[0].id}/${sub}`);
+  if (businesses.length === 1 && suspended.length === 0 && !suspendedParam) redirect(`/dashboard/${businesses[0].id}/${sub}`);
+  const settings = suspended.length ? await getSettings() : null;
+  const suspendedList = suspended.length > 0 && (
+    <div className="mt-6 space-y-3 text-left">
+      {suspended.map((b) => <SuspendedNotice key={b.id} name={b.name} contactEmail={settings?.contactEmail ?? ""} />)}
+    </div>
+  );
+
+  if (businesses.length === 0 && suspended.length > 0) {
+    return (
+      <PlainShell>
+        <div className="mx-auto max-w-xl">
+          <h1 className="font-display text-3xl font-semibold text-navy-900">Your business listing</h1>
+          {suspendedList}
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/account/" className="btn-secondary">My account</Link>
+            <Link href="/my-t-county/" className="btn-ghost">My T County</Link>
+            {isStaff(user) && <Link href="/admin/" className="btn-ghost"><Shield className="h-4 w-4" aria-hidden /> Go to admin</Link>}
+            <LogoutButton className="btn-ghost" />
+          </div>
+        </div>
+      </PlainShell>
+    );
+  }
 
   if (businesses.length === 0) {
     return (
@@ -46,6 +87,7 @@ export default async function DashboardHome({ searchParams }: { searchParams: Pr
     <PlainShell>
       <h1 className="font-display text-3xl font-semibold text-navy-900">Your businesses</h1>
       <p className="mt-2 text-slate-600">Choose a business to manage.</p>
+      {suspendedList}
       <ul className="mt-6 grid gap-3">
         {businesses.map((b) => (
           <li key={b.id}>
@@ -63,6 +105,7 @@ export default async function DashboardHome({ searchParams }: { searchParams: Pr
       </ul>
       <div className="mt-8 flex flex-wrap gap-3">
         <Link href="/account/" className="btn-ghost">My account</Link>
+        <Link href="/my-t-county/" className="btn-ghost">My T County</Link>
         <LogoutButton className="btn-ghost" />
       </div>
     </PlainShell>

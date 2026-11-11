@@ -5,7 +5,7 @@ import { CalendarClock, MapPin, Store } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { promotionStatus } from "@/lib/promotions";
+import { promotionBusinessWhere, promotionStatus } from "@/lib/promotions";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
 import { businessHref, specialHref } from "@/lib/links";
@@ -30,7 +30,8 @@ async function load(slug: string) {
   let s = slug;
   try { s = decodeURIComponent(slug); } catch {}
   const p = await db.promotion.findFirst({
-    where: { slug: s.toLowerCase(), deletedAt: null, status: "APPROVED" },
+    // Specials of listings without the `promotions` entitlement (e.g. after a downgrade) 404 until it returns.
+    where: { slug: s.toLowerCase(), deletedAt: null, status: "APPROVED", business: await promotionBusinessWhere() },
     include: {
       business: {
         select: { id: true, slug: true, name: true, logoUrl: true, coverUrl: true, city: true, address: true, phone: true, status: true, deletedAt: true, categories: { select: { name: true }, take: 2 } },

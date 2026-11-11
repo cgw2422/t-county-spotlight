@@ -2,7 +2,7 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { articleCardSelect, businessCardSelect, getUpcomingOccurrences, publicBusinessWhere, publishedArticleWhere } from "./queries";
-import { activePromotionWhere } from "./promotions";
+import { publicPromotionWhere } from "./promotions";
 import { getPublicStops } from "./food-trucks";
 import { getUpcomingGarageSales } from "./garage-sales";
 import { activeSignupCounts, needCardSelect, openNeedWhere, openOpportunityWhere, opportunityCardSelect, orgCardSelect, pledgedTotals, publicOrgWhere } from "./gives/queries";
@@ -52,7 +52,7 @@ export async function getCommunityPageData(name: string, now = new Date()) {
     db.business.findMany({ where: publicBusinessWhere({ city, isFoodTruck: false }), select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { isSpotlighted: "desc" }, { updatedAt: "desc" }], take: 8 }),
     db.business.count({ where: publicBusinessWhere({ city, categories: { some: { slug: RESTAURANT_CATEGORY } } }) }),
     db.business.findMany({ where: publicBusinessWhere({ city, categories: { some: { slug: RESTAURANT_CATEGORY } } }), select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { isSpotlighted: "desc" }, { name: "asc" }], take: 4 }),
-    db.promotion.findMany({ where: { AND: [activePromotionWhere(now), { business: { city } }] }, select: specialSelect, orderBy: [{ isFeatured: "desc" }, { startsAt: "desc" }], take: 4 }),
+    db.promotion.findMany({ where: { AND: [await publicPromotionWhere(now), { business: { city } }] }, select: specialSelect, orderBy: [{ isFeatured: "desc" }, { startsAt: "desc" }], take: 4 }),
     getOpenings({ city: name }).then((o) => o.current.slice(0, 4)),
     db.article.findMany({ where: publishedArticleWhere({ city, kind: { not: "THINGS_TO_DO" } }), select: articleCardSelect, orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }], take: 6 }),
     db.business.findMany({ where: publicBusinessWhere({ city, categories: { some: { slug: ATTRACTION_CATEGORY } } }), select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { isSpotlighted: "desc" }, { name: "asc" }], take: 4 }),

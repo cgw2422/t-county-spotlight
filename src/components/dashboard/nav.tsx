@@ -3,12 +3,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, CalendarDays, CreditCard, Gauge, Images, ListChecks, Lock, Megaphone, Menu, PencilLine, Receipt, Tag, Truck, X,
+  ArrowLeft, CalendarDays, CreditCard, Gauge, Images, ListChecks, Lock, Megaphone, Menu, PencilLine, Receipt, Tag, Truck, Users, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/account/logout-button";
 
-const ICONS = { overview: Gauge, profile: PencilLine, photos: Images, services: ListChecks, events: CalendarDays, specials: Tag, updates: Megaphone, membership: CreditCard, invoices: Receipt, schedule: Truck };
+const ICONS = { overview: Gauge, profile: PencilLine, photos: Images, services: ListChecks, events: CalendarDays, specials: Tag, updates: Megaphone, membership: CreditCard, invoices: Receipt, schedule: Truck, team: Users };
 export type DashNavItem = { key: keyof typeof ICONS; href: string; label: string; locked?: boolean; badge?: string };
 
 function isActive(path: string, href: string, root: string) {

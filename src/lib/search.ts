@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
-import { activePromotionWhere } from "./promotions";
+import { publicPromotionWhere } from "./promotions";
 import { expandOccurrences, upcomingEventWhere } from "./events";
 import { articleCardSelect, businessCardSelect, eventCardSelect, notExpiredAnnouncementWhere, publicBusinessWhere, publishedArticleWhere } from "./queries";
 import { publicPulseWhere, pulseCardSelect } from "./pulse";
@@ -215,7 +215,7 @@ const specialSelect = {
 } satisfies Prisma.PromotionSelect;
 async function specials(ctx: SearchCtx, skip: number, take: number) {
   const c = { contains: ctx.q, mode: "insensitive" as const };
-  const where: Prisma.PromotionWhereInput = { ...activePromotionWhere(ctx.now), AND: [{ OR: [{ title: c }, { description: c }, { business: { name: c } }] }, ctx.city ? { business: { city: ci(ctx.city) } } : {}] };
+  const where: Prisma.PromotionWhereInput = { ...(await publicPromotionWhere(ctx.now)), AND: [{ OR: [{ title: c }, { description: c }, { business: { name: c } }] }, ctx.city ? { business: { city: ci(ctx.city) } } : {}] };
   const [count, rows] = await Promise.all([
     db.promotion.count({ where }),
     take > 0 ? db.promotion.findMany({ where, select: specialSelect, orderBy: [{ endsAt: { sort: "asc", nulls: "last" } }, { id: "asc" }], skip, take }) : Promise.resolve([]),
@@ -225,7 +225,7 @@ async function specials(ctx: SearchCtx, skip: number, take: number) {
 
 async function openings(ctx: SearchCtx, skip: number, take: number) {
   const c = { contains: ctx.q, mode: "insensitive" as const };
-  const base = publicOpeningsWhere({ AND: [{ OR: [{ title: c }, { body: c }, { businessName: c }, { business: { name: c } }] }, ctx.city ? openingCityWhere(ctx.city) : {}] });
+  const base = await publicOpeningsWhere({ AND: [{ OR: [{ title: c }, { body: c }, { businessName: c }, { business: { name: c } }] }, ctx.city ? openingCityWhere(ctx.city) : {}] });
   return chain(tiers<Prisma.BusinessUpdateWhereInput, Prisma.BusinessUpdateGetPayload<{ select: typeof openingCardSelect }>>(
     base, { OR: [{ title: c }, { businessName: c }, { business: { name: c } }] },
     (where) => db.businessUpdate.count({ where }),

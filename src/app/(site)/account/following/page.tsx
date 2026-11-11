@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { publicUpdateEntitlementWhere } from "@/lib/entitlements";
 import { businessHref } from "@/lib/links";
 import { formatDate } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function FollowingPage() {
   const user = await getCurrentUser();
   if (!user) return null;
+  const updateGate = await publicUpdateEntitlementWhere();
   const follows = await db.businessFollow.findMany({
     where: { userId: user.id, business: { deletedAt: null, status: "PUBLISHED" } },
     orderBy: { createdAt: "desc" },
@@ -21,7 +23,7 @@ export default async function FollowingPage() {
       business: {
         select: {
           id: true, slug: true, name: true, city: true, logoUrl: true, coverUrl: true,
-          updates: { where: { status: "PUBLISHED" }, orderBy: { createdAt: "desc" }, take: 1, select: { title: true, createdAt: true } },
+          updates: { where: { AND: [{ status: "PUBLISHED" }, updateGate] }, orderBy: { createdAt: "desc" }, take: 1, select: { title: true, createdAt: true } },
         },
       },
     },

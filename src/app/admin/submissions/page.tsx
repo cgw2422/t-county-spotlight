@@ -83,6 +83,7 @@ export default async function SubmissionsQueuePage({ searchParams }: { searchPar
               cell: (r) => (
                 <div>
                   <Link href={r.reviewHref} className="font-semibold text-slate-900 hover:text-brand-700">{r.title}</Link>
+                  {r.badge && <div className="mt-1"><span className={r.badge.tone === "amber" ? "badge-amber" : "badge-blue"} data-testid="submission-badge">{r.badge.label}</span></div>}
                   {r.detail && <div className="mt-0.5 text-xs text-slate-500">{r.detail}</div>}
                 </div>
               ),

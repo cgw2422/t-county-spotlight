@@ -23,11 +23,11 @@ import { setRecommendationsDisabled } from "../../recommendations/actions";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit business" };
 
-export default async function EditBusinessPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; owner?: string }> }) {
+export default async function EditBusinessPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; claimed?: string; owner?: string }> }) {
   const user = await requireStaff();
   const isAdmin = user.role === "ADMIN";
   const { id } = await params;
-  const { created, owner } = await searchParams;
+  const { created, claimed, owner } = await searchParams;
   const b = await db.business.findUnique({
     where: { id },
     include: {
@@ -66,6 +66,7 @@ export default async function EditBusinessPage({ params, searchParams }: { param
           </>
         }
       />
+      {claimed && <div className="mb-4"><Notice tone="success">Claim approved. The applicant was added as an owner of this existing listing — its content, photos, recommendations and membership were not changed.{owner === "new" && " An owner account was created without a password — use Listing Access → Resend invitation to email them a secure link to set one."}</Notice></div>}
       {created && <div className="mb-4"><Notice tone="success">Business created. Add photos, owners and linked articles using the tabs below.{owner === "new" && " An owner account was created without a password — use Listing Access → Resend invitation to email them a secure link to set one."}</Notice></div>}
       <ClientTabs
         tabs={[

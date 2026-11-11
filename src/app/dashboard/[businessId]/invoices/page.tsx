@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ExternalLink, Receipt } from "lucide-react";
 import { db } from "@/lib/db";
-import { requireBusinessAccess } from "@/lib/auth";
+import { requireBusinessOwner } from "@/lib/auth";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { PageHeader } from "@/components/dashboard/shell";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,7 +13,7 @@ const STATUS_CLS: Record<string, string> = { paid: "badge-green", failed: "badge
 
 export default async function InvoicesPage({ params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
-  const { business } = await requireBusinessAccess(businessId);
+  const { business } = await requireBusinessOwner(businessId);
   const payments = await db.payment.findMany({ where: { businessId: business.id }, orderBy: { createdAt: "desc" }, take: 100 });
   return (
     <>

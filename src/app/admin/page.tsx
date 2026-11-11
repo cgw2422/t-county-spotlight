@@ -6,7 +6,7 @@ import {
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { upcomingEventWhere } from "@/lib/events";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { formatDateTime } from "@/lib/utils";
 import { PageHeader, Card } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
@@ -47,7 +47,7 @@ export default async function AdminDashboard() {
     db.businessApplication.count({ where: { status: "PENDING" } }),
     db.event.count({ where: upcomingEventWhere(now) }),
     db.event.count({ where: { status: "PENDING", deletedAt: null } }),
-    db.promotion.count({ where: activePromotionWhere(now) }),
+    db.promotion.count({ where: await publicPromotionWhere(now) }),
     db.promotion.count({ where: { status: "PENDING", deletedAt: null } }),
     db.user.count({ where: { status: { not: "DELETED" } } }),
     db.subscription.count({ where: { ...activeSub, source: "stripe" } }),

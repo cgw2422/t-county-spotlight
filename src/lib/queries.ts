@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { activePromotionWhere } from "./promotions";
+import { publicPromotionWhere } from "./promotions";
 import { expandOccurrences, upcomingEventWhere } from "./events";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -113,9 +113,10 @@ export async function getActiveSpecials(limit: number, featuredIds: string[] = [
     id: true, slug: true, title: true, imageUrl: true, endsAt: true, isFeatured: true, isSponsored: true,
     business: { select: { name: true, logoUrl: true, coverUrl: true } },
   } satisfies Prisma.PromotionSelect;
+  const live = await publicPromotionWhere();
   const [featured, rest] = await Promise.all([
-    featuredIds.length ? db.promotion.findMany({ where: { ...activePromotionWhere(), id: { in: featuredIds } }, select }) : [],
-    db.promotion.findMany({ where: activePromotionWhere(), orderBy: [{ isSponsored: "desc" }, { isFeatured: "desc" }, { startsAt: "desc" }], take: limit, select }),
+    featuredIds.length ? db.promotion.findMany({ where: { ...live, id: { in: featuredIds } }, select }) : [],
+    db.promotion.findMany({ where: live, orderBy: [{ isSponsored: "desc" }, { isFeatured: "desc" }, { startsAt: "desc" }], take: limit, select }),
   ]);
   return pinFirst(featured, rest, featuredIds, limit);
 }

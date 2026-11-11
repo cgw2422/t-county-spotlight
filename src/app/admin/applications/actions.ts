@@ -7,8 +7,23 @@ import { requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { absoluteUrl, slugify, TUSCARAWAS_CITIES } from "@/lib/utils";
+import { applicationClaim } from "@/lib/applications";
 import type { ActionState } from "@/components/ui/form-message";
 import { getAll, parseForm, uniqueSlug, zBool, zOpt } from "../_lib/form";
+
+/** Finds or creates the applicant's account (existing users keep their password; MEMBER is upgraded to BUSINESS_OWNER). */
+async function applicantAccount(app: { userId: string | null; email: string; contactName: string | null }) {
+  let owner = app.userId ? await db.user.findUnique({ where: { id: app.userId } }) : null;
+  owner ??= await db.user.findUnique({ where: { email: app.email.toLowerCase() } });
+  let createdUser = false;
+  if (!owner) {
+    owner = await db.user.create({ data: { email: app.email.toLowerCase(), name: app.contactName, role: "BUSINESS_OWNER" } });
+    createdUser = true;
+  } else if (owner.role === "MEMBER") {
+    owner = await db.user.update({ where: { id: owner.id }, data: { role: "BUSINESS_OWNER" } });
+  }
+  return { owner, createdUser };
+}
 
 export async function approveApplication(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireStaff();
@@ -17,6 +32,35 @@ export async function approveApplication(_: ActionState, fd: FormData): Promise<
   const app = await db.businessApplication.findUnique({ where: { id: p.data.id } });
   if (!app) return { error: "Application not found." };
   if (app.status !== "PENDING") return { error: "This application was already reviewed." };
+
+  // Claim of an EXISTING listing: never create a business and never overwrite the listing's content —
+  // only link the applicant as an OWNER (slug, photos, recommendations, subscriptions and history stay as they are).
+  const claim = applicationClaim(app);
+  if (claim) {
+    const business = await db.business.findUnique({ where: { id: claim.businessId }, select: { id: true, name: true, slug: true, status: true, deletedAt: true, _count: { select: { owners: { where: { role: "OWNER" } } } } } });
+    if (!business || business.deletedAt) return { error: "The listing this application claims has been deleted, so it can't be approved as a claim. Reject the application instead." };
+    const { owner, createdUser } = await applicantAccount(app);
+    await db.businessOwner.upsert({
+      where: { userId_businessId: { userId: owner.id, businessId: business.id } },
+      create: { userId: owner.id, businessId: business.id, role: "OWNER" },
+      update: { role: "OWNER" },
+    });
+    await db.businessApplication.update({ where: { id: app.id }, data: { status: "APPROVED", businessId: business.id, reviewedById: user.id, reviewedAt: new Date(), reviewNote: p.data.note } });
+    await audit(user.id, "application.approve_claim", "BusinessApplication", app.id, { name: app.businessName, businessId: business.id, ownerEmail: owner.email, createdUser, existingOwners: business._count.owners });
+    if (p.data.notify) {
+      await sendEmail(
+        app.email,
+        `Your claim for ${business.name} was approved`,
+        `Good news! Your claim for ${business.name} on T County Connect has been approved, and you're now an owner of the listing.\n\n` +
+          (createdUser ? `An account was created for ${app.email}. Set your password here: ${absoluteUrl("/forgot-password/")}\n` : `Sign in to manage your listing: ${absoluteUrl(`/dashboard/${business.id}/`)}\n`) +
+          (p.data.note ? `\nNote from our team: ${p.data.note}\n` : ""),
+      );
+    }
+    revalidatePath("/admin/applications");
+    revalidatePath("/admin");
+    redirect(`/admin/businesses/${business.id}/?claimed=1${createdUser ? "&owner=new" : ""}`);
+  }
+
   const categoryIds = getAll(fd, "categories");
 
   const slug = await uniqueSlug(slugify(app.businessName), async (s) => !!(await db.business.findUnique({ where: { slug: s }, select: { id: true } })));
@@ -33,15 +77,9 @@ export async function approveApplication(_: ActionState, fd: FormData): Promise<
 
   let createdUser = false;
   if (p.data.linkOwner) {
-    let owner = app.userId ? await db.user.findUnique({ where: { id: app.userId } }) : null;
-    owner ??= await db.user.findUnique({ where: { email: app.email.toLowerCase() } });
-    if (!owner) {
-      owner = await db.user.create({ data: { email: app.email.toLowerCase(), name: app.contactName, role: "BUSINESS_OWNER" } });
-      createdUser = true;
-    } else if (owner.role === "MEMBER") {
-      owner = await db.user.update({ where: { id: owner.id }, data: { role: "BUSINESS_OWNER" } });
-    }
-    await db.businessOwner.upsert({ where: { userId_businessId: { userId: owner.id, businessId: business.id } }, create: { userId: owner.id, businessId: business.id }, update: {} });
+    const r = await applicantAccount(app);
+    createdUser = r.createdUser;
+    await db.businessOwner.upsert({ where: { userId_businessId: { userId: r.owner.id, businessId: business.id } }, create: { userId: r.owner.id, businessId: business.id }, update: {} });
   }
 
   await db.businessApplication.update({ where: { id: app.id }, data: { status: "APPROVED", businessId: business.id, reviewedById: user.id, reviewedAt: new Date(), reviewNote: p.data.note } });

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { articleHref, businessHref, eventHref, specialHref } from "@/lib/links";
 import { publicBusinessWhere, publishedArticleWhere } from "@/lib/queries";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { upcomingEventWhere } from "@/lib/events";
 import { stripHtml } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     db.business.findMany({ where: publicBusinessWhere({ OR: [{ name: c }, { city: c }] }), select: { slug: true, name: true, city: true }, take: 5, orderBy: { name: "asc" } }),
     db.article.findMany({ where: publishedArticleWhere({ title: c }), select: { slug: true, title: true, legacyPath: true, publishedAt: true }, take: 5, orderBy: { publishedAt: "desc" } }),
     db.event.findMany({ where: { AND: [upcomingEventWhere(), { title: c }] }, select: { slug: true, title: true, city: true }, take: 4, orderBy: { startAt: "asc" } }),
-    db.promotion.findMany({ where: { ...activePromotionWhere(), title: c }, select: { slug: true, title: true, business: { select: { name: true } } }, take: 4 }),
+    db.promotion.findMany({ where: { ...(await publicPromotionWhere()), title: c }, select: { slug: true, title: true, business: { select: { name: true } } }, take: 4 }),
   ]);
   const results = [
     ...businesses.map((b) => ({ type: "Business", title: b.name, subtitle: b.city, href: businessHref(b) })),

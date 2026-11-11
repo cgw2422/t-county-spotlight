@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireBusinessAccess } from "@/lib/auth";
+import { OWNER_ONLY_MESSAGE, canManageOwnership, requireBusinessAccess } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
@@ -13,7 +13,9 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const businessId = String(form.get("businessId") ?? "");
   if (!businessId) return NextResponse.json({ error: "Missing business" }, { status: 400 });
-  await requireBusinessAccess(businessId);
+  const { role } = await requireBusinessAccess(businessId);
+  // Billing is owner-only: managers can't open the Stripe portal.
+  if (!canManageOwnership(role)) return NextResponse.json({ error: OWNER_ONLY_MESSAGE }, { status: 403 });
 
   const back = absoluteUrl(`/dashboard/${businessId}/membership/`);
   const stripe = getStripe();

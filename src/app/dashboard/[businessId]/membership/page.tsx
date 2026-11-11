@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Check, CreditCard, Info, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
-import { requireBusinessAccess } from "@/lib/auth";
+import { requireBusinessOwner } from "@/lib/auth";
 import { getBusinessEntitlements } from "@/lib/entitlements";
 import { getSettings } from "@/lib/settings";
 import { stripeConfigured } from "@/lib/stripe";
@@ -33,7 +33,7 @@ const FLASH: Record<string, [string, string]> = {
 export default async function MembershipPage({ params, searchParams }: { params: Promise<{ businessId: string }>; searchParams: Promise<{ checkout?: string; billing?: string }> }) {
   const { businessId } = await params;
   const sp = await searchParams;
-  const { business } = await requireBusinessAccess(businessId);
+  const { business } = await requireBusinessOwner(businessId);
   const [{ plan: currentPlan, entitlements }, settings, plans, subs, products, photoCount, eventCount] = await Promise.all([
     getBusinessEntitlements(business.id),
     getSettings(),

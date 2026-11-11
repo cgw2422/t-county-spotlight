@@ -9,6 +9,7 @@ import { ActionForm, Submit } from "@/components/admin/action-form";
 import { ActionButton } from "@/components/admin/action-button";
 import { Checkbox, SelectField, TextArea } from "@/components/admin/form-field";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { applicationClaim } from "@/lib/applications";
 import { approveApplication, rejectApplication } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -33,17 +34,37 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
     db.user.findUnique({ where: { email: app.email.toLowerCase() }, select: { id: true, role: true } }),
     db.business.findMany({ where: { name: { contains: app.businessName.split(/\s+/)[0], mode: "insensitive" }, deletedAt: null }, take: 5, select: { id: true, name: true, city: true } }),
   ]);
+  // Claim of an existing listing vs. a new business (claims never create a listing).
+  const claim = applicationClaim(app);
+  const claimed = claim
+    ? await db.business.findUnique({
+      where: { id: claim.businessId },
+      select: { id: true, name: true, slug: true, status: true, deletedAt: true, owners: { orderBy: { createdAt: "asc" }, select: { role: true, user: { select: { name: true, email: true } } } } },
+    })
+    : null;
+  const claimDeleted = !!claim && (!claimed || !!claimed.deletedAt);
+  const claimOwners = claimed?.owners.filter((o) => o.role === "OWNER") ?? [];
   const guess = categories.find((c) => app.category && c.name.toLowerCase().includes(app.category.toLowerCase().split(/[ &,]/)[0]));
   const extra = app.data && typeof app.data === "object" ? Object.entries(app.data as Record<string, unknown>).filter(([, v]) => v !== null && v !== "" && typeof v !== "object") : [];
 
   return (
     <>
       <PageHeader title={app.businessName} back={{ href: "/admin/applications/", label: "Applications" }} eyebrow={<StatusBadge status={app.status} />} description={`Submitted ${formatDateTime(app.createdAt)}`} />
+      <div className="mb-4" data-testid="application-kind">
+        {claim ? (
+          <span className="badge-amber">
+            Claim of existing listing:{" "}
+            {claimed ? <Link className="underline" href={`/admin/businesses/${claimed.id}/`}>{claimed.name}</Link> : (claim.name || "deleted listing")}
+            {claimDeleted && " (deleted)"}
+          </span>
+        ) : <span className="badge-blue">New business</span>}
+      </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
           <Card title="Application details">
             <dl className="divide-y divide-slate-100">
               <Row label="Business">{app.businessName}</Row>
+              <Row label="Type">{claim ? <>Claim of existing listing: {claimed && !claimed.deletedAt ? <Link className="text-brand-700 hover:underline" href={`/admin/businesses/${claimed.id}/`}>{claimed.name}</Link> : <>{claim.name || "unknown listing"} (deleted)</>}</> : "New business"}</Row>
               <Row label="Contact">{app.contactName}</Row>
               <Row label="Email"><a className="text-brand-700 hover:underline" href={`mailto:${app.email}`}>{app.email}</a></Row>
               <Row label="Phone">{app.phone}</Row>
@@ -56,7 +77,17 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
               {app.user && <Row label="Submitted by">{app.user.name || app.user.email} (signed in)</Row>}
             </dl>
           </Card>
-          {similar.length > 0 && (
+          {claimDeleted && (
+            <Notice tone="danger" title="The claimed listing was deleted">
+              {claim?.name || "The listing"} no longer exists, so this can&apos;t be approved as a claim. Reject the application (the applicant is emailed your reason), or ask them to apply as a new business.
+            </Notice>
+          )}
+          {claimed && !claimDeleted && claimOwners.length > 0 && (
+            <Notice tone="warn" title="This listing already has owners">
+              <p data-testid="claim-owner-warning">This listing already has {claimOwners.length} owner{claimOwners.length === 1 ? "" : "s"}: {claimOwners.map((o) => `${o.user.name ? `${o.user.name} ` : ""}<${o.user.email}>`).join(", ")}. Approving adds {app.email} as another owner — existing owners keep their access. Verify the claim before approving.</p>
+            </Notice>
+          )}
+          {!claim && similar.length > 0 && (
             <Notice tone="warn" title="Possible duplicates">
               <ul className="mt-1 list-disc pl-5">{similar.map((s) => <li key={s.id}><Link className="underline" href={`/admin/businesses/${s.id}/`}>{s.name}</Link>{s.city ? ` — ${s.city}` : ""}</li>)}</ul>
             </Notice>
@@ -65,6 +96,25 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
         <div className="space-y-6">
           {app.status === "PENDING" ? (
             <>
+              {claim ? (
+                <Card title="Approve claim">
+                  {claimDeleted ? (
+                    <p className="text-sm text-slate-600">Approval is blocked because the claimed listing was deleted. Reject this application instead.</p>
+                  ) : (
+                    <ActionForm action={approveApplication} className="space-y-3">
+                      <input type="hidden" name="id" value={app.id} />
+                      <p className="text-sm text-slate-600">
+                        Approving adds <strong className="break-all">{app.email}</strong> as an <strong>owner</strong> of the existing listing{" "}
+                        <Link className="text-brand-700 underline" href={`/admin/businesses/${claimed!.id}/`}>{claimed!.name}</Link>. No new listing is created and the listing&apos;s content, photos, recommendations and membership stay as they are.
+                      </p>
+                      <p className="text-xs text-slate-500">{existingUser ? `Existing ${existingUser.role.toLowerCase().replace("_", " ")} account will be linked.` : "A Business Owner account will be created with no password; they set one via “Forgot password”."}</p>
+                      <Checkbox name="notify" defaultChecked label="Email the applicant" />
+                      <TextArea name="note" label="Note to applicant (optional)" rows={2} />
+                      <Submit pendingText="Approving…" className="btn-primary w-full"><CheckCircle2 className="h-4 w-4" /> Approve claim & add owner</Submit>
+                    </ActionForm>
+                  )}
+                </Card>
+              ) : (
               <Card title="Approve">
                 <ActionForm action={approveApplication} className="space-y-3">
                   <input type="hidden" name="id" value={app.id} />
@@ -83,6 +133,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                   <Submit pendingText="Approving…" className="btn-primary w-full"><CheckCircle2 className="h-4 w-4" /> Approve & create listing</Submit>
                 </ActionForm>
               </Card>
+              )}
               <Card title="Reject">
                 <p className="mb-3 text-sm text-slate-600">The applicant is emailed the reason you give.</p>
                 <ActionButton action={rejectApplication} fields={{ id: app.id }} className="btn-secondary w-full text-red-700" prompt={{ name: "note", label: "Reason for rejection", required: true, placeholder: "e.g. This business is outside Tuscarawas County." }} confirm={{ title: "Reject this application?", confirmLabel: "Reject & notify", danger: true }}>

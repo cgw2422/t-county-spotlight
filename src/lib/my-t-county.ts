@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { getCurrentUser } from "./auth";
-import { activePromotionWhere } from "./promotions";
+import { publicPromotionWhere } from "./promotions";
 import { attributeWhere } from "./events";
 import { getUpcomingOccurrences, publicBusinessWhere, businessCardSelect } from "./queries";
 import {
@@ -89,9 +89,10 @@ const specialSelect = {
 
 /** Active specials in the default homepage order (sponsored/featured/newest), with the business city for community ordering. */
 export async function getSpecialsWithCity(take = 60, featuredIds: string[] = []) {
+  const live = await publicPromotionWhere();
   const [featured, rest] = await Promise.all([
-    featuredIds.length ? db.promotion.findMany({ where: { ...activePromotionWhere(), id: { in: featuredIds } }, select: specialSelect }) : [],
-    db.promotion.findMany({ where: activePromotionWhere(), orderBy: [{ isSponsored: "desc" }, { isFeatured: "desc" }, { startsAt: "desc" }], take, select: specialSelect }),
+    featuredIds.length ? db.promotion.findMany({ where: { ...live, id: { in: featuredIds } }, select: specialSelect }) : [],
+    db.promotion.findMany({ where: live, orderBy: [{ isSponsored: "desc" }, { isFeatured: "desc" }, { startsAt: "desc" }], take, select: specialSelect }),
   ]);
   const order = new Map(featuredIds.map((id, i) => [id, i]));
   const pinned = [...featured].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));

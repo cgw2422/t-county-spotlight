@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 const getOpening = cache(async (id: string) => {
   if (!/^[a-z0-9]{10,40}$/i.test(id)) return null;
-  return db.businessUpdate.findFirst({ where: publicOpeningsWhere({ id }), select: { ...openingCardSelect, updatedAt: true } });
+  return db.businessUpdate.findFirst({ where: await publicOpeningsWhere({ id }), select: { ...openingCardSelect, updatedAt: true } });
 });
 
 function safeLink(url: string | null) {

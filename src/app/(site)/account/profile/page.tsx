@@ -6,6 +6,8 @@ import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { DeleteAccountForm } from "@/components/account/delete-account-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { formatDate } from "@/lib/utils";
+import { getSettings } from "@/lib/settings";
+import { soleOwnershipBlocks } from "@/lib/sole-ownership";
 import { changeEmailAction, changePasswordAction, updateNameAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +25,8 @@ function Section({ title, description, children, danger }: { title: string; desc
 export default async function ProfilePage() {
   const user = await getCurrentUser();
   if (!user) return null;
+  const blocks = isStaff(user) ? [] : await soleOwnershipBlocks(user.id);
+  const contactEmail = blocks.some((b) => !b.teamHref) ? (await getSettings()).contactEmail : "";
   return (
     <div className="space-y-6">
       <Section title="Your name">
@@ -62,6 +66,26 @@ export default async function ProfilePage() {
       <Section title="Delete account" danger description="This permanently removes your account, saved items, follows and notification settings. It can't be undone.">
         {isStaff(user) ? (
           <p className="text-sm text-slate-600">Staff accounts must be removed by another administrator.</p>
+        ) : blocks.length > 0 ? (
+          <div className="space-y-3 text-sm text-slate-700" data-testid="delete-blocked">
+            <p>
+              <strong>You can&apos;t delete your account yet.</strong> You&apos;re the only owner of {blocks.length === 1 ? "this listing" : "these listings"}, and
+              deleting your account would leave {blocks.length === 1 ? "it" : "them"} without an owner. Make someone else an owner first — then you can delete your account.
+              Other owners and managers keep their access.
+            </p>
+            <ul className="space-y-2">
+              {blocks.map((b) => (
+                <li key={`${b.kind}:${b.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3">
+                  <span className="min-w-0 font-semibold text-navy-900">{b.name}<span className="ml-2 text-xs font-normal text-slate-500">{b.kind === "business" ? "Business" : "Organization"}</span></span>
+                  {b.teamHref ? (
+                    <Link href={b.teamHref} className="btn-secondary btn-sm">Transfer ownership</Link>
+                  ) : (
+                    <span className="text-xs text-slate-500">This listing is suspended. Contact T County Connect for help{contactEmail ? <>: <a className="underline" href={`mailto:${contactEmail}`}>{contactEmail}</a></> : ""}.</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           <DeleteAccountForm email={user.email} hasPassword={!!user.passwordHash} />
         )}

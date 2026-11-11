@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { descriptionLength } from "./description";
+import type { Prisma } from "@/generated/prisma/client";
 
 export { descriptionLength };
 
@@ -89,3 +90,55 @@ function pick(e: StoredEntitlements): Partial<Entitlements> {
   return out;
 }
 
+
+// ───────────── Public visibility of premium content ─────────────
+
+/** Boolean features whose owner-created content is only public while the listing has the entitlement. */
+export type GatedFeature = "promotions" | "updates";
+
+/**
+ * Prisma BusinessWhereInput matching listings that CURRENTLY have `feature`, using
+ * exactly the rules of getBusinessEntitlements: the Free plan's stored entitlements
+ * apply to everyone; otherwise an ACTIVE/TRIALING subscription (period not ended)
+ * to a non-free plan that doesn't switch the feature off. Returns null when the
+ * Free plan itself grants the feature (no restriction needed).
+ *
+ * Content is never deleted — it reappears automatically when the entitlement returns.
+ */
+export async function entitledBusinessWhere(feature: GatedFeature, now = new Date()): Promise<Prisma.BusinessWhereInput | null> {
+  const plans = await db.membershipPlan.findMany({ select: { id: true, interval: true, sortOrder: true, entitlements: true } });
+  const free = plans.filter((p) => p.interval === "FREE").sort((a, b) => a.sortOrder - b.sortOrder)[0];
+  const freeEnt = { ...FREE_ENTITLEMENTS, ...pick((free?.entitlements ?? {}) as StoredEntitlements) };
+  if (freeEnt[feature]) return null;
+  const granting = plans.filter((p) => p.interval !== "FREE" && { ...PREMIUM_ENTITLEMENTS, ...pick((p.entitlements ?? {}) as StoredEntitlements) }[feature]).map((p) => p.id);
+  return {
+    subscriptions: {
+      some: {
+        planId: { in: granting },
+        status: { in: ["ACTIVE", "TRIALING"] },
+        OR: [{ currentPeriodEnd: null }, { currentPeriodEnd: { gte: now } }],
+      },
+    },
+  };
+}
+
+/**
+ * Where-fragment for PUBLIC BusinessUpdate rows (general updates and New & Coming Soon
+ * openings). Rule: updates an owner/manager posted for their listing are premium content
+ * and only public while the listing has the `updates` entitlement. Announcements created
+ * by staff (submittedById is an ADMIN/EDITOR or unknown/legacy) and announcements with no
+ * listing stay public regardless of membership.
+ */
+export async function publicUpdateEntitlementWhere(now = new Date()): Promise<Prisma.BusinessUpdateWhereInput> {
+  const ent = await entitledBusinessWhere("updates", now);
+  if (!ent) return {};
+  const staff = await db.user.findMany({ where: { role: { in: ["ADMIN", "EDITOR"] } }, select: { id: true } });
+  return {
+    OR: [
+      { businessId: null },
+      { submittedById: null },
+      { submittedById: { in: staff.map((s) => s.id) } },
+      { business: ent },
+    ],
+  };
+}

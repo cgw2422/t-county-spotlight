@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireBusinessAccess } from "@/lib/auth";
+import { requireBusinessAccess, requireBusinessOwner } from "@/lib/auth";
 import { descriptionLength, getBusinessEntitlements } from "@/lib/entitlements";
 import { addPhotosWithinLimit, createEventWithinLimit, photoLimitMessage } from "@/lib/listing-limits";
 import { VENDOR_INFO_MAX, parseEventTags } from "@/lib/events";
@@ -44,6 +44,13 @@ async function access(fd: FormData) {
   const businessId = str(fd, "businessId");
   if (!businessId) redirect("/dashboard/");
   return requireBusinessAccess(businessId);
+}
+
+/** Membership & billing: listing owners (and staff) only — managers are redirected with a notice. */
+async function ownerAccess(fd: FormData) {
+  const businessId = str(fd, "businessId");
+  if (!businessId) redirect("/dashboard/");
+  return requireBusinessOwner(businessId);
 }
 
 async function uniqueSlug(base: string, exists: (slug: string) => Promise<boolean>) {
@@ -453,7 +460,7 @@ export async function deleteUpdateAction(fd: FormData) {
 // ───────────── Membership / Stripe ─────────────
 
 export async function startCheckoutAction(fd: FormData) {
-  const { user, business } = await access(fd);
+  const { user, business } = await ownerAccess(fd);
   const back = `/dashboard/${business.id}/membership/`;
   const settings = await getSettings();
   const stripe = getStripe();
@@ -485,7 +492,7 @@ export async function startCheckoutAction(fd: FormData) {
 }
 
 export async function buySponsorshipAction(fd: FormData) {
-  const { user, business } = await access(fd);
+  const { user, business } = await ownerAccess(fd);
   const back = `/dashboard/${business.id}/membership/`;
   const settings = await getSettings();
   const stripe = getStripe();
@@ -513,7 +520,7 @@ export async function buySponsorshipAction(fd: FormData) {
 }
 
 export async function setCancelAtPeriodEndAction(fd: FormData) {
-  const { user, business } = await access(fd);
+  const { user, business } = await ownerAccess(fd);
   const back = `/dashboard/${business.id}/membership/`;
   const cancel = str(fd, "cancel") === "1";
   const sub = await db.subscription.findFirst({ where: { id: str(fd, "subscriptionId"), businessId: business.id, source: "stripe", stripeSubscriptionId: { not: null } } });

@@ -5,7 +5,7 @@ import { Clock, Globe, Mail, MapPin, Megaphone, MessagesSquare, Navigation, Phon
 import { db } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { articleCardSelect, eventCardSelect, publishedArticleWhere } from "@/lib/queries";
 import { expandOccurrences, upcomingEventWhere } from "@/lib/events";
 import { businessHref } from "@/lib/links";
@@ -29,7 +29,7 @@ import { PulseMentions } from "@/components/pulse/pulse-mentions";
 import { getPulseRecommendation, pulseHref } from "@/lib/pulse";
 import { BusinessOfferings } from "@/components/public/business-offerings";
 import { getCurrentOpeningForBusiness, OPENING_BADGE, OPENING_LABELS, isOpeningKind, openingDatePrefix, openingDateText, openingHref } from "@/lib/openings";
-import { getBusinessEntitlements } from "@/lib/entitlements";
+import { getBusinessEntitlements, publicUpdateEntitlementWhere } from "@/lib/entitlements";
 import { publicGalleryPhotos } from "@/lib/listing-limits";
 import { FoodTruckSchedule } from "@/components/food-trucks/truck-schedule";
 import { communityHref } from "@/lib/communities-shared";
@@ -104,11 +104,11 @@ export default async function BusinessPage({ params }: Props) {
     db.article.findMany({ where: publishedArticleWhere({ businesses: { some: { businessId: b.id } } }), orderBy: { publishedAt: "desc" }, take: 6, select: articleCardSelect }),
     db.event.findMany({ where: { AND: [upcomingEventWhere(now), { businessId: b.id }] }, select: eventCardSelect, take: 50 }),
     db.promotion.findMany({
-      where: { ...activePromotionWhere(now), businessId: b.id },
+      where: { ...(await publicPromotionWhere(now)), businessId: b.id },
       orderBy: [{ isFeatured: "desc" }, { startsAt: "desc" }],
       select: { id: true, slug: true, title: true, imageUrl: true, endsAt: true, isFeatured: true, isSponsored: true, business: { select: { name: true, logoUrl: true, coverUrl: true } } },
     }),
-    db.businessUpdate.findMany({ where: { businessId: b.id, status: "PUBLISHED" }, orderBy: { createdAt: "desc" }, take: 5 }),
+    db.businessUpdate.findMany({ where: { AND: [{ businessId: b.id, status: "PUBLISHED" }, await publicUpdateEntitlementWhere(now)] }, orderBy: { createdAt: "desc" }, take: 5 }),
     isSaved("BUSINESS", b.id),
     isFollowing(b.id),
     getBusinessEntitlements(b.id),

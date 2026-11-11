@@ -10,6 +10,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { homeForRole, sendVerificationEmail } from "@/lib/tokens";
 import { postLoginHome } from "@/lib/gives/access";
 import { audit } from "@/lib/audit";
+import { soleOwnershipBlocks } from "@/lib/sole-ownership";
 import { NOTIFICATION_KEYS, PLANNED_EMAIL_KEYS, enabledCategories, readNotificationPrefs, type NotificationPrefs } from "@/lib/notification-categories";
 import type { ActionState } from "@/components/ui/form-message";
 
@@ -138,6 +139,11 @@ export async function enableSavedEventRemindersAction(): Promise<{ ok: boolean; 
 export async function deleteAccountAction(_p: ActionState, fd: FormData): Promise<ActionState> {
   const user = await me();
   if (isStaff(user)) return { error: "Staff accounts must be removed by another administrator." };
+  // Never leave a listing without an owner: the only owner must add/promote another owner first.
+  const blocks = await soleOwnershipBlocks(user.id);
+  if (blocks.length) {
+    return { error: `You're the only owner of ${blocks.map((b) => b.name).join(", ")}. Make someone else an owner first (from the listing's Team page), then you can delete your account.` };
+  }
   const typed = String(fd.get("confirmEmail") ?? "").trim().toLowerCase();
   if (typed !== user.email.toLowerCase()) return { error: "Type your email address exactly to confirm." };
   if (user.passwordHash && !(await verifyPassword(String(fd.get("currentPassword") ?? ""), user.passwordHash))) {

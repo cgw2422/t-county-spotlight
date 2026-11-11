@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { getUpcomingOccurrences } from "@/lib/queries";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { businessHref, eventHref, specialHref } from "@/lib/links";
 import { publicStopWhere, stopSelect, shortTime, nyDateKey } from "@/lib/food-trucks";
 import { activeSaleWhere, garageSaleCardSelect, garageSaleHref, overlapsRange, toPublicSale } from "@/lib/garage-sales";
@@ -88,7 +88,7 @@ export async function fetchLocalItems(o: FetchOpts): Promise<Record<LocalItemTyp
       : [],
     want("opening")
       ? db.businessUpdate.findMany({
-        where: publicOpeningsWhere({ AND: [names ? { OR: names.map((c) => openingCityWhere(c)) } : {}, { publishedAt: { gte: since ?? new Date(now.getTime() - 14 * 86400_000) } }] }),
+        where: await publicOpeningsWhere({ AND: [names ? { OR: names.map((c) => openingCityWhere(c)) } : {}, { publishedAt: { gte: since ?? new Date(now.getTime() - 14 * 86400_000) } }] }),
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }], take: take * 2, select: openingCardSelect,
       })
       : [],
@@ -106,7 +106,7 @@ export async function fetchLocalItems(o: FetchOpts): Promise<Record<LocalItemTyp
       : [],
     want("special")
       ? db.promotion.findMany({
-        where: { AND: [activePromotionWhere(now), { isSponsored: false }, names ? { business: { city: ci(names) } } : {}] },
+        where: { AND: [await publicPromotionWhere(now), { isSponsored: false }, names ? { business: { city: ci(names) } } : {}] },
         orderBy: [{ isFeatured: "desc" }, { startsAt: "desc" }], take: take * 2,
         select: { id: true, slug: true, title: true, endsAt: true, business: { select: { name: true, city: true } } },
       })

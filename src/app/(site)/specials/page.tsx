@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Tag } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { activePromotionWhere } from "@/lib/promotions";
+import { publicPromotionWhere } from "@/lib/promotions";
 import { cn } from "@/lib/utils";
 import { SpecialCard } from "@/components/cards/special-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -36,7 +36,7 @@ export default async function SpecialsPage({ searchParams }: { searchParams: Sea
   const catSlug = param(sp, "category");
   const page = pageParam(sp);
   const now = new Date();
-  const active = activePromotionWhere(now);
+  const active = await publicPromotionWhere(now);
 
   const [settings, categories] = await Promise.all([
     getSettings(),
