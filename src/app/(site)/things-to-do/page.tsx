@@ -32,7 +32,7 @@ export default async function ThingsToDoPage() {
     db.article.findMany({ where: publishedArticleWhere({ kind: "THINGS_TO_DO" }), select: articleCardSelect, orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }], take: 7 }),
     getUpcomingOccurrences({ from: start, to: end, limit: 4, where: { category: { slug: { in: FUN_EVENT_CATEGORIES } } } }),
     getUpcomingOccurrences({ limit: 6, where: { category: { slug: { in: FUN_EVENT_CATEGORIES } } } }),
-    db.business.findMany({ where: publicBusinessWhere({ categories: { some: { slug: { in: ATTRACTION_CATEGORIES } } } }), select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { isSpotlighted: "desc" }, { name: "asc" }], take: 8 }),
+    db.business.findMany({ where: publicBusinessWhere({ categories: { some: { slug: { in: ATTRACTION_CATEGORIES } } } }), select: businessCardSelect(), orderBy: [{ isFeatured: "desc" }, { name: "asc" }], take: 8 }),
   ]);
   const weekendIds = new Set(weekend.map((e) => e.id));
   const later = upcoming.filter((e) => !weekendIds.has(e.id)).slice(0, 6);

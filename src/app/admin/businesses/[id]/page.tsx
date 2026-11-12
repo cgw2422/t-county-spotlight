@@ -19,6 +19,7 @@ import { getBusinessEntitlements } from "@/lib/entitlements";
 import { countListingEvents } from "@/lib/listing-limits";
 import { grantMembership, revokeMembership, saveBusinessArticles, savePhotos, setBusinessStatus, trashBusiness } from "../actions";
 import { setRecommendationsDisabled } from "../../recommendations/actions";
+import { getBusinessSpotlightArticles } from "@/lib/spotlights";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Edit business" };
@@ -39,14 +40,16 @@ export default async function EditBusinessPage({ params, searchParams }: { param
     },
   });
   if (!b) notFound();
-  const [categories, plans, accessRows, { entitlements }, offerings, eventCount] = await Promise.all([
+  const [categories, plans, accessRows, { entitlements }, offerings, eventCount, spotlightArticles] = await Promise.all([
     db.businessCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
     isAdmin ? db.membershipPlan.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true, isActive: true } }) : [],
     listingAccessRows({ kind: "business", id }),
     getBusinessEntitlements(id),
     db.businessOfferingSection.findMany({ where: { businessId: id }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { items: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } } }),
     countListingEvents(id),
+    getBusinessSpotlightArticles(id),
   ]);
+  const spotlighted = spotlightArticles.some((a) => a.live);
   const tierLabel = entitlements.tier === "PREMIUM" ? "Premium" : "Free";
   const now = new Date();
   const activeSubs = b.subscriptions.filter((s) => ["ACTIVE", "TRIALING"].includes(s.status) && (!s.currentPeriodEnd || s.currentPeriodEnd >= now));
@@ -56,7 +59,7 @@ export default async function EditBusinessPage({ params, searchParams }: { param
       <PageHeader
         title={b.name}
         back={{ href: "/admin/businesses/", label: "Businesses" }}
-        eyebrow={<div className="flex flex-wrap gap-1.5"><StatusBadge status={b.status} />{b.isSpotlighted && <span className="badge-blue">Editorial spotlight</span>}{activeSubs[0] && <span className="badge-green">{activeSubs[0].plan.name} member</span>}{b.deletedAt && <span className="badge-red">Deleted</span>}</div>}
+        eyebrow={<div className="flex flex-wrap gap-1.5"><StatusBadge status={b.status} />{spotlighted && <span className="badge-blue">Editorial spotlight</span>}{activeSubs[0] && <span className="badge-green">{activeSubs[0].plan.name} member</span>}{b.deletedAt && <span className="badge-red">Deleted</span>}</div>}
         actions={
           <>
             {b.status === "PUBLISHED" && <a href={businessHref(b)} target="_blank" rel="noreferrer" className="btn-secondary btn-sm"><ExternalLink className="h-4 w-4" /> View</a>}
@@ -70,7 +73,7 @@ export default async function EditBusinessPage({ params, searchParams }: { param
       {created && <div className="mb-4"><Notice tone="success">Business created. Add photos, owners and linked articles using the tabs below.{owner === "new" && " An owner account was created without a password — use Listing Access → Resend invitation to email them a secure link to set one."}</Notice></div>}
       <ClientTabs
         tabs={[
-          { id: "details", label: "Details", content: <BusinessForm b={b} categories={categories} selectedCategoryIds={b.categories.map((c) => c.id)} /> },
+          { id: "details", label: "Details", content: <BusinessForm b={b} categories={categories} selectedCategoryIds={b.categories.map((c) => c.id)} spotlightArticles={spotlightArticles} /> },
           {
             id: "photos", label: "Photos", badge: b.photos.length,
             content: (

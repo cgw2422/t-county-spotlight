@@ -10,7 +10,7 @@ export function loadEvent(slug: string) {
     where: { slug: s.toLowerCase(), status: "PUBLISHED", deletedAt: null },
     include: {
       category: { select: { name: true, slug: true } },
-      business: { select: { ...businessCardSelect, status: true, deletedAt: true } },
+      business: { select: { ...businessCardSelect(), status: true, deletedAt: true } },
       organization: { select: { ...orgCardSelect, status: true, isPublished: true, deletedAt: true } },
     },
   });

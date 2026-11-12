@@ -192,6 +192,7 @@ export function ArticleForm({ article, categories, tagSuggestions }: {
               <select id="f-kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value)} className="input">
                 {KIND_OPTIONS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
               </select>
+              {kind === "SPOTLIGHT" && <p className="help" data-testid="spotlight-kind-help">Associate the business below — its Spotlight badge appears automatically while this story is published.</p>}
             </div>
             {kind === "ANNOUNCEMENT" && (
               <div>

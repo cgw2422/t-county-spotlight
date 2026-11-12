@@ -73,7 +73,7 @@ export async function resolveCollectionItems(items: CollectionItemRow[], now = n
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
   const [bIds, aIds, eIds, oIds, pIds] = (["BUSINESS", "ARTICLE", "EVENT", "ORGANIZATION", "PULSE"] as const).map((t) => ids(sorted, t));
   const [businesses, articles, events, orgs, pulses] = await Promise.all([
-    bIds.length ? db.business.findMany({ where: publicBusinessWhere({ id: { in: bIds } }), select: businessCardSelect }) : [],
+    bIds.length ? db.business.findMany({ where: publicBusinessWhere({ id: { in: bIds } }), select: businessCardSelect() }) : [],
     aIds.length ? db.article.findMany({ where: publishedArticleWhere({ id: { in: aIds } }), select: { ...articleCardSelect, city: true } }) : [],
     eIds.length ? getUpcomingOccurrences({ from: now, to: new Date(now.getTime() + 400 * 86400_000), where: { id: { in: eIds } } }) : [],
     oIds.length ? db.organization.findMany({ where: publicOrgWhere({ id: { in: oIds } }), select: orgCardSelect }) : [],

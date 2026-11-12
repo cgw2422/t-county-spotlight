@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { articleCardSelect, businessCardSelect, publishedArticleWhere } from "@/lib/queries";
+import { articleCardSelect, businessCardBaseSelect, publishedArticleWhere } from "@/lib/queries";
 import type { Prisma } from "@/generated/prisma/client";
 import { buildMetadata } from "./seo";
 import { articleHref } from "@/lib/links";
@@ -10,7 +10,7 @@ export const articleViewInclude = {
   categories: { select: { id: true, name: true, slug: true } },
   tags: { select: { id: true, name: true, slug: true } },
   author: { select: { name: true } },
-  businesses: { include: { business: { select: { ...businessCardSelect, status: true, deletedAt: true, phone: true, address: true } } } },
+  businesses: { include: { business: { select: { ...businessCardBaseSelect, status: true, deletedAt: true, phone: true, address: true } } } },
 } satisfies Prisma.ArticleInclude;
 
 export type ArticleForView = Prisma.ArticleGetPayload<{ include: typeof articleViewInclude }>;

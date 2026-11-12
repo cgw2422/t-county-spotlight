@@ -116,7 +116,10 @@ async function main() {
     check("business socials", (coffee?.socials as Record<string, string>)?.facebook === "https://facebook.com/fixturecoffee");
     check("business logo + cover + 2 gallery photos", !!coffee?.logoUrl?.startsWith("/media/") && !!coffee?.coverUrl?.startsWith("/media/") && coffee?.photos.length === 2);
     check("business category from custom taxonomy", coffee?.categories.some((c) => c.slug === "fixture-cafes"));
-    check("business spotlighted (has published spotlight article)", coffee?.isSpotlighted === true);
+    const { spotlightArticlesSelect, spotlightFrom } = await import("../../src/lib/spotlights");
+    const coffeeSpot = spotlightFrom((await db.business.findUnique({ where: { slug: "fixture-coffee-co" }, select: { articles: spotlightArticlesSelect() } }))?.articles);
+    check("business spotlight derived from linked published SPOTLIGHT article", coffeeSpot?.href === "/2024/05/business-spotlight-fixture-coffee-co/", coffeeSpot);
+    check("importer leaves isSpotlighted untouched", coffee?.isSpotlighted === false);
     check("hours text kept in wpMeta", ((coffee?.wpMeta as { mapped?: { hoursText?: string } })?.mapped?.hoursText ?? "").includes("7am"));
     const hw = await db.business.findUnique({ where: { slug: "fixture-hardware-store" }, include: { categories: true } });
     check("ACF google map + hours repeater mapped", hw?.latitude === 40.5031 && hw.city === "Sugarcreek" && Array.isArray(hw.hours) && hw.categories.length === 2, hw && { lat: hw.latitude, city: hw.city, hours: hw.hours });
@@ -175,7 +178,8 @@ async function main() {
     check("WXR: wpautop + [caption] → figure, variant rewritten", !!wa?.content.includes("<p>Fixture WXR first paragraph — test data only.<br />") && !!wa.content.includes('<figure id="attachment_120"') && !!wa.content.match(/src="\/media\/[^"]+fixture-wxr-photo/), wa?.content);
     check("WXR: original raw content kept", wa?.originalContent?.startsWith("Fixture WXR first paragraph"));
     check("WXR: Yoast %%vars%% resolved", wa?.seoTitle === "Fixture WXR Spotlight: Fixture WXR Salon - Fixture WXR Test Site", wa?.seoTitle);
-    check("WXR: spotlight linked to business + business spotlighted", wa?.kind === "SPOTLIGHT" && wa.businesses[0]?.business.slug === "fixture-wxr-salon" && wa.businesses[0].business.isSpotlighted);
+    const salonSpot = spotlightFrom((await db.business.findUnique({ where: { slug: "fixture-wxr-salon" }, select: { articles: spotlightArticlesSelect() } }))?.articles);
+    check("WXR: spotlight linked to business + derived spotlight", wa?.kind === "SPOTLIGHT" && wa.businesses[0]?.business.slug === "fixture-wxr-salon" && !!salonSpot && salonSpot.title === wa.title, salonSpot);
     const wb = await db.business.findUnique({ where: { slug: "fixture-wxr-salon" }, include: { categories: true, photos: true } });
     check("WXR: business postmeta mapped", wb?.address === "9 Fixture Rd" && wb.city === "Strasburg" && wb.phone === "330-555-0199" && !!wb.logoUrl && wb.photos.length === 1 && wb.categories[0]?.name === "Fixture WXR Salons & Spas", wb);
     const w2 = await run({ source: "wxr", wxrXml: xml, wxrFilename: "fixture-export.xml" });

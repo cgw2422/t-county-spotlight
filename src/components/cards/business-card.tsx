@@ -5,18 +5,25 @@ import { BusinessCardImage } from "./business-card-image";
 import { businessHref } from "@/lib/links";
 import { stripHtml, truncate } from "@/lib/utils";
 import { visibleRecommendationCount } from "@/lib/recommendations-shared";
+import { spotlightFrom, type SpotlightLink, type SpotlightRows } from "@/lib/spotlights-shared";
 
 export type BusinessCardData = {
   id: string; slug: string; name: string; tagline?: string | null; description?: string | null; city?: string | null;
-  coverUrl?: string | null; coverFocusX?: number | null; coverFocusY?: number | null; logoUrl?: string | null; isSpotlighted?: boolean;
+  coverUrl?: string | null; coverFocusX?: number | null; coverFocusY?: number | null; logoUrl?: string | null;
   categories?: { name: string }[];
   recommendationCount?: number | null; recommendationsDisabled?: boolean | null;
+  /** Most recent published Business Spotlight story (`businessCardSelect()`); drives the badge. */
+  articles?: SpotlightRows;
+  spotlight?: SpotlightLink | null;
 };
 
 export function BusinessCard({ b, sponsored, sponsoredLabel = "Sponsored" }: { b: BusinessCardData; sponsored?: boolean; sponsoredLabel?: string }) {
   const recs = visibleRecommendationCount(b);
+  const spotlight = b.spotlight !== undefined ? b.spotlight : spotlightFrom(b.articles);
+  // The card is one link to the profile; the Spotlight badge is a sibling link layered over the image (no nested <a>).
   return (
-    <Link href={businessHref(b)} className="card card-hover group flex flex-col overflow-hidden">
+    <div className="group/card relative flex flex-col" data-testid="business-card">
+    <Link href={businessHref(b)} className="card card-hover group flex flex-1 flex-col overflow-hidden">
       <div className="relative aspect-video max-h-44 w-full overflow-hidden bg-slate-100 sm:max-h-none">
         <BusinessCardImage
           name={b.name}
@@ -26,10 +33,8 @@ export function BusinessCard({ b, sponsored, sponsoredLabel = "Sponsored" }: { b
           objectPosition={b.coverUrl ? coverPosition(b.coverFocusX, b.coverFocusY) : undefined}
           sizes="(min-width:1024px) 25vw, (min-width:640px) 50vw, 100vw"
         />
-        <div className="absolute left-3 top-3 flex gap-1.5">
-          {sponsored && <span className="badge-sponsored">{sponsoredLabel}</span>}
-          {b.isSpotlighted && <span className="badge bg-white/95 text-navy-900 shadow-sm">★ Spotlight</span>}
-        </div>
+        {sponsored && !spotlight && <div className="absolute left-3 top-3 flex gap-1.5"><span className="badge-sponsored">{sponsoredLabel}</span></div>}
+        {sponsored && spotlight && <span className="sr-only">{sponsoredLabel}</span>}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
@@ -49,5 +54,21 @@ export function BusinessCard({ b, sponsored, sponsoredLabel = "Sponsored" }: { b
         )}
       </div>
     </Link>
+    {spotlight && (
+      // Overlay at the image's top-left (inside the card's 1px border); only the link itself takes clicks.
+      <div className="pointer-events-none absolute left-[calc(0.75rem+1px)] top-[calc(0.75rem+1px)] z-10 flex items-center gap-1.5 transition group-hover/card:-translate-y-0.5">
+        {sponsored && <span aria-hidden className="badge-sponsored">{sponsoredLabel}</span>}
+        <Link
+          href={spotlight.href}
+          aria-label={`Read the Business Spotlight: ${spotlight.title}`}
+          title={`Business Spotlight: ${spotlight.title}`}
+          data-testid="card-spotlight-link"
+          className="badge pointer-events-auto relative min-h-6 bg-white/95 text-navy-900 shadow-sm before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-[''] hover:bg-amber-50 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+        >
+          ★ Spotlight
+        </Link>
+      </div>
+    )}
+    </div>
   );
 }

@@ -94,8 +94,9 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       );
     }
     case "businesses": {
-      const [items, sponsored] = await Promise.all([getFeaturedBusinesses(s.featuredIds, s.limit), getActivePlacements("homepage_featured")]);
-      if (!items.length && !sponsored.length) {
+      // Featured Local Businesses: admin-pinned → isFeatured → other published listings. No sponsored placements here.
+      const list = await getFeaturedBusinesses(s.featuredIds, s.limit);
+      if (!list.length) {
         return (
           <section key={s.id} className="container-page py-10">
             <SectionHeader title={s.title} subtitle={s.subtitle} />
@@ -103,14 +104,11 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
           </section>
         );
       }
-      const sponsoredIds = new Set(sponsored.map((p) => p.businessId));
-      const sponsoredCards = sponsored.filter((p) => p.business).map((p) => p.business!);
-      const list = [...sponsoredCards, ...items.filter((b) => !sponsoredIds.has(b.id))].slice(0, s.limit);
       return (
         <section key={s.id} className="container-page py-12">
           <SectionHeader title={s.title} subtitle={s.subtitle} href="/businesses/" />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {list.map((b) => <BusinessCard key={b.id} b={b} sponsored={sponsoredIds.has(b.id)} sponsoredLabel={settings.sponsoredLabel} />)}
+            {list.map((b) => <BusinessCard key={b.id} b={b} />)}
           </div>
         </section>
       );
@@ -119,10 +117,14 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       const items = await getArticlesForSection({ kind: "SPOTLIGHT" }, s.featuredIds, s.limit);
       const list = items.length ? items : await getArticlesForSection({}, s.featuredIds, s.limit);
       if (!list.length) return null;
+      // The Spotlight title only applies when a Business Spotlight story is actually shown.
+      const hasSpotlight = list.some((a) => a.kind === "SPOTLIGHT");
+      const title = hasSpotlight ? s.title : "Local Stories";
+      const subtitle = hasSpotlight || !s.subtitle || !/spotlight|business|owner/i.test(s.subtitle) ? s.subtitle : "Stories from around Tuscarawas County";
       const [first, ...rest] = list;
       return (
         <section key={s.id} className="container-page py-12">
-          <SectionHeader title={s.title} subtitle={s.subtitle} href="/spotlights/" />
+          <SectionHeader title={title} subtitle={subtitle} href={hasSpotlight ? "/spotlights/" : "/articles/"} />
           <div className="grid gap-6 lg:grid-cols-2">
             <ArticleCard a={first} variant="feature" />
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1 lg:gap-5">

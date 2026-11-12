@@ -36,7 +36,6 @@ const schema = z.object({
   website: zUrlOpt,
   status: z.enum(STATUSES).default("DRAFT"),
   isFeatured: zBool,
-  isSpotlighted: zBool,
   seoTitle: zOpt(200),
   seoDescription: zOpt(400),
   isFoodTruck: zBool,
@@ -84,7 +83,7 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
     ...(!google.skip ? google.data : {}),
     name: d.name, slug, tagline: d.tagline, description: d.description, story: d.story, logoUrl: d.logoUrl, coverUrl: d.coverUrl, ...focusFromForm(fd),
     address: d.address, city: d.city === "__other" ? d.cityOther : d.city, zip: d.zip, phone: d.phone, email: d.email, emailPublic: d.emailPublic,
-    website: d.website, status: d.status, isFeatured: d.isFeatured, isSpotlighted: d.isSpotlighted, seoTitle: d.seoTitle, seoDescription: d.seoDescription,
+    website: d.website, status: d.status, isFeatured: d.isFeatured, seoTitle: d.seoTitle, seoDescription: d.seoDescription,
     isFoodTruck: d.isFoodTruck, cuisine: d.cuisine ? sanitizePlain(d.cuisine, 60) || null : null, menuUrl: d.menuUrl,
     socials: (parseSocials(fd) as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
     hours: (parseHours(fd) as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
@@ -105,7 +104,7 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
   }
   const statusChanged = existing && existing.status !== d.status;
   await audit(user.id, existing ? (statusChanged ? `business.${d.status === "PUBLISHED" ? "publish" : d.status.toLowerCase()}` : "business.update") : "business.create", "Business", id, {
-    name: d.name, status: d.status, ...(existing && existing.isSpotlighted !== d.isSpotlighted ? { spotlight: d.isSpotlighted } : {}),
+    name: d.name, status: d.status,
     ...((existing?.isFoodTruck ?? false) !== d.isFoodTruck ? { foodTruck: d.isFoodTruck } : {}),
   });
   revalidatePath("/admin/businesses");

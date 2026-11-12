@@ -7,6 +7,7 @@ import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
 import { publicPromotionWhere } from "@/lib/promotions";
 import { articleCardSelect, eventCardSelect, publishedArticleWhere } from "@/lib/queries";
+import { spotlightArticlesSelect, spotlightFrom } from "@/lib/spotlights";
 import { expandOccurrences, upcomingEventWhere } from "@/lib/events";
 import { businessHref } from "@/lib/links";
 import { absoluteUrl, cn, formatDate, stripHtml } from "@/lib/utils";
@@ -50,6 +51,8 @@ function load(slug: string) {
     include: {
       categories: { select: { id: true, name: true, slug: true }, orderBy: { sortOrder: "asc" } },
       photos: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      // Most recent published Business Spotlight story → "Editorial Spotlight" badge.
+      articles: spotlightArticlesSelect(),
     },
   });
 }
@@ -145,6 +148,7 @@ export default async function BusinessPage({ params }: Props) {
   const track = (type: string) => ({ type, businessId: b.id, targetType: "BUSINESS", targetId: b.id });
   const description = sanitizeRichText(b.description);
   const story = sanitizeRichText(b.story);
+  const spotlight = spotlightFrom(b.articles);
 
   return (
     <article>
@@ -165,7 +169,7 @@ export default async function BusinessPage({ params }: Props) {
             <div className="min-w-0 flex-1 sm:pt-4">
               <Breadcrumbs items={[{ label: "Businesses", href: "/businesses/" }, ...(b.categories[0] ? [{ label: b.categories[0].name, href: `/businesses/?category=${b.categories[0].slug}` }] : []), { label: b.name }]} className="mb-2 hidden sm:block" />
               <div className="flex flex-wrap items-center gap-2">
-                {b.isSpotlighted && <span className="badge bg-amber-100 text-amber-900 ring-1 ring-amber-300"><Star className="h-3 w-3 fill-current" aria-hidden /> Editorial Spotlight</span>}
+                {spotlight && <Link href={spotlight.href} aria-label={`Editorial Spotlight — Read the Business Spotlight: ${spotlight.title}`} title={`Business Spotlight: ${spotlight.title}`} data-testid="profile-spotlight-link" className="badge min-h-6 bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"><Star className="h-3 w-3 fill-current" aria-hidden /> Editorial Spotlight</Link>}
                 {status && <span className={status.open ? "badge-green" : "badge-gray"}><Clock className="h-3 w-3" aria-hidden /> {status.label}</span>}
                 {opening && openingKind && <Link href={openingHref(opening)} className={OPENING_BADGE[openingKind]} data-testid="business-opening-badge">{OPENING_LABELS[openingKind]}</Link>}
               </div>

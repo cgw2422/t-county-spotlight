@@ -95,10 +95,10 @@ async function businesses(ctx: SearchCtx, skip: number, take: number) {
       ctx.city ? { city: ci(ctx.city) } : {},
     ],
   });
-  return chain(tiers<Prisma.BusinessWhereInput, Prisma.BusinessGetPayload<{ select: typeof businessCardSelect }>>(
+  return chain(tiers<Prisma.BusinessWhereInput, Prisma.BusinessGetPayload<{ select: ReturnType<typeof businessCardSelect> }>>(
     base, { name: { startsWith: ctx.q, mode: "insensitive" } },
     (where) => db.business.count({ where }),
-    (where, s, t) => db.business.findMany({ where, select: businessCardSelect, orderBy: [{ name: "asc" }, { id: "asc" }], skip: s, take: t }),
+    (where, s, t) => db.business.findMany({ where, select: businessCardSelect(), orderBy: [{ name: "asc" }, { id: "asc" }], skip: s, take: t }),
   ), skip, take);
 }
 
@@ -131,7 +131,7 @@ async function garageSales(ctx: SearchCtx, skip: number, take: number) {
   return searchGarageSales(ctx.q, take, { city: ctx.city, skip });
 }
 
-type ThingsRow = { kind: "business"; b: Prisma.BusinessGetPayload<{ select: typeof businessCardSelect }> } | { kind: "article"; a: Prisma.ArticleGetPayload<{ select: typeof articleCardSelect }> };
+type ThingsRow = { kind: "business"; b: Prisma.BusinessGetPayload<{ select: ReturnType<typeof businessCardSelect> }> } | { kind: "article"; a: Prisma.ArticleGetPayload<{ select: typeof articleCardSelect }> };
 async function thingsToDo(ctx: SearchCtx, skip: number, take: number): Promise<Page<ThingsRow>> {
   const c = { contains: ctx.q, mode: "insensitive" as const };
   const bizWhere = publicBusinessWhere({
@@ -144,7 +144,7 @@ async function thingsToDo(ctx: SearchCtx, skip: number, take: number): Promise<P
   const artWhere = publishedArticleWhere({ AND: [{ kind: "THINGS_TO_DO" }, { OR: [{ title: c }, { excerpt: c }, { content: c }] }, ctx.city ? { city: ci(ctx.city) } : {}] });
   return chain<ThingsRow>([
     ...tiers<Prisma.BusinessWhereInput, ThingsRow>(bizWhere, { name: { startsWith: ctx.q, mode: "insensitive" } }, (where) => db.business.count({ where }),
-      async (where, s, t) => (await db.business.findMany({ where, select: businessCardSelect, orderBy: [{ name: "asc" }, { id: "asc" }], skip: s, take: t })).map((b) => ({ kind: "business" as const, b }))),
+      async (where, s, t) => (await db.business.findMany({ where, select: businessCardSelect(), orderBy: [{ name: "asc" }, { id: "asc" }], skip: s, take: t })).map((b) => ({ kind: "business" as const, b }))),
     {
       count: () => db.article.count({ where: artWhere }),
       find: async (s, t) => (await db.article.findMany({ where: artWhere, select: articleCardSelect, orderBy: [{ publishedAt: "desc" }, { id: "asc" }], skip: s, take: t })).map((a) => ({ kind: "article" as const, a })),

@@ -77,7 +77,7 @@ export async function getRecentlyAddedBusinesses(community: string | null, limit
     where: publicBusinessWhere({ isFoodTruck: false, publishedAt: { gte: since } }),
     orderBy: { publishedAt: "desc" },
     take: 40,
-    select: businessCardSelect,
+    select: businessCardSelect(),
   });
   return prioritizeByCommunity(rows, (b) => b.city, [community]).slice(0, limit);
 }

@@ -73,7 +73,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
     db.business.count({ where }),
     sort === "recommended"
       ? getBusinessesByRecommendations(where, (page - 1) * PER_PAGE, PER_PAGE)
-      : db.business.findMany({ where, select: businessCardSelect, orderBy: [{ isFeatured: "desc" }, { name: "asc" }], skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
+      : db.business.findMany({ where, select: businessCardSelect(), orderBy: [{ isFeatured: "desc" }, { name: "asc" }], skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
     page === 1 && !q ? getActivePlacements(category ? `category:${category.slug}` : "homepage_featured") : Promise.resolve([]),
   ]);
   const sponsored = placements
@@ -188,7 +188,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
 
             {businesses.length ? (
               <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {businesses.map((b) => <li key={b.id} className="flex"><div className="flex w-full flex-col [&>a]:flex-1"><BusinessCard b={b} /></div></li>)}
+                {businesses.map((b) => <li key={b.id} className="flex"><div className="flex w-full flex-col [&>div]:flex-1"><BusinessCard b={b} /></div></li>)}
               </ul>
             ) : totalAll === 0 ? (
               <EmptyState icon={Store} title="The business directory is being built">

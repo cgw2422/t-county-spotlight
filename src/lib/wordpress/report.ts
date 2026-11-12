@@ -95,7 +95,7 @@ export function reportToMarkdown(r: ImportReport): string {
     ["Articles imported", i.articles], ["Businesses imported", i.businesses], ["Pages imported", i.pages],
     ["Other post types imported as articles", i.otherTypesAsArticles], ["Categories", i.categories], ["Tags", i.tags],
     ["Business categories", i.businessCategories], ["Article ↔ business links", i.articleBusinessLinks],
-    ["Businesses marked spotlighted", i.spotlightedBusinesses], ["Records created / updated", `${i.created} / ${i.updated}`],
+    ["Businesses with a published spotlight story", i.spotlightedBusinesses], ["Records created / updated", `${i.created} / ${i.updated}`],
     ["Images referenced / downloaded / reused / failed", `${r.media.referenced} / ${r.media.downloaded} / ${r.media.reused} / ${r.media.failed}`],
     ["Preserved local edits", r.preservedLocalEdits.length], ["Skipped", r.skipped.length], ["Failed imports", r.failed.length],
     ["Missing files", r.missingFiles.length], ["Broken internal links", r.brokenLinks.length], ["Duplicates detected", r.duplicates.length],

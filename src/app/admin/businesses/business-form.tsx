@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ActionForm, DirtyIndicator, Submit } from "@/components/admin/action-form";
 import { Card } from "@/components/admin/page-header";
 import { Checkbox, FormGrid, SelectField, TextArea, TextField } from "@/components/admin/form-field";
@@ -9,6 +10,7 @@ import { ContentEditor } from "@/components/editor/content-editor";
 import type { Business } from "@/generated/prisma/client";
 import { GoogleListingAdminCard } from "@/components/business/google-listing-admin-card";
 import { saveBusiness } from "./actions";
+import type { BusinessSpotlightArticle } from "@/lib/spotlights";
 
 const SOCIALS = [
   { key: "facebook", label: "Facebook" }, { key: "instagram", label: "Instagram" }, { key: "x", label: "X (Twitter)" },
@@ -23,8 +25,35 @@ export const BUSINESS_STATUS_OPTIONS = [
   { value: "ARCHIVED", label: "Archived" },
 ];
 
-export function BusinessForm({ b, categories, selectedCategoryIds = [] }: {
+const SPOTLIGHT_STATUS: Record<string, string> = { DRAFT: "Draft", PENDING: "Pending review", SCHEDULED: "Scheduled", PUBLISHED: "Published", UNPUBLISHED: "Unpublished" };
+
+/** Read-only: the Spotlight badge is derived from linked, published Business Spotlight articles. */
+function SpotlightPanel({ articles }: { articles: BusinessSpotlightArticle[] }) {
+  const live = articles.some((a) => a.live);
+  return (
+    <div className="border-t border-slate-100 pt-3" data-testid="admin-spotlight-panel">
+      <p className="text-sm font-medium text-slate-700">Business Spotlight {live ? <span className="badge-blue ml-1">Shown</span> : <span className="badge-gray ml-1">Not shown</span>}</p>
+      <p className="help">Shown automatically when a published Spotlight article is linked to this business.</p>
+      {articles.length > 0 && (
+        <ul className="mt-2 space-y-1.5 text-sm">
+          {articles.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-x-2">
+              <Link href={`/admin/articles/${a.id}/`} className="font-medium text-brand-700 hover:underline">{a.title}</Link>
+              <span className={a.live ? "badge-green" : "badge-gray"}>{a.live ? "Published" : a.status === "PUBLISHED" ? "Scheduled" : SPOTLIGHT_STATUS[a.status] ?? a.status}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!live && (
+        <p className="mt-2 text-sm text-slate-600">No published Spotlight story — <Link href="/admin/articles/new/" className="font-semibold text-brand-700 hover:underline">create one in Articles</Link> (type: Spotlight) and associate this business.</p>
+      )}
+    </div>
+  );
+}
+
+export function BusinessForm({ b, categories, selectedCategoryIds = [], spotlightArticles = [] }: {
   b: (Business & { categoryIds?: string[] }) | null; categories: { id: string; name: string }[]; selectedCategoryIds?: string[];
+  spotlightArticles?: BusinessSpotlightArticle[];
 }) {
   const socials = (b?.socials ?? {}) as Record<string, string>;
   const imported = !!b?.wpId;
@@ -87,8 +116,8 @@ export function BusinessForm({ b, categories, selectedCategoryIds = [] }: {
           <div className="space-y-2">
             <SelectField name="status" label="Status" defaultValue={b?.status ?? "PUBLISHED"} options={BUSINESS_STATUS_OPTIONS} />
             <Checkbox name="isFeatured" label="Featured business" defaultChecked={b?.isFeatured} help="Eligible for featured directory spots." />
-            <Checkbox name="isSpotlighted" label="Editorial spotlight — never sold" defaultChecked={b?.isSpotlighted} help="Chosen by the editorial team only. Payment never grants this." />
           </div>
+          <div className="mt-3"><SpotlightPanel articles={spotlightArticles} /></div>
           <div className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4">
             <Submit pendingText="Saving…" className="btn-primary w-full">{b ? "Save changes" : "Create business"}</Submit>
             <div className="text-center"><DirtyIndicator /></div>

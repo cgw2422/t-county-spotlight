@@ -38,7 +38,7 @@ Touch targets ≥ 44px (`min-h-11`). Every page must work at 360px wide and on d
 - Mutations via Server Actions (`"use server"`), validated with `zod`. Use `useActionState` + `FormMessage` for feedback.
 - Sanitize HTML before rendering. Never render untrusted HTML unsanitized.
 - Never fabricate content, stats or engagement numbers. Show empty states instead.
-- Sponsored items are always labeled (`badge-sponsored`, `settings.sponsoredLabel`). Payment never implies editorial spotlight (`isSpotlighted` is editorial only).
+- Sponsored items are always labeled (`badge-sponsored`, `settings.sponsoredLabel`). Payment never implies editorial spotlight. A business's Spotlight badge is derived from a linked, published `SPOTLIGHT` article (`src/lib/spotlights.ts`); the legacy `Business.isSpotlighted` column is no longer read or written.
 - Soft-delete editorial records (`deletedAt`), and write `audit()` entries for publish/approve/permission/membership/settings changes.
 - Imported WordPress HTML is preserved verbatim in `Article.originalContent`; edits create an `ArticleRevision` and set `localEditedAt`.
 

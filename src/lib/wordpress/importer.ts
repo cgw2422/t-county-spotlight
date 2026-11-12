@@ -17,6 +17,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { saveSettings } from "@/lib/settings";
 import { articleHref, businessHref, normalizePath, pageHref } from "@/lib/links";
+import { hasPublishedSpotlightWhere } from "@/lib/spotlights";
 import { slugify } from "@/lib/utils";
 import { expandCoreShortcodes, extractHrefs, findShortcodes, htmlToText, wpautop } from "./html";
 import { MediaManager } from "./media";
@@ -257,7 +258,7 @@ export async function importSnapshot(snap: WpSnapshot, opts: ImportOptions = {})
     ctx.wpRecords.push({ wpType: "attachment", wpId: m.id, title: m.title?.slice(0, 300), status: newUrl ? "imported" : opts.skipMedia ? "skipped" : "failed", wpStatus: "inherit", targetType: "Media", targetId: null, sourceUrl: m.url, newPath: newUrl, error: newUrl ? null : opts.skipMedia ? "media skipped" : "download failed" });
   }
 
-  // ── article ↔ business links + spotlight flag
+  // ── article ↔ business links (Spotlight badges derive from these)
   log("Linking articles to businesses …");
   await linkArticlesToBusinesses(ctx);
 
@@ -762,12 +763,10 @@ async function linkArticlesToBusinesses(ctx: Ctx) {
     ctx.log(`  ${links.length} article↔business link(s) (${r.count} new)`);
   }
   ctx.report.imported.articleBusinessLinks = links.length;
-  const spot = await db.business.updateMany({
-    where: { id: { in: bizRows.map((b) => b.id) }, isSpotlighted: false, articles: { some: { article: { kind: "SPOTLIGHT", status: "PUBLISHED", deletedAt: null } } } },
-    data: { isSpotlighted: true },
-  });
-  ctx.report.imported.spotlightedBusinesses = await db.business.count({ where: { id: { in: bizRows.map((b) => b.id) }, isSpotlighted: true } });
-  if (spot.count) ctx.log(`  ${spot.count} business(es) newly marked as spotlighted`);
+  // The Spotlight badge is derived from linked, published SPOTLIGHT articles (src/lib/spotlights.ts);
+  // the importer no longer sets Business.isSpotlighted. Count for the report only.
+  ctx.report.imported.spotlightedBusinesses = await db.business.count({ where: { id: { in: bizRows.map((b) => b.id) }, ...hasPublishedSpotlightWhere() } });
+  if (ctx.report.imported.spotlightedBusinesses) ctx.log(`  ${ctx.report.imported.spotlightedBusinesses} business(es) with a published spotlight story`);
 }
 
 // ───────────────────────────── branding ─────────────────────────────

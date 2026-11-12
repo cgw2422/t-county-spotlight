@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { db } from "@/lib/db";
-import { articleCardSelect, businessCardSelect, publicBusinessWhere, publishedArticleWhere } from "@/lib/queries";
+import { articleCardSelect, businessCardSelect, publicBusinessWhere } from "@/lib/queries";
+import { hasPublishedSpotlightWhere, publishedSpotlightArticleWhere } from "@/lib/spotlights";
 import { ArticleCard } from "@/components/cards/article-card";
 import { BusinessCard } from "@/components/cards/business-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,18 +24,32 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
   });
 }
 
+/** Businesses with a published Business Spotlight story, most recent story first. */
+async function getSpotlightedBusinesses(take: number) {
+  const links = await db.articleBusiness.findMany({
+    where: { article: publishedSpotlightArticleWhere(), business: publicBusinessWhere() },
+    orderBy: [{ article: { publishedAt: "desc" } }, { articleId: "asc" }],
+    select: { businessId: true },
+    take: take * 10,
+  });
+  const ids = [...new Set(links.map((l) => l.businessId))].slice(0, take);
+  if (!ids.length) return [];
+  const rows = await db.business.findMany({ where: publicBusinessWhere({ AND: [{ id: { in: ids } }, hasPublishedSpotlightWhere()] }), select: businessCardSelect() });
+  return rows.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+}
+
 export default async function SpotlightsPage({ searchParams }: { searchParams: SearchParams }) {
   const page = pageParam(await searchParams);
-  const where = publishedArticleWhere({ kind: "SPOTLIGHT" });
+  const where = publishedSpotlightArticleWhere();
   const [total, lead] = await Promise.all([
     db.article.count({ where }),
     page === 1 ? db.article.findFirst({ where, select: articleCardSelect, orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }] }) : null,
   ]);
-  const listWhere = lead ? publishedArticleWhere({ kind: "SPOTLIGHT", id: { not: lead.id } }) : where;
+  const listWhere = lead ? publishedSpotlightArticleWhere({ id: { not: lead.id } }) : where;
   const listTotal = lead ? total - 1 : total;
   const [articles, businesses] = await Promise.all([
     db.article.findMany({ where: listWhere, select: articleCardSelect, orderBy: { publishedAt: "desc" }, skip: (page - 1) * PER_PAGE, take: PER_PAGE }),
-    page === 1 ? db.business.findMany({ where: publicBusinessWhere({ isSpotlighted: true }), select: businessCardSelect, orderBy: { updatedAt: "desc" }, take: 4 }) : [],
+    page === 1 ? getSpotlightedBusinesses(4) : [],
   ]);
   const totalPages = Math.max(1, Math.ceil(listTotal / PER_PAGE));
 

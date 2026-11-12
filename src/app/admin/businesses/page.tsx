@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, TUSCARAWAS_CITIES } from "@/lib/utils";
 import { businessHref } from "@/lib/links";
+import { publishedSpotlightArticleWhere } from "@/lib/spotlights";
 import { PageHeader } from "@/components/admin/page-header";
 import { ListToolbar } from "@/components/admin/list-toolbar";
 import { DataTable, Pagination } from "@/components/admin/data-table";
@@ -34,7 +35,9 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
     db.business.findMany({
       where, skip, take, orderBy: { name: "asc" },
       select: {
-        id: true, name: true, slug: true, city: true, status: true, logoUrl: true, isFeatured: true, isSpotlighted: true, updatedAt: true, wpId: true,
+        id: true, name: true, slug: true, city: true, status: true, logoUrl: true, isFeatured: true, updatedAt: true, wpId: true,
+        // Spotlight = linked to a published Business Spotlight article (derived, not a flag).
+        articles: { where: { article: publishedSpotlightArticleWhere() }, select: { articleId: true }, take: 1 },
         categories: { select: { name: true } }, _count: { select: { owners: true } },
         subscriptions: { where: { status: { in: ["ACTIVE", "TRIALING"] }, OR: [{ currentPeriodEnd: null }, { currentPeriodEnd: { gte: new Date() } }] }, select: { plan: { select: { name: true } }, source: true }, take: 1 },
       },
@@ -77,7 +80,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
                   <div className="min-w-0">
                     <Link href={`/admin/businesses/${r.id}/`} className="font-semibold text-slate-900 hover:text-brand-700">{r.name}</Link>
                     <div className="mt-0.5 flex flex-wrap gap-1">
-                      {r.isSpotlighted && <span className="badge-blue">Spotlight</span>}
+                      {r.articles.length > 0 && <span className="badge-blue">Spotlight</span>}
                       {r.isFeatured && <span className="badge-orange">Featured</span>}
                       {r.wpId && <span className="badge-gray">Imported</span>}
                     </div>

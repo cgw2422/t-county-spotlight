@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { publicPromotionWhere } from "./promotions";
 import { expandOccurrences, upcomingEventWhere } from "./events";
+import { spotlightArticlesSelect } from "./spotlights";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const publishedArticleWhere = (extra: Prisma.ArticleWhereInput = {}): Prisma.ArticleWhereInput => ({
@@ -21,12 +22,19 @@ const articleCardSelect = {
   publishedAt: true, legacyPath: true, kind: true, categories: { select: { name: true } },
 } satisfies Prisma.ArticleSelect;
 
-const businessCardSelect = {
+/** Business card fields without the derived spotlight (for places that never render the badge). */
+const businessCardBaseSelect = {
   id: true, slug: true, name: true, tagline: true, description: true, city: true, coverUrl: true, coverFocusX: true, coverFocusY: true, logoUrl: true,
-  isSpotlighted: true, categories: { select: { name: true } },
+  categories: { select: { name: true } },
   // Community recommendation count for the card badge (hidden while recommendationsDisabled).
   recommendationCount: true, recommendationsDisabled: true,
 } satisfies Prisma.BusinessSelect;
+
+/**
+ * Card select incl. the most recent published Business Spotlight story (`articles`, see
+ * `src/lib/spotlights.ts`). A function because "published" depends on the current time.
+ */
+const businessCardSelect = () => ({ ...businessCardBaseSelect, articles: spotlightArticlesSelect() }) satisfies Prisma.BusinessSelect;
 
 const eventCardSelect = {
   id: true, slug: true, title: true, imageUrl: true, locationName: true, city: true, startAt: true, endAt: true,
@@ -61,8 +69,8 @@ export async function getArticlesForSection(kind: Prisma.ArticleWhereInput, feat
 
 export async function getFeaturedBusinesses(featuredIds: string[], limit: number) {
   const [featured, rest] = await Promise.all([
-    featuredIds.length ? db.business.findMany({ where: publicBusinessWhere({ id: { in: featuredIds } }), select: businessCardSelect }) : [],
-    db.business.findMany({ where: publicBusinessWhere(), orderBy: [{ isFeatured: "desc" }, { isSpotlighted: "desc" }, { updatedAt: "desc" }], take: limit, select: businessCardSelect }),
+    featuredIds.length ? db.business.findMany({ where: publicBusinessWhere({ id: { in: featuredIds } }), select: businessCardSelect() }) : [],
+    db.business.findMany({ where: publicBusinessWhere(), orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }], take: limit, select: businessCardSelect() }),
   ]);
   return pinFirst(featured, rest, featuredIds, limit);
 }
@@ -78,11 +86,11 @@ export async function getBusinessesByRecommendations(where: Prisma.BusinessWhere
   const rest: Prisma.BusinessWhereInput = { AND: [where, { OR: [{ recommendationsDisabled: true }, { recommendationCount: { lte: 0 } }] }] };
   const rankedTotal = await db.business.count({ where: ranked });
   const fromRanked = skip < rankedTotal
-    ? await db.business.findMany({ where: ranked, select: businessCardSelect, orderBy: [{ recommendationCount: "desc" }, { name: "asc" }, { id: "asc" }], skip, take })
+    ? await db.business.findMany({ where: ranked, select: businessCardSelect(), orderBy: [{ recommendationCount: "desc" }, { name: "asc" }, { id: "asc" }], skip, take })
     : [];
   const need = take - fromRanked.length;
   const fromRest = need > 0
-    ? await db.business.findMany({ where: rest, select: businessCardSelect, orderBy: [{ name: "asc" }, { id: "asc" }], skip: Math.max(0, skip - rankedTotal), take: need })
+    ? await db.business.findMany({ where: rest, select: businessCardSelect(), orderBy: [{ name: "asc" }, { id: "asc" }], skip: Math.max(0, skip - rankedTotal), take: need })
     : [];
   return [...fromRanked, ...fromRest];
 }
@@ -125,8 +133,8 @@ export async function getActivePlacements(slot: string) {
   const now = new Date();
   return db.placement.findMany({
     where: { slot, isActive: true, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-    include: { business: { select: businessCardSelect } },
+    include: { business: { select: businessCardSelect() } },
   });
 }
 
-export { articleCardSelect, businessCardSelect, eventCardSelect };
+export { articleCardSelect, businessCardBaseSelect, businessCardSelect, eventCardSelect };
