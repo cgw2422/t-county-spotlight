@@ -3,9 +3,9 @@ import Link from "next/link";
 import { getSettings } from "@/lib/settings";
 import { getNewsletterConfig, getNewsletterSettings } from "@/lib/newsletter/settings";
 import { broadcastProvider } from "@/lib/newsletter/provider";
-import { theName, TOPICS } from "@/lib/newsletter/copy";
+import { SUBSCRIBE_PATH, theName, TOPICS } from "@/lib/newsletter/copy";
+import { Mail } from "lucide-react";
 import { buildMetadata, pageParam, type SearchParams } from "@/components/public/seo";
-import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { IssueList } from "@/components/newsletter/issue-list";
 import { Pagination } from "@/components/public/pagination";
 import { getIssuePage } from "@/lib/newsletter/issues";
@@ -32,7 +32,18 @@ export default async function NewsletterPage({ searchParams }: { searchParams: S
     <div className="pb-6">
       <div className="bg-gradient-to-b from-brand-50/70 to-white">
         <div className="container-page max-w-5xl pt-8 sm:pt-12">
-          <NewsletterSignup source="newsletter_page" variant="card" />
+          {/* The archive. Signing up happens on /newsletter/subscribe/ (shareable, no account needed). */}
+          <section aria-labelledby="newsletter-title" data-testid="newsletter-header" className="overflow-hidden rounded-3xl bg-cream p-6 ring-1 ring-amber-200/70 sm:p-10">
+            <p className="eyebrow">{c.navLabel}</p>
+            <h1 id="newsletter-title" className="mt-2 font-display text-3xl font-semibold leading-tight text-navy-900 text-balance sm:text-4xl">{c.heading}</h1>
+            <p className="mt-3 max-w-2xl text-slate-700 sm:text-lg">{c.tagline}</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link href={SUBSCRIBE_PATH} className="btn-accent min-h-12 px-8 text-base" data-testid="newsletter-subscribe-link">
+                <Mail className="h-5 w-5" aria-hidden /> Subscribe
+              </Link>
+              {issues.total > 0 && <Link href="#past-editions" className="btn-ghost min-h-11">Read past editions</Link>}
+            </div>
+          </section>
         </div>
       </div>
 

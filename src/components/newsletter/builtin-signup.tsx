@@ -20,6 +20,10 @@ type Props = {
   button: string;
   /** Heading level/size for the compact variant inside the homepage hero. */
   headingId?: string;
+  /** Card variant: email field only (no first name or community) — /newsletter/subscribe/. */
+  emailOnly?: boolean;
+  /** h1 when the card is the page's own heading (/newsletter/subscribe/). */
+  headingAs?: "h1" | "h2";
   className?: string;
 };
 
@@ -28,13 +32,14 @@ type Props = {
  * Variants: card (homepage, /explore/, /newsletter/), compact (footer, hero), inline (articles, events).
  * Rendered by <NewsletterSignup> only while the provider is "Built-in".
  */
-export function BuiltinNewsletterSignup({ source, variant = "card", tone = "light", headline, description, name, button, headingId, className }: Props) {
+export function BuiltinNewsletterSignup({ source, variant = "card", tone = "light", headline, description, name, button, headingId, emailOnly = false, headingAs = "h2", className }: Props) {
+  const CardHeading = headingAs;
   const id = useId();
   const [state, action, pending] = useActionState<ActionState, FormData>(subscribeAction, null);
   const green = tone === "green";
   const dark = tone === "dark" || green;
   const done = !!state?.ok;
-  const showName = variant === "card";
+  const showName = variant === "card" && !emailOnly;
 
   const disclaimer = (
     <p className={cn("text-xs", green ? "text-hillside-50" : dark ? "text-slate-400" : "text-slate-500")}>
@@ -131,7 +136,7 @@ export function BuiltinNewsletterSignup({ source, variant = "card", tone = "ligh
       <div className="grid gap-6 p-6 sm:p-10 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-10">
         <div>
           <p className="eyebrow">{name}</p>
-          <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-navy-900 text-balance sm:text-4xl">{headline}</h2>
+          <CardHeading className="mt-2 font-display text-3xl font-semibold leading-tight text-navy-900 text-balance sm:text-4xl">{headline}</CardHeading>
           <p className="mt-3 text-slate-700 sm:text-lg">{description}</p>
         </div>
         <div>

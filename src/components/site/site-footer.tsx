@@ -4,6 +4,7 @@ import { Logo } from "./logo";
 import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { getMenu } from "./nav-data";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
+import { FooterSignupSlot } from "./footer-signup-slot";
 
 /** Site footer on navy with the official all-white logo. */
 export async function SiteFooter() {
@@ -12,11 +13,13 @@ export async function SiteFooter() {
   const link = "rounded-sm text-white underline-offset-4 hover:underline focus-visible:outline-white";
   return (
     <footer className="mt-16 bg-navy-950 pb-[calc(5rem+var(--safe-bottom))] text-white lg:pb-0">
-      <div className="border-b border-white/10">
-        <div className="container-page max-w-3xl py-10">
-          <NewsletterSignup source="footer" variant="compact" tone="dark" />
+      <FooterSignupSlot>
+        <div className="border-b border-white/10">
+          <div className="container-page max-w-3xl py-10">
+            <NewsletterSignup source="footer" variant="compact" tone="dark" />
+          </div>
         </div>
-      </div>
+      </FooterSignupSlot>
       <div className="container-page grid gap-10 py-12 md:grid-cols-4">
         <div className="md:col-span-2">
           <Logo src={brand.logoWhiteSmall} onDark plate={false} size="lg" className="max-w-full" loading="lazy" />

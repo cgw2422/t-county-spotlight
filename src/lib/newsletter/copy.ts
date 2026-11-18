@@ -25,8 +25,26 @@ export const PRIVACY_PATH = "/newsletter/#privacy";
 
 /** Optional newsletter checkbox on /register/ and the homepage My T County signup (both providers). */
 export const REGISTER_NEWSLETTER_LABEL = "Email me the T County Connect newsletter.";
-/** Shown after registration only when that box was ticked; never claims a subscription. */
+/** Built-in provider: shown after registration when that box was ticked; never claims a subscription. */
 export const REGISTER_NEWSLETTER_NOTE = "If you asked for the newsletter, check your inbox for a confirmation from T County Connect.";
+/** beehiiv provider: shown after registration when the box was ticked and beehiiv made the address active. */
+export const REGISTER_NEWSLETTER_SUBSCRIBED = "You're subscribed to the T County Connect newsletter. Look for a welcome email.";
+/** Shown after registration when the box was ticked but the newsletter signup failed (account still created). Followed by a link to SUBSCRIBE_PATH. */
+export const REGISTER_NEWSLETTER_FAILED = "Your account is ready, but the newsletter signup didn't go through. You can try again at";
+
+/** Shareable, public newsletter signup page (no account needed). /newsletter/ stays the archive. */
+export const SUBSCRIBE_PATH = "/newsletter/subscribe/";
+/** Fixed copy of /newsletter/subscribe/ (also its share preview). */
+export const SUBSCRIBE_PAGE = {
+  heading: "Get T County Connect in your inbox",
+  description: "Local stories, weekend plans, and what's new across Tuscarawas County.",
+  button: "Sign me up",
+  footnote: "Free to join. Unsubscribe anytime.",
+  archiveLink: "Read past issues",
+  nextHeading: "Want to make T County Connect yours?",
+  nextText: "Create a free account to save places, keep track of favorites, give local businesses a thumbs up, and choose the community you want to follow.",
+  nextButton: "Create a free account",
+} as const;
 
 /** Mid-sentence form: "the T County Connect newsletter". */
 export function theName(name: string) {
@@ -94,7 +112,7 @@ export const CONSENT_TEXT = DEFAULT_COPY.consentText;
 export const SIGNUP_NEUTRAL_MESSAGE =
   "Check your inbox! If this address isn't subscribed yet, we've sent a link to confirm your subscription. It expires in 48 hours.";
 
-export const SIGNUP_SOURCES = ["homepage", "footer", "article", "event", "pwa", "newsletter_page", "account", "admin_invite", "register"] as const;
+export const SIGNUP_SOURCES = ["homepage", "footer", "article", "event", "pwa", "newsletter_page", "subscribe_page", "account", "admin_invite", "register"] as const;
 export type SignupSource = (typeof SIGNUP_SOURCES)[number];
 /** Sources the public signup form accepts ("register" is only set by the account registration form). */
 export const PUBLIC_SIGNUP_SOURCES = SIGNUP_SOURCES.filter((s) => s !== "admin_invite" && s !== "register");
@@ -110,6 +128,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   event: "Event page",
   pwa: "App (Explore)",
   newsletter_page: "Newsletter page",
+  subscribe_page: "Subscribe page",
   account: "Account",
   admin_invite: "Admin invite",
   register: "Account registration",
@@ -141,15 +160,27 @@ export const THANKS_PATH = "/newsletter/thanks/";
  * Native signup form placements (sent to beehiiv as utm_campaign). The browser
  * sends one of these; the server re-checks it against this list.
  */
-export const SIGNUP_PLACEMENTS = ["homepage_hero", "homepage", "newsletter_page", "newsletter_issue", "footer", "article", "event", "explore", "account"] as const;
+export const SIGNUP_PLACEMENTS = ["subscribe_page", "homepage_hero", "homepage", "newsletter_page", "newsletter_issue", "footer", "article", "event", "explore", "account"] as const;
 export type SignupPlacement = (typeof SIGNUP_PLACEMENTS)[number];
 
-/** What the native form says after beehiiv answers (by subscription status). Never reveals more than this. */
+/**
+ * What the native form says after beehiiv answers (single opt-in + welcome email). Never reveals more than this.
+ *   subscribed: new address, beehiiv says active (welcome email requested)
+ *   already:    by_email lookup found an active subscription (nothing sent)
+ *   finishing:  beehiiv still "validating" after one short re-check (never claims subscribed)
+ *   pending:    unexpected with double_opt_override "off" (a confirmation email went out)
+ *   neutral:    inactive / unsubscribed / invalid / needs_attention (never reactivated)
+ */
 export const BEEHIIV_SIGNUP_MESSAGES = {
-  subscribed: "You're subscribed. Watch your inbox for the next issue.",
+  subscribed: "You're subscribed! Look for a welcome email from T County Connect.",
+  already: "You're already subscribed. Look for the next issue from T County Connect.",
+  finishing: "Thanks — we're finishing your signup. Look for a welcome email from T County Connect shortly.",
   pending: "Almost done — check your inbox to confirm your subscription.",
   neutral: "Thanks. If this address can receive our newsletter, you'll hear from us soon. If you unsubscribed before, use the link in a past issue to rejoin.",
-  retry: "We couldn't reach our newsletter service. Please try again in a minute.",
+  retry: "We couldn't sign you up just now. Please try again in a minute.",
   invalidEmail: "Please enter a valid email address.",
   tooMany: "Too many signup attempts. Please try again in a few minutes.",
 } as const;
+
+/** Signup outcomes after which the subscribe page may offer a free account (signed-out visitors only). */
+export const SUCCESS_OUTCOMES = ["subscribed", "already"] as const;

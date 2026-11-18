@@ -3,7 +3,7 @@ import { useActionState, useId, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CheckCircle2, Loader2, MailCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SIGNUP_FIELD_LABEL, type SignupPlacement } from "@/lib/newsletter/copy";
+import { SIGNUP_FIELD_LABEL, SUCCESS_OUTCOMES, type SignupPlacement } from "@/lib/newsletter/copy";
 import type { SignupState } from "@/lib/beehiiv/signup";
 import { beehiivSignupAction } from "./actions";
 
@@ -22,6 +22,10 @@ type Props = {
   headingId?: string;
   /** Admin preview: renders the real form but never submits. */
   preview?: boolean;
+  /** h1 on /newsletter/subscribe/ (the page's own heading); h2 everywhere else. */
+  headingAs?: "h1" | "h2";
+  /** Revealed below the message only after a success state (subscribed / already subscribed), e.g. the account invitation. */
+  afterSuccess?: React.ReactNode;
   className?: string;
 };
 
@@ -31,13 +35,15 @@ type Props = {
  * messages; no redirect, no iframe, no third-party script. Without JavaScript
  * the form still posts to the same server action.
  */
-export function NativeSignupForm({ placement, heading, description, button, footnote, layout = "stacked", headingId, preview = false, className }: Props) {
+export function NativeSignupForm({ placement, heading, description, button, footnote, layout = "stacked", headingId, preview = false, headingAs = "h2", afterSuccess, className }: Props) {
+  const Heading = headingAs;
   const id = useId();
   const hid = headingId ?? `${id}-h`;
   const pathname = usePathname();
   const [state, formAction, pending] = useActionState<SignupState, FormData>(beehiivSignupAction, null);
   const [previewNote, setPreviewNote] = useState(false);
   const done = !!state?.ok;
+  const succeeded = done && !!state?.outcome && (SUCCESS_OUTCOMES as readonly string[]).includes(state.outcome);
   const error = state?.error ?? null;
   const msgId = `${id}-msg`;
   const wide = layout === "wide";
@@ -51,7 +57,7 @@ export function NativeSignupForm({ placement, heading, description, button, foot
     >
       <div className={cn(wide && "@3xl:grid @3xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @3xl:items-center @3xl:gap-8")}>
         <div className="min-w-0">
-          <h2 id={hid} className={cn("font-display font-bold leading-snug text-navy-900 text-balance", wide ? "text-2xl @3xl:text-3xl" : "text-xl")}>{heading}</h2>
+          <Heading id={hid} className={cn("font-display font-bold leading-snug text-navy-900 text-balance", headingAs === "h1" ? "text-2xl sm:text-3xl" : wide ? "text-2xl @3xl:text-3xl" : "text-xl")}>{heading}</Heading>
           <p className={cn("mt-1.5 text-navy-900", wide ? "text-base" : "text-sm")}>{description}</p>
         </div>
 
@@ -59,7 +65,7 @@ export function NativeSignupForm({ placement, heading, description, button, foot
           {done ? (
             <div role="status" aria-live="polite" data-testid="native-signup-message" data-outcome={state?.outcome}
               className="flex items-start gap-2.5 rounded-xl bg-white p-4 text-sm font-medium text-navy-900 ring-1 ring-hillside-200">
-              {state?.outcome === "subscribed"
+              {succeeded
                 ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-hillside-600" aria-hidden />
                 : <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-hillside-600" aria-hidden />}
               <p>{state?.message}</p>
@@ -110,6 +116,7 @@ export function NativeSignupForm({ placement, heading, description, button, foot
             </form>
           )}
           <p className="mt-3 text-xs text-navy-900">{footnote}</p>
+          {succeeded && afterSuccess}
         </div>
       </div>
     </section>

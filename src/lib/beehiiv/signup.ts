@@ -12,6 +12,17 @@ import { BeehiivCallError, beehiivEnv, createSubscription, getPublication, getSu
  * Native newsletter signup → beehiiv API, through our server only.
  * No local subscriber record, no account, no email from our side. The API key
  * and publication id never reach the browser, responses or logs.
+ *
+ * Single opt-in + welcome email, for every signup through this code path
+ * (subscribe page, every native placement, registration checkbox, admin test):
+ *   1. GET …/subscriptions/by_email/{email}
+ *        active                 → "already" (no POST, no second welcome email)
+ *        inactive / invalid / needs_attention → "neutral" (never reactivated)
+ *        validating / pending   → "finishing" / "pending" (no POST)
+ *        404                    → step 2
+ *   2. POST …/subscriptions { send_welcome_email: true, double_opt_override: "off", reactivate_existing: false, utm_* }
+ *        active → "subscribed"; validating → one re-check after ~1.5 s (active → "subscribed", else "finishing")
+ *   One request per address at a time (in-flight map), so a double submit can't send two welcome emails.
  */
 
 export const SIGNUP_LIMITS = {
@@ -21,7 +32,7 @@ export const SIGNUP_LIMITS = {
 
 /** Default page per placement (referring_site when the form's page path is missing or unusable). */
 const PLACEMENT_PATH: Record<SignupPlacement | "admin_test", string> = {
-  homepage_hero: "/", homepage: "/", newsletter_page: "/newsletter/", newsletter_issue: "/newsletter/", footer: "/", article: "/articles/",
+  subscribe_page: "/newsletter/subscribe/", homepage_hero: "/", homepage: "/", newsletter_page: "/newsletter/", newsletter_issue: "/newsletter/", footer: "/", article: "/articles/",
   event: "/events/", explore: "/explore/", account: "/account/", admin_test: "/admin/newsletter/settings/",
 };
 
@@ -64,26 +75,32 @@ export function maskEmail(email: string) {
   return `${email[0]}***@${email.slice(at + 1)}`;
 }
 
-export type SignupOutcome = "subscribed" | "pending" | "neutral";
+export type SignupOutcome = "subscribed" | "already" | "finishing" | "pending" | "neutral";
 
-/** beehiiv subscription status → what we tell the visitor. Unknown statuses are treated like "pending". */
+/** Status of a NEW subscription (POST answer) → what we tell the visitor. Unknown statuses are treated like "pending". */
 export function outcomeForStatus(status: unknown): SignupOutcome {
   switch (String(status ?? "").toLowerCase()) {
     case "active": return "subscribed";
+    case "validating": return "finishing";
     case "inactive": // previously unsubscribed: never reactivated, never revealed
     case "invalid":
     case "needs_attention": return "neutral";
-    default: return "pending"; // pending, validating, unknown
+    default: return "pending"; // pending, unknown
   }
 }
-export const messageForOutcome = (o: SignupOutcome) => (o === "subscribed" ? MSG.subscribed : o === "neutral" ? MSG.neutral : MSG.pending);
+/** Status of an EXISTING subscription (by_email lookup) → outcome. Active means already subscribed. */
+export function outcomeForExisting(status: unknown): SignupOutcome {
+  const s = String(status ?? "").toLowerCase();
+  return s === "active" ? "already" : outcomeForStatus(s);
+}
+export const messageForOutcome = (o: SignupOutcome) => MSG[o];
 
 // ───────── Connection state (Setting "beehiiv.connection") ─────────
 
 const STATE_KEY = "beehiiv.connection";
 
 export type ConnectionCheck = { ok: boolean; at: string; publicationName?: string | null; error?: string; pub: string };
-export type SignupVerification = { ok: boolean; at: string; status?: string | null; publicationName?: string | null; maskedEmail: string; error?: string; pub: string };
+export type SignupVerification = { ok: boolean; at: string; status?: string | null; publicationName?: string | null; maskedEmail: string; error?: string; pub: string; /** true: we created it (welcome email requested); false: it already existed (nothing sent). */ created?: boolean };
 export type ConnectionState = { check?: ConnectionCheck; verification?: SignupVerification; signupProblem?: { at: string; httpStatus: number } };
 
 /** Fingerprint of the publication + API base (not the id itself): a check only counts for the configuration it was made with. */
@@ -132,20 +149,61 @@ export async function beehiivReadiness(): Promise<BeehiivReadiness> {
 
 // ───────── Core: one subscription request ─────────
 
-type SubscribeResult = { ok: true; status: string | null; outcome: SignupOutcome } | { ok: false; kind: BeehiivCallError["kind"] | "not_configured"; httpStatus: number; message: string };
+/** Delay before the one re-check of a "validating" new subscription. */
+export const VALIDATING_RECHECK_MS = 1_500;
 
-/** The single code path every signup uses (public form and admin test). Never throws. */
+type SubscribeResult =
+  | { ok: true; status: string | null; outcome: SignupOutcome; /** true when we POSTed a new subscription (welcome email requested). */ created: boolean }
+  | { ok: false; kind: BeehiivCallError["kind"] | "not_configured"; httpStatus: number; message: string };
+
+const asCallError = (e: unknown) => (e instanceof BeehiivCallError ? e : new BeehiivCallError("Unexpected error calling beehiiv", 0, "unexpected"));
+const lower = (v: unknown) => (typeof v === "string" ? v.toLowerCase() : null);
+
+/** Addresses with a request in progress → that request. A second submit for the same address shares the first one's answer. */
+const inFlight = new Map<string, Promise<SubscribeResult>>();
+
+async function runSubscribe(env: BeehiivEnv, email: string, placement: string, referringSite: string, timeoutMs?: number): Promise<SubscribeResult> {
+  try {
+    // 1. Lookup first: an existing subscription is never POSTed again (no second welcome email, no reactivation).
+    let existing: { status?: string } | null = null;
+    try {
+      existing = await getSubscriptionByEmail(env, email, fetch, timeoutMs);
+    } catch (e) {
+      const err = asCallError(e);
+      if (err.status !== 404) throw err; // 404 = no subscription for this address
+    }
+    if (existing) {
+      const status = lower(existing.status);
+      return { ok: true, status, outcome: outcomeForExisting(status), created: false };
+    }
+    // 2. New address: single opt-in + welcome email.
+    const sub = await createSubscription(env, { email, utmCampaign: placement, referringSite }, fetch, timeoutMs);
+    let status = lower(sub.status);
+    if (status === "validating") {
+      await new Promise((r) => setTimeout(r, VALIDATING_RECHECK_MS));
+      try {
+        status = lower((await getSubscriptionByEmail(env, email, fetch, timeoutMs)).status) ?? status;
+      } catch {
+        /* keep "validating": the subscription was created; we just can't confirm it yet */
+      }
+    }
+    return { ok: true, status, outcome: outcomeForStatus(status), created: true };
+  } catch (e) {
+    const err = asCallError(e);
+    return { ok: false, kind: err.kind, httpStatus: err.status, message: err.message };
+  }
+}
+
+/** The single code path every signup uses (public form, registration and admin test). Never throws. */
 async function subscribeEmail(email: string, placement: SignupPlacement | "admin_test" | "register", referringSite: string, timeoutMs?: number): Promise<SubscribeResult> {
   const env = beehiivEnv();
   if (!env) return { ok: false, kind: "not_configured", httpStatus: 0, message: "BEEHIIV_API_KEY / BEEHIIV_PUBLICATION_ID not set" };
-  try {
-    const sub = await createSubscription(env, { email, utmCampaign: placement, referringSite }, fetch, timeoutMs);
-    const status = typeof sub.status === "string" ? sub.status.toLowerCase() : null;
-    return { ok: true, status, outcome: outcomeForStatus(status) };
-  } catch (e) {
-    const err = e instanceof BeehiivCallError ? e : new BeehiivCallError("Unexpected error calling beehiiv", 0, "unexpected");
-    return { ok: false, kind: err.kind, httpStatus: err.status, message: err.message };
-  }
+  const running = inFlight.get(email);
+  // Shares the first request's answer; only the first one counts as having created the subscription.
+  if (running) return running.then((r) => (r.ok ? { ...r, created: false } : r));
+  const p = runSubscribe(env, email, placement, referringSite, timeoutMs).finally(() => inFlight.delete(email));
+  inFlight.set(email, p);
+  return p;
 }
 
 // ───────── Public signup ─────────
@@ -176,35 +234,40 @@ export async function handlePublicSignup(req: SignupRequest): Promise<SignupStat
     }
     return { error: MSG.retry, email: typed };
   }
-  // Aggregate only: which placement produced a signup. No email, no visitor id.
-  await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: placement } }).catch(() => {});
+  // Aggregate only: which placement produced a new signup. No email, no visitor id.
+  if (r.created) await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: placement } }).catch(() => {});
   return { ok: true, outcome: r.outcome, message: messageForOutcome(r.outcome) };
 }
 
-/** Short timeout for the opt-in made while creating an account (registration never waits long on beehiiv). */
+/** Short timeout for each beehiiv call made while creating an account (registration never waits long on beehiiv). */
 export const REGISTER_SIGNUP_TIMEOUT_MS = 4_000;
+
+/** What happened to the newsletter checkbox at registration ("failed": nothing went through — the account still exists). */
+export type RegisterNewsletterOutcome = SignupOutcome | "failed";
 
 /**
  * The newsletter checkbox on /register/ (beehiiv mode), called only after the account exists.
- * Same validation, per-IP/per-address limits and beehiiv request as the public form, with
- * utm_campaign "register". Never throws and returns nothing the caller could show: any failure,
- * rate limit or inactive/invalid address is logged (no email) and ignored. No local subscriber row.
+ * Same validation, per-IP/per-address limits and beehiiv flow (lookup → single opt-in + welcome email)
+ * as the public form, with utm_campaign "register". Never throws: failures, rate limits and timeouts
+ * are logged (no email) and returned as "failed" so the welcome screen can offer a retry. No local subscriber row.
  */
-export async function subscribeAfterRegistration(rawEmail: unknown, ip: string): Promise<void> {
+export async function subscribeAfterRegistration(rawEmail: unknown, ip: string): Promise<RegisterNewsletterOutcome> {
   try {
     const email = normalizeSignupEmail(rawEmail);
-    if (!email) return;
-    if (!rateLimit(`bh-signup-ip:${ip}`, SIGNUP_LIMITS.ip.limit, SIGNUP_LIMITS.ip.windowMs).ok) return;
-    if (!rateLimit(`bh-signup-email:${email}`, SIGNUP_LIMITS.email.limit, SIGNUP_LIMITS.email.windowMs).ok) return;
+    if (!email) return "failed";
+    if (!rateLimit(`bh-signup-ip:${ip}`, SIGNUP_LIMITS.ip.limit, SIGNUP_LIMITS.ip.windowMs).ok) return "failed";
+    if (!rateLimit(`bh-signup-email:${email}`, SIGNUP_LIMITS.email.limit, SIGNUP_LIMITS.email.windowMs).ok) return "failed";
     const r = await subscribeEmail(email, "register", referringSiteFor("/register/", "account"), REGISTER_SIGNUP_TIMEOUT_MS);
     if (!r.ok) {
       console.warn(`[beehiiv] newsletter opt-in at registration failed (${r.kind}): ${r.message}`);
       if (r.kind === "config") await patchConnectionState({ signupProblem: { at: new Date().toISOString(), httpStatus: r.httpStatus } }).catch(() => {});
-      return;
+      return "failed";
     }
-    await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: "register" } }).catch(() => {});
+    if (r.created) await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: "register" } }).catch(() => {});
+    return r.outcome;
   } catch (e) {
     console.warn("[beehiiv] newsletter opt-in at registration failed (unexpected)", (e as Error)?.name ?? "error");
+    return "failed";
   }
 }
 
@@ -227,7 +290,7 @@ export async function checkBeehiivConnection(): Promise<ConnectionCheck> {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  pending: "pending — confirmation email sent",
+  pending: "pending — beehiiv is waiting for a confirmation (double opt-in still on for this address?)",
   validating: "validating — beehiiv is checking the address",
   active: "active — subscribed",
   inactive: "inactive — previously unsubscribed (not reactivated)",
@@ -237,11 +300,12 @@ export const STATUS_LABELS: Record<string, string> = {
 export const statusLabel = (s: string | null | undefined) => (s ? STATUS_LABELS[s] ?? s : "unknown");
 
 /**
- * Submits `email` through the same path as the public form (utm_campaign
- * "admin_test"), then confirms it via GET …/subscriptions/by_email/{email}.
+ * Submits `email` through the same path as the public form (lookup first, then single opt-in +
+ * welcome email, utm_campaign "admin_test"), then confirms it via GET …/subscriptions/by_email/{email}.
+ * Reports whether it was a new subscriber (welcome email requested) or already active (nothing sent).
  * Stores only a masked address with the result.
  */
-export async function sendTestSignup(rawEmail: unknown): Promise<SignupVerification & { message: string }> {
+export async function sendTestSignup(rawEmail: unknown): Promise<SignupVerification & { message: string; created?: boolean }> {
   const at = new Date().toISOString();
   const env = beehiivEnv();
   const email = normalizeSignupEmail(rawEmail);
@@ -271,7 +335,13 @@ export async function sendTestSignup(rawEmail: unknown): Promise<SignupVerificat
     /* the name is informational; the verification itself succeeded */
   }
   const status = typeof found.status === "string" ? found.status.toLowerCase() : null;
-  const v: SignupVerification = { ok: true, at, status, publicationName, maskedEmail, pub };
+  const v: SignupVerification = { ok: true, at, status, publicationName, maskedEmail, pub, created: r.created };
   await patchConnectionState({ verification: v });
-  return { ...v, message: `Verified in ${publicationName ? `“${publicationName}”` : "the publication"}: ${maskedEmail} is ${statusLabel(status)}.` };
+  return { ...v, message: `Verified in ${publicationName ? `“${publicationName}”` : "the publication"}: ${maskedEmail} is ${statusLabel(status)} (${testSignupKind(r.created, r.status)}).` };
+}
+
+/** "new subscriber — welcome email requested" vs "already active — no welcome email sent". */
+export function testSignupKind(created: boolean | undefined, status?: string | null) {
+  if (created) return "new subscriber — welcome email requested";
+  return status === "active" ? "already active — no welcome email sent" : "existing subscription — not changed, no welcome email sent";
 }

@@ -29,7 +29,7 @@ export function signupAvailable(c: Pick<NewsletterConfig, "isBeehiiv" | "beehiiv
 function placementFor(source: Props["source"], variant: NonNullable<Props["variant"]>): SignupPlacement {
   if (source === "homepage") return variant === "hero" ? "homepage_hero" : "homepage";
   if (source === "pwa") return "explore";
-  if (source === "footer" || source === "article" || source === "event" || source === "account" || source === "newsletter_page") return source;
+  if (source === "footer" || source === "article" || source === "event" || source === "account" || source === "newsletter_page" || source === "subscribe_page") return source;
   return "newsletter_page";
 }
 

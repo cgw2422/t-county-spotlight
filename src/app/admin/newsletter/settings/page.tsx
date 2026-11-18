@@ -10,7 +10,7 @@ import { ActionForm, Submit } from "@/components/admin/action-form";
 import { FormGrid, SelectField, TextArea, TextField } from "@/components/admin/form-field";
 import { checkBeehiivConnectionAction, saveNewsletterSettingsAction, saveProviderSettingsAction, sendTestSignupAction } from "../actions";
 import { ARCHIVE_TAG, ARTICLE_TAG } from "@/lib/beehiiv/sync";
-import { beehiivReadiness, statusLabel } from "@/lib/beehiiv/signup";
+import { beehiivReadiness, statusLabel, testSignupKind } from "@/lib/beehiiv/signup";
 import { newsletterCopy, theName } from "@/lib/newsletter/copy";
 import { NativeSignupForm } from "@/components/newsletter/native-signup";
 import { db } from "@/lib/db";
@@ -45,7 +45,7 @@ export default async function NewsletterSettingsPage() {
             <ActionForm action={saveProviderSettingsAction} warnUnsaved className="space-y-5">
               <SelectField name="provider" label="Signup & sending provider" defaultValue={s.provider} data-testid="provider-select"
                 options={[{ value: "builtin", label: "Built-in (current signup form & campaigns)" }, { value: "beehiiv", label: "beehiiv (our signup form, sent to beehiiv; send from beehiiv)" }]}
-                help="beehiiv: every signup placement shows our own form, which our server sends to beehiiv (no account, no local subscriber), and built-in campaigns can't be created, scheduled or sent. Switching is refused until the beehiiv connection is ready. Unsubscribe/preferences links in past emails keep working either way." />
+                help="beehiiv: every signup placement (including /newsletter/subscribe/ and the registration checkbox) uses our own form, which our server sends to beehiiv as a single opt-in signup with beehiiv's welcome email (no account, no local subscriber), and built-in campaigns can't be created, scheduled or sent. Built-in: the same placements use the built-in double opt-in form. Switching is refused until the beehiiv connection is ready. Unsubscribe/preferences links in past emails keep working either way." />
               <div className="border-t border-slate-100 pt-4"><Submit pendingText="Saving…">Save provider</Submit></div>
             </ActionForm>
           </Card>
@@ -75,11 +75,11 @@ export default async function NewsletterSettingsPage() {
             </div>
             <div className="mt-4 rounded-xl border border-slate-200 p-4" data-testid="bh-test" data-ok={bh.verifiedOk ? "true" : "false"}>
               <p className="text-sm font-semibold text-slate-800">Send a test signup</p>
-              <p className="help">Sends an address you control through the same code path as the public form (utm_campaign &ldquo;admin_test&rdquo;), then looks it up in beehiiv to prove it landed in this publication. Only a masked address is stored.</p>
+              <p className="help">Sends an address you control through the same code path as the public form (utm_campaign &ldquo;admin_test&rdquo;): it looks the address up first, and only a new address is added — single opt-in, with beehiiv&rsquo;s welcome email. An address that is already active gets nothing. It then looks it up again to prove it landed in this publication. Only a masked address is stored.</p>
               {bh.verification && (
                 <p className={bh.verification.ok ? "mt-2 text-sm text-emerald-700" : "mt-2 text-sm text-red-700"} data-testid="bh-test-result">
                   {bh.verification.ok
-                    ? <>Verified in <strong>{bh.verification.publicationName ?? "the publication"}</strong>: {bh.verification.maskedEmail} is <strong data-testid="bh-test-status">{statusLabel(bh.verification.status)}</strong></>
+                    ? <>Verified in <strong>{bh.verification.publicationName ?? "the publication"}</strong>: {bh.verification.maskedEmail} is <strong data-testid="bh-test-status">{statusLabel(bh.verification.status)}</strong>{typeof bh.verification.created === "boolean" && <> — <span data-testid="bh-test-kind">{testSignupKind(bh.verification.created, bh.verification.status)}</span></>}</>
                     : <>Not verified{bh.verification.maskedEmail ? ` (${bh.verification.maskedEmail})` : ""}: {bh.verification.error}</>}
                   <span className="text-xs text-slate-500"> · {when(bh.verification.at)}</span>
                 </p>
@@ -116,7 +116,8 @@ export default async function NewsletterSettingsPage() {
               <li>Export subscribers in <Link href="/admin/newsletter/subscribers/" className="font-semibold text-brand-700 hover:underline">Subscribers → Export for beehiiv</Link> and import the CSV in beehiiv (Audience → Subscribers → Import). Also download <em>Export unsubscribes &amp; suppressions</em> and never import those addresses.</li>
               <li>Set <code className={code}>BEEHIIV_API_KEY</code> and <code className={code}>BEEHIIV_PUBLICATION_ID</code> on the server (Railway → Variables) and redeploy.</li>
               <li>Click <strong>Check connection</strong> and confirm the publication name is &ldquo;T County Connect&rdquo;.</li>
-              <li>Send a test signup to an address you control. With double opt-in on in beehiiv it shows <em>pending — confirmation email sent</em>; confirm the email arrives.</li>
+              <li>In beehiiv, turn on and write the publication&rsquo;s <strong>welcome email</strong> in beehiiv&rsquo;s email settings. Site signups are single opt-in: our server sends <code className={code}>double_opt_override: &quot;off&quot;</code> and <code className={code}>send_welcome_email: true</code>, so new subscribers are active right away and get that welcome email instead of a confirmation link.</li>
+              <li>Send a test signup to a new address you control. It should show <em>active — subscribed</em> — <em>new subscriber — welcome email requested</em>; confirm the welcome email arrives. Sending the same address again shows <em>already active — no welcome email sent</em>.</li>
               <li>In beehiiv, tag posts <code className={code}>{ARCHIVE_TAG}</code> (newsletter archive) and/or <code className={code}>{ARTICLE_TAG}</code> (site article). Publish them to <strong>Email and web</strong> for the best result on the site.</li>
               <li>Run <Link href="/admin/newsletter/beehiiv/" className="font-semibold text-brand-700 hover:underline">beehiiv → Sync now</Link>, then switch the provider to beehiiv.</li>
             </ol>
@@ -130,7 +131,7 @@ export default async function NewsletterSettingsPage() {
             <FormGrid>
               <TextField name="name" label="Name in emails & prose" defaultValue={s.name} required maxLength={80} data-testid="nl-name" help={<>Reads as &ldquo;{theName(copy.name)}&rdquo; in emails and on the site.</>} />
               <TextField name="navLabel" label="Navigation label & archive title" defaultValue={s.navLabel} required maxLength={40} data-testid="nl-navlabel" help="Title of /newsletter/ and the small label on signup cards." />
-              <TextField name="heading" label="Signup heading" defaultValue={s.heading} required maxLength={120} data-testid="nl-heading" help="Homepage hero card and every signup card." />
+              <TextField name="heading" label="Signup heading" defaultValue={s.heading} required maxLength={120} data-testid="nl-heading" help="Homepage hero card and every signup card. The shareable /newsletter/subscribe/ page and its Facebook preview keep fixed wording." />
               <TextField name="button" label="Signup button" defaultValue={s.button} required maxLength={40} data-testid="nl-button" help="Built-in form and the native beehiiv form." />
             </FormGrid>
             <TextField name="tagline" label="Signup description" defaultValue={s.tagline} required maxLength={200} data-testid="nl-tagline" help="Shown under the signup heading on every signup card." />

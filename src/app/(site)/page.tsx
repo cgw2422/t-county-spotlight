@@ -46,7 +46,7 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
  * sections — local items first, countywide items still shown. With null, every
  * section renders exactly as before.
  */
-async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null, hasJoin = false) {
+async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null, hasJoin = false, hasAccountSignup = false) {
   switch (s.type) {
     case "hero": {
       // Right side (Admin → Homepage → "Right Side of Homepage Hero"):
@@ -221,7 +221,8 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
     case "garage_sales":
       return <GarageSalesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} community={community} />;
     case "join":
-      return <JoinSection key={s.id} title={s.title} subtitle={s.subtitle} />;
+      // With the bottom My T County signup card enabled, signed-out visitors see only that one invitation.
+      return <JoinSection key={s.id} title={s.title} subtitle={s.subtitle} hideForGuests={hasAccountSignup} />;
     case "seasonal":
       return <SeasonalSection key={s.id} title={s.title} subtitle={s.subtitle} />;
     case "new_coming_soon":
@@ -252,7 +253,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   ]);
   // The enabled "join" section already shows signed-in visitors the "Go to My T County" link.
   const hasJoin = sections.some((s) => s.type === "join");
-  const rendered = await Promise.all(sections.map((s) => renderSection(s, settings, pref.active, hasJoin)));
+  // The enabled bottom "My T County signup" card (type "newsletter") is the only account invitation for guests.
+  const hasAccountSignup = sections.some((s) => s.type === "newsletter");
+  const rendered = await Promise.all(sections.map((s) => renderSection(s, settings, pref.active, hasJoin, hasAccountSignup)));
   // Community prompt / switcher sits right below the hero (or at the top when there is no hero).
   const heroAt = sections.findIndex((s) => s.type === "hero");
   rendered.splice(heroAt + 1, 0, <CommunityBar key="community-bar" community={pref.community} active={pref.active} showPrompt={pref.showPrompt} className="pt-6" />);

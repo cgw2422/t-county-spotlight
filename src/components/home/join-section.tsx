@@ -6,11 +6,14 @@ import { MY_T_COUNTY_NAME, MY_T_COUNTY_TAGLINE, registerHref } from "@/lib/resid
 
 /**
  * Homepage "join" section (type "join"): invites visitors to create a free resident account.
- * Signed-in members see a compact link to My T County instead.
+ * Signed-in members see a compact link to My T County instead (the homepage's only one).
+ * `hideForGuests` (the bottom My T County signup card is enabled): signed-out visitors get nothing here,
+ * so the homepage invites them to an account only once.
  */
-export async function JoinSection({ title, subtitle }: { title?: string | null; subtitle?: string | null }) {
+export async function JoinSection({ title, subtitle, hideForGuests = false }: { title?: string | null; subtitle?: string | null; hideForGuests?: boolean }) {
   const user = await getCurrentUser();
   if (user) return <MyTCountyLinkCard />;
+  if (hideForGuests) return null;
   return (
     <section aria-labelledby="home-join-title" className="container-page py-10 sm:py-12" data-testid="home-join">
       <div className="overflow-hidden rounded-3xl bg-hillside-50 px-5 py-8 ring-1 ring-hillside-100 sm:px-10 sm:py-10">

@@ -14,7 +14,7 @@ export const REGISTER_SUBHEAD =
   "Join your community for free. Discover local events, recommend businesses, save favorites, and personalize your T County experience.";
 
 /** Where a "Create free account" click came from (aggregate analytics only). */
-export const REGISTER_SOURCES = ["recommend", "save", "event", "my_t_county", "homepage", "header", "other"] as const;
+export const REGISTER_SOURCES = ["recommend", "save", "event", "my_t_county", "homepage", "header", "newsletter_subscribe", "other"] as const;
 export type RegisterSource = (typeof REGISTER_SOURCES)[number];
 
 export const REGISTER_SOURCE_LABELS: Record<RegisterSource, string> = {
@@ -24,6 +24,7 @@ export const REGISTER_SOURCE_LABELS: Record<RegisterSource, string> = {
   my_t_county: "My T County page",
   homepage: "Homepage section",
   header: "Menu / sign-in page",
+  newsletter_subscribe: "After newsletter signup",
   other: "Other / direct",
 };
 

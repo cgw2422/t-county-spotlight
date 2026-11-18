@@ -11,6 +11,7 @@ import { recordServerSignal } from "@/lib/analytics";
 import { requestSubscription } from "@/lib/newsletter/subscribers";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
 import { subscribeAfterRegistration } from "@/lib/beehiiv/signup";
+import { registerNewsletterToken, type RegisterNewsletterResult } from "@/lib/newsletter/register-flash";
 import { PRIVACY_PATH, REGISTER_NEWSLETTER_LABEL, SIGNUP_DISCLAIMER } from "@/lib/newsletter/copy";
 import { ALL_COUNTY, COMMUNITY_COOKIE, COOKIE_MAX_AGE, SCOPE_COOKIE, communityName, communitySlug } from "@/lib/my-t-county-shared";
 import { parseRegisterSource } from "@/lib/resident-accounts";
@@ -86,16 +87,21 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   await audit(user.id, "user.register", "User", user.id, { ownsBusiness, source, newsletterOptIn: newsletterBox, newsletterProvider: newsletterBox ? (nl.isBeehiiv ? "beehiiv" : "builtin") : null, community: home ?? (community === ALL_COUNTY ? "all" : null) });
   // Account/security email: always sent, whatever the newsletter choice.
   await sendVerificationEmail({ id: user.id, email: user.email, name: firstName });
+  // Newsletter only when the box was ticked; unticked leaves newsletter status untouched.
+  let nlResult: RegisterNewsletterResult | null = null;
   if (newsletter) {
-    // Marketing is separate and double opt-in: this only sends the newsletter's own confirmation link.
+    // Built-in: marketing is separate and double opt-in: this only sends the newsletter's own confirmation link.
     try {
       await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: `[x] ${REGISTER_NEWSLETTER_LABEL} ${nl.tagline} ${SIGNUP_DISCLAIMER} We'll email you a link to confirm first. How we use your email: ${PRIVACY_PATH}` });
+      nlResult = "builtin";
     } catch (e) {
       console.error("[register] newsletter signup failed", e);
+      nlResult = "failed";
     }
   }
-  // Short timeout; never blocks or undoes the account, and nothing tells them they're subscribed.
-  if (beehiivOptIn) await subscribeAfterRegistration(email, ip);
+  // beehiiv: same lookup → single opt-in + welcome email flow as the public form. Short timeouts; never
+  // blocks or undoes the account. The outcome is shown once on the welcome screen.
+  if (beehiivOptIn) nlResult = nl.beehiivConfigured ? await subscribeAfterRegistration(email, ip) : "failed";
   await recordServerSignal("register_complete", source);
 
   await destroySession();
@@ -106,9 +112,9 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
     jar.delete(SCOPE_COOKIE);
   }
   if (ownsBusiness) redirect("/list-your-business/?welcome=1");
-  // My T County (no next, or next=/my-t-county/) opens with the one-time welcome; `newsletter=1` adds a
-  // neutral "check your inbox" note there when they ticked the newsletter box.
+  // My T County (no next, or next=/my-t-county/) opens with the one-time welcome; `nl` (HMAC-signed for this
+  // member, short-lived) adds the newsletter result there when they ticked the newsletter box.
   const dest = safeNext(next);
-  if (!dest || dest === "/my-t-county/") redirect(`/my-t-county/?welcome=1${newsletterBox ? "&newsletter=1" : ""}`);
+  if (!dest || dest === "/my-t-county/") redirect(`/my-t-county/?welcome=1${nlResult ? `&nl=${encodeURIComponent(registerNewsletterToken(user.id, nlResult))}` : ""}`);
   redirect(dest);
 }

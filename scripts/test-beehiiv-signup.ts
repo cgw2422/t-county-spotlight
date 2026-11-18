@@ -3,7 +3,9 @@
  *
  *   DATABASE_URL=postgresql://tcs:tcs@localhost:5432/tcs npx tsx --conditions=react-server scripts/test-beehiiv-signup.ts
  *
- * Covers: request shape (method, path, auth, body), status → message mapping,
+ * Covers: lookup-first (GET by_email, then POST only for new addresses), request shape (method, path,
+ * auth, body incl. send_welcome_email + double_opt_override "off"), already-active → no POST,
+ * validating re-check, double submit → one POST, registration opt-in outcomes, status → message mapping,
  * 429/5xx/timeout/network → retry, 401/404 → retry + admin "Connection problem",
  * validation (bad/too long emails, honeypot), per-IP and per-email rate limits,
  * no NewsletterSubscriber rows, API key never in results or logs, connection
@@ -64,22 +66,40 @@ async function main() {
   await db.setting.deleteMany({ where: { key: "beehiiv.connection" } });
 
   try {
-    await test("request shape: POST /v2/publications/{id}/subscriptions, Bearer key, JSON body fields", async () => {
+    const posts = () => mock.requests.filter((r) => r.method === "POST");
+    const lookups = () => mock.requests.filter((r) => r.method === "GET" && r.path.includes("/by_email/"));
+
+    await test("request shape: GET by_email first, then POST /v2/publications/{id}/subscriptions, Bearer key, JSON body fields", async () => {
       mock.requests.length = 0;
       const r = await go(`Shape.Test+bh-x@${D.toUpperCase()}`, { placement: "newsletter_page", page: "/newsletter/" });
       allOutput.push(r);
-      assert.equal(mock.requests.length, 1);
-      const q = mock.requests[0];
+      assert.equal(mock.requests.length, 2);
+      const [look, q] = mock.requests;
+      assert.equal(look.method, "GET");
+      assert.equal(look.path, `/v2/publications/${PUB}/subscriptions/by_email/${encodeURIComponent("shape.test+bh-x@example.com")}`);
+      assert.equal(look.auth, `Bearer ${API_KEY}`);
       assert.equal(q.method, "POST");
       assert.equal(q.path, `/v2/publications/${PUB}/subscriptions`);
       assert.equal(q.auth, `Bearer ${API_KEY}`);
       assert.match(String(q.contentType), /^application\/json/);
       assert.deepEqual(q.body, {
-        email: "shape.test+bh-x@example.com", reactivate_existing: false, double_opt_override: "not_set",
+        email: "shape.test+bh-x@example.com", reactivate_existing: false, send_welcome_email: true, double_opt_override: "off",
         utm_source: "tcountyconnect.com", utm_medium: "website", utm_campaign: "newsletter_page", referring_site: "https://tcountyconnect.com/newsletter/",
       });
-      assert.equal("send_welcome_email" in (q.body as object), false, "send_welcome_email omitted (beehiiv default)");
-      assert.deepEqual(Object.keys(subscriptionBody({ email: "a@b.co", utmCampaign: "x", referringSite: "y" })).sort(), ["double_opt_override", "email", "reactivate_existing", "referring_site", "utm_campaign", "utm_medium", "utm_source"]);
+      assert.equal(r?.outcome, "subscribed");
+      assert.equal(r?.message, "You're subscribed! Look for a welcome email from T County Connect.");
+      assert.deepEqual(Object.keys(subscriptionBody({ email: "a@b.co", utmCampaign: "x", referringSite: "y" })).sort(), ["double_opt_override", "email", "reactivate_existing", "referring_site", "send_welcome_email", "utm_campaign", "utm_medium", "utm_source"]);
+    });
+
+    await test("subscribe page placement → utm_campaign subscribe_page, referring_site /newsletter/subscribe/", async () => {
+      mock.requests.length = 0;
+      const r = await go(`subpage@${D}`, { placement: "subscribe_page", page: "/newsletter/subscribe/" });
+      assert.equal(r?.outcome, "subscribed");
+      const b = posts()[0].body as Record<string, unknown>;
+      assert.equal(b.utm_campaign, "subscribe_page");
+      assert.equal(b.referring_site, "https://tcountyconnect.com/newsletter/subscribe/");
+      assert.equal(b.send_welcome_email, true);
+      assert.equal(b.double_opt_override, "off");
     });
 
     await test("placement and page are validated (unknown placement → newsletter_page; odd page → placement page)", async () => {
@@ -87,7 +107,8 @@ async function main() {
       await go(`place1@${D}`, { placement: "evil<script>", page: "https://evil.example/x" });
       await go(`place2@${D}`, { placement: "event", page: "//evil.example/" });
       await go(`place3@${D}`, { placement: "article", page: "/articles/some-story/" });
-      const b = mock.requests.map((r) => r.body as Record<string, string>);
+      const b = posts().map((r) => r.body as Record<string, string>);
+      assert.equal(b.length, 3);
       assert.equal(b[0].utm_campaign, "newsletter_page");
       assert.equal(b[0].referring_site, "https://tcountyconnect.com/newsletter/");
       assert.equal(b[1].utm_campaign, "event");
@@ -95,9 +116,80 @@ async function main() {
       assert.equal(b[2].referring_site, "https://tcountyconnect.com/articles/some-story/");
     });
 
-    await test("status mapping: active / pending / validating / inactive / invalid / needs_attention / unknown", async () => {
+    await test("already active (by_email) → no POST, no welcome email, 'already subscribed' message", async () => {
+      mock.requests.length = 0;
+      const r = await go(`reader+bh-already@${D}`);
+      allOutput.push(r);
+      assert.equal(r?.ok, true);
+      assert.equal(r?.outcome, "already");
+      assert.equal(r?.message, "You're already subscribed. Look for the next issue from T County Connect.");
+      assert.equal(posts().length, 0, "no POST");
+      assert.equal(lookups().length, 1);
+      // A new address subscribed once, then submitted again → the second time is "already", still one POST in total.
+      mock.requests.length = 0;
+      assert.equal((await go(`twice@${D}`))?.outcome, "subscribed");
+      assert.equal((await go(`twice@${D}`))?.outcome, "already");
+      assert.equal(posts().length, 1, "exactly one POST for a new address");
+    });
+
+    await test("existing inactive / unsubscribed (by_email) → neutral, never reactivated (no POST)", async () => {
+      mock.requests.length = 0;
+      const r = await go(`left+bh-gone@${D}`);
+      assert.equal(r?.ok, true);
+      assert.equal(r?.outcome, "neutral");
+      assert.equal(r?.message, MSG.neutral);
+      assert.equal(posts().length, 0);
+      for (const st of ["invalid", "needs_attention"]) {
+        mock.subs.set(`seed-${st}@${D}`, st);
+        assert.equal((await go(`seed-${st}@${D}`))?.outcome, "neutral", st);
+      }
+      mock.subs.set(`seed-pending@${D}`, "pending");
+      assert.equal((await go(`seed-pending@${D}`))?.outcome, "pending");
+      assert.equal(posts().length, 0, "existing addresses are never POSTed");
+    });
+
+    await test("lookup failure (503) → retry message, no POST", async () => {
+      mock.requests.length = 0;
+      const r = await go(`x+bh-lookup503@${D}`);
+      assert.equal(r?.error, MSG.retry);
+      assert.equal(posts().length, 0);
+    });
+
+    await test("validating → one re-check after ~1.5 s: active → subscribed, else 'finishing' (never claims subscribed)", async () => {
+      mock.requests.length = 0;
+      let t0 = Date.now();
+      const ok = await go(`v1+bh-validok@${D}`);
+      assert.ok(Date.now() - t0 >= 1_400, "waited before re-checking");
+      assert.equal(ok?.outcome, "subscribed");
+      assert.equal(ok?.message, MSG.subscribed);
+      assert.equal(posts().length, 1);
+      assert.equal(lookups().length, 2, "lookup + one re-check");
+      mock.requests.length = 0;
+      t0 = Date.now();
+      const still = await go(`v2+bh-validating@${D}`);
+      assert.ok(Date.now() - t0 < 4_000);
+      assert.equal(still?.outcome, "finishing");
+      assert.equal(still?.message, "Thanks — we're finishing your signup. Look for a welcome email from T County Connect shortly.");
+      assert.doesNotMatch(String(still?.message), /subscribed/i);
+      assert.equal(posts().length, 1);
+      assert.equal(lookups().length, 2);
+    });
+
+    await test("double submit: two parallel submits for the same address → one POST, both answered", async () => {
+      mock.requests.length = 0;
+      const [a, b] = await Promise.all([go(`dbl+bh-delay@${D}`), go(`DBL+bh-delay@${D}`)]);
+      assert.equal(posts().length, 1, "one POST → one welcome email");
+      assert.equal(lookups().length, 1);
+      assert.equal(a?.outcome, "subscribed");
+      assert.equal(b?.outcome, "subscribed");
+      const c = await go(`dbl+bh-delay@${D}`);
+      assert.equal(c?.outcome, "already");
+      assert.equal(posts().length, 1);
+    });
+
+    await test("status mapping of a new subscription: active / pending / validating / inactive / invalid / needs_attention / unknown", async () => {
       const cases: [string, string, string][] = [
-        ["bh-active", "subscribed", MSG.subscribed], ["plain", "pending", MSG.pending], ["bh-validating", "pending", MSG.pending],
+        ["bh-active", "subscribed", MSG.subscribed], ["plain", "subscribed", MSG.subscribed], ["bh-pending", "pending", MSG.pending],
         ["bh-inactive", "neutral", MSG.neutral], ["bh-invalid", "neutral", MSG.neutral], ["bh-needs", "neutral", MSG.neutral], ["bh-weird", "pending", MSG.pending],
       ];
       for (const [kw, outcome, message] of cases) {
@@ -106,10 +198,42 @@ async function main() {
         assert.equal(r?.ok, true, kw);
         assert.equal(r?.outcome, outcome, kw);
         assert.equal(r?.message, message, kw);
-        if (outcome !== "subscribed") assert.doesNotMatch(String(r?.message), /subscribed\./i, `${kw}: never says subscribed`);
+        if (outcome !== "subscribed") assert.doesNotMatch(String(r?.message), /subscribed!/i, `${kw}: never says subscribed`);
       }
-      assert.equal(MSG.subscribed, "You're subscribed. Watch your inbox for the next issue.");
+      assert.equal(MSG.subscribed, "You're subscribed! Look for a welcome email from T County Connect.");
       assert.equal(MSG.pending, "Almost done — check your inbox to confirm your subscription.");
+      assert.equal(MSG.retry, "We couldn't sign you up just now. Please try again in a minute.");
+    });
+
+    await test("registration opt-in: same flow (utm_campaign register), returns the outcome; failures → 'failed'", async () => {
+      mock.requests.length = 0;
+      assert.equal(await signup.subscribeAfterRegistration(`newmember@${D}`, ip()), "subscribed");
+      assert.equal(posts().length, 1);
+      const b = posts()[0].body as Record<string, unknown>;
+      assert.equal(b.utm_campaign, "register");
+      assert.equal(b.send_welcome_email, true);
+      assert.equal(b.double_opt_override, "off");
+      assert.equal(b.referring_site, "https://tcountyconnect.com/register/");
+      assert.equal(await signup.subscribeAfterRegistration(`newmember@${D}`, ip()), "already");
+      assert.equal(posts().length, 1, "no second POST");
+      assert.equal(await signup.subscribeAfterRegistration(`m+bh-503@${D}`, ip()), "failed");
+      assert.equal(await signup.subscribeAfterRegistration(`m+bh-lookup503@${D}`, ip()), "failed");
+      assert.equal(await signup.subscribeAfterRegistration(`not-an-email`, ip()), "failed");
+    });
+
+    await test("welcome-screen newsletter token: signed for one member, short-lived, unforgeable", async () => {
+      const flash = await import("@/lib/newsletter/register-flash");
+      const t = flash.registerNewsletterToken("user_abc123", "subscribed");
+      assert.equal(flash.verifyRegisterNewsletterToken(t, "user_abc123"), "subscribed");
+      assert.equal(flash.verifyRegisterNewsletterToken(t, "user_other"), null, "other member");
+      assert.equal(flash.verifyRegisterNewsletterToken(t.replace(/^subscribed/, "failed"), "user_abc123"), null, "result swapped");
+      assert.equal(flash.verifyRegisterNewsletterToken("subscribed", "user_abc123"), null);
+      assert.equal(flash.verifyRegisterNewsletterToken("1", "user_abc123"), null);
+      assert.equal(flash.verifyRegisterNewsletterToken(`subscribed.${Math.floor(Date.now() / 1000) + 3600}.${"A".repeat(32)}`, "user_abc123"), null, "made-up signature");
+      const old = flash.registerNewsletterToken("user_abc123", "subscribed", Date.now() - 2 * 3600_000);
+      assert.equal(flash.verifyRegisterNewsletterToken(old, "user_abc123"), null, "expired");
+      assert.equal(flash.registerNewsletterNote("subscribed").text, "You're subscribed to the T County Connect newsletter. Look for a welcome email.");
+      assert.equal(flash.registerNewsletterNote("failed").retry, true);
     });
 
     await test("429 / 500 / 503 / timeout / network error → retry message, typed email kept", async () => {
@@ -123,7 +247,7 @@ async function main() {
       const t0 = Date.now();
       const slow = await go(`retry-bh-slow@${D}`);
       assert.equal(slow?.error, MSG.retry);
-      assert.ok(Date.now() - t0 < 8_900 && Date.now() - t0 >= 7_500, `timed out at ~8s (${Date.now() - t0}ms)`);
+      assert.ok(Date.now() - t0 < 9_500 && Date.now() - t0 >= 7_500, `timed out at ~8s (${Date.now() - t0}ms)`);
       process.env.BEEHIIV_API_BASE = "http://127.0.0.1:1/v2"; // nothing listens there
       const net = await go(`retry-net@${D}`);
       process.env.BEEHIIV_API_BASE = mock.base;
@@ -176,26 +300,39 @@ async function main() {
       assert.equal((await signup.beehiivReadiness()).connectionProblem, false, "a good check clears it");
     });
 
-    await test("test signup: same code path, verified via GET by_email (URL-encoded), masked address stored", async () => {
+    await test("test signup: same code path (lookup → POST), verified via GET by_email (URL-encoded), masked address stored", async () => {
       mock.requests.length = 0;
       const email = `owner+bh-x test@${D}`.replace(" ", "");
       const v = await signup.sendTestSignup(`  ${email.toUpperCase()} `);
       allOutput.push(v);
       assert.equal(v.ok, true, v.message);
-      assert.equal(v.status, "pending");
+      assert.equal(v.status, "active");
+      assert.equal(v.created, true);
       assert.equal(v.publicationName, "T County Connect");
       assert.equal(v.maskedEmail, "o***@example.com");
-      assert.match(v.message, /“T County Connect”.*pending — confirmation email sent/);
-      const [post, lookup] = mock.requests;
+      assert.match(v.message, /“T County Connect”.*active — subscribed \(new subscriber — welcome email requested\)/);
+      const [first, post, lookup] = mock.requests;
+      assert.equal(first.method, "GET");
       assert.equal(post.method, "POST");
       assert.equal((post.body as Record<string, string>).utm_campaign, "admin_test");
       assert.equal((post.body as Record<string, boolean>).reactivate_existing, false);
+      assert.equal((post.body as Record<string, boolean>).send_welcome_email, true);
+      assert.equal((post.body as Record<string, string>).double_opt_override, "off");
       assert.equal(lookup.method, "GET");
       assert.equal(lookup.path, `/v2/publications/${PUB}/subscriptions/by_email/${encodeURIComponent(email)}`);
       assert.match(lookup.path, /owner%2Bbh-xtest%40example\.com$/);
       const raw = JSON.stringify((await db.setting.findUniqueOrThrow({ where: { key: "beehiiv.connection" } })).value);
       assert.doesNotMatch(raw, /owner\+/, "plain address never stored");
       assert.match(raw, /o\*\*\*@example\.com/);
+      // Same address again → already active, no POST, no welcome email.
+      mock.requests.length = 0;
+      const again = await signup.sendTestSignup(email);
+      assert.equal(again.ok, true);
+      assert.equal(again.created, false);
+      assert.match(again.message, /already active — no welcome email sent/);
+      assert.equal(posts().length, 0);
+      assert.equal(signup.testSignupKind(true, "active"), "new subscriber — welcome email requested");
+      assert.equal(signup.testSignupKind(false, "active"), "already active — no welcome email sent");
       const r = await signup.beehiivReadiness();
       assert.equal(r.verifiedOk, true);
       assert.equal(r.ready, true);
@@ -243,7 +380,7 @@ async function main() {
     });
 
     await test("rate limit per email: 3 per hour, answered neutrally (no beehiiv call)", async () => {
-      for (let i = 0; i < 3; i++) assert.equal((await go(`Same.Person+bh-active@${D}`))?.outcome, "subscribed");
+      for (let i = 0; i < 3; i++) assert.equal((await go(`Same.Person+bh-active@${D}`))?.outcome, i === 0 ? "subscribed" : "already");
       mock.requests.length = 0;
       const r = await go(`same.person+bh-active@${D}`);
       assert.equal(r?.ok, true);

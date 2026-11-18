@@ -179,16 +179,18 @@ export type CreateSubscriptionInput = {
 };
 
 /**
- * Request body sent to beehiiv. `send_welcome_email` is deliberately omitted so
- * beehiiv applies its own default for API signups; `double_opt_override:
- * "not_set"` keeps the publication's double opt-in setting; existing
- * (unsubscribed) addresses are never reactivated from the site.
+ * Request body sent to beehiiv: single opt-in with beehiiv's welcome email.
+ * `double_opt_override: "off"` skips the confirmation step for site signups;
+ * `send_welcome_email: true` asks beehiiv to send the publication's welcome
+ * email; existing (unsubscribed) addresses are never reactivated from the site.
+ * Only ever sent after a by_email lookup found no subscription (see signup.ts).
  */
 export function subscriptionBody(input: CreateSubscriptionInput) {
   return {
     email: input.email,
     reactivate_existing: false,
-    double_opt_override: "not_set",
+    send_welcome_email: true,
+    double_opt_override: "off",
     utm_source: "tcountyconnect.com",
     utm_medium: "website",
     utm_campaign: input.utmCampaign,
@@ -206,7 +208,7 @@ export async function getPublication(env: BeehiivEnv, fetchImpl: typeof fetch = 
   return (await beehiivJson<BeehiivPublication>(env, "GET", pubPath(env), undefined, fetchImpl, timeoutMs)).data;
 }
 
-/** GET /publications/{id}/subscriptions/by_email/{email}. */
+/** GET /publications/{id}/subscriptions/by_email/{email}. A missing subscription is HTTP 404 (BeehiivCallError status 404). */
 export async function getSubscriptionByEmail(env: BeehiivEnv, email: string, fetchImpl: typeof fetch = fetch, timeoutMs = BEEHIIV_SIGNUP_TIMEOUT_MS) {
   return (await beehiivJson<BeehiivSubscription>(env, "GET", `${pubPath(env)}/subscriptions/by_email/${encodeURIComponent(email)}`, undefined, fetchImpl, timeoutMs)).data;
 }

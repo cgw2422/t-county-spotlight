@@ -1,10 +1,15 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PartyPopper, X } from "lucide-react";
+import { SUBSCRIBE_PATH } from "@/lib/newsletter/copy";
+
+/** Newsletter result of the registration (from a signed, short-lived token — see register-flash.ts). */
+export type WelcomeNewsletterNote = { tone: "success" | "info" | "problem"; text: string; retry: boolean };
 
 /** One-time welcome after registration (?welcome=1). Dismissing removes the query string. */
-export function WelcomePanel({ name, newsletterNote, children }: { name: string | null; /** Neutral line shown only when they ticked the newsletter box at registration. */ newsletterNote?: string | null; children: React.ReactNode }) {
+export function WelcomePanel({ name, newsletterNote, children }: { name: string | null; /** Shown only when they ticked the newsletter box at registration. */ newsletterNote?: WelcomeNewsletterNote | null; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   const router = useRouter();
   if (!open) return null;
@@ -19,7 +24,13 @@ export function WelcomePanel({ name, newsletterNote, children }: { name: string 
           <PartyPopper className="h-5 w-5 text-sunset-500" aria-hidden /> Welcome to My T County{name ? `, ${name}` : ""}!
         </h2>
         <p className="mt-1 text-sm text-slate-600">Optional: pick your community and a few favorite categories so the most relevant things show up first. You can change these any time under My Preferences.</p>
-        {newsletterNote && <p className="mt-2 text-sm text-slate-600" data-testid="mtc-welcome-newsletter">{newsletterNote}</p>}
+        {newsletterNote && (
+          <p data-testid="mtc-welcome-newsletter" data-tone={newsletterNote.tone}
+            className={newsletterNote.tone === "problem" ? "mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200" : newsletterNote.tone === "success" ? "mt-2 text-sm font-medium text-hillside-700" : "mt-2 text-sm text-slate-600"}>
+            {newsletterNote.text}
+            {newsletterNote.retry && <> <Link href={SUBSCRIBE_PATH} className="font-semibold underline underline-offset-2" data-testid="mtc-welcome-newsletter-retry">our newsletter signup page</Link>.</>}
+          </p>
+        )}
         <div className="mt-5">{children}</div>
         <button type="button" onClick={close} className="btn-ghost btn-sm mt-3 min-h-11">Skip for now</button>
       </div>
