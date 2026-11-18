@@ -17,6 +17,10 @@ export const DEFAULT_SIGNUP_BUTTON = "Sign me up";
 /** Previous default headline; homepage sections still carrying it use the signup heading instead. */
 export const LEGACY_SIGNUP_HEADLINE = "Love Local. Stay in the Loop.";
 export const SIGNUP_DISCLAIMER = "Free to subscribe. Unsubscribe anytime.";
+/** Line under the native (beehiiv) signup form. Editable in Admin → Newsletter → Settings. */
+export const DEFAULT_SIGNUP_FOOTNOTE = "Free to join. Unsubscribe anytime.";
+/** Visible label of the email field. */
+export const SIGNUP_FIELD_LABEL = "Email address";
 export const PRIVACY_PATH = "/newsletter/#privacy";
 
 /** Mid-sentence form: "the T County Connect newsletter". */
@@ -34,7 +38,7 @@ export function TheName(name: string) {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-export type NewsletterTextSettings = { name?: string; heading?: string; tagline?: string; button?: string; navLabel?: string };
+export type NewsletterTextSettings = { name?: string; heading?: string; tagline?: string; button?: string; navLabel?: string; footnote?: string };
 
 export type NewsletterCopy = {
   /** "T County Connect" */
@@ -46,6 +50,8 @@ export type NewsletterCopy = {
   tagline: string;
   /** "Sign me up" */
   button: string;
+  /** "Free to join. Unsubscribe anytime." (native beehiiv form) */
+  footnote: string;
   consentText: string;
   registerOptInLabel: string;
   registerConsentText: string;
@@ -59,9 +65,10 @@ export function newsletterCopy(t: NewsletterTextSettings = {}): NewsletterCopy {
   const tagline = t.tagline?.trim() || DEFAULT_SIGNUP_TAGLINE;
   const button = t.button?.trim() || DEFAULT_SIGNUP_BUTTON;
   const navLabel = t.navLabel?.trim() || DEFAULT_NAV_LABEL;
+  const footnote = t.footnote?.trim() || DEFAULT_SIGNUP_FOOTNOTE;
   const registerOptInLabel = `Send me ${theName(name)} (free)`;
   return {
-    name, navLabel, heading, tagline, button,
+    name, navLabel, heading, tagline, button, footnote,
     /** The exact wording a person sees when they subscribe. Stored with each signup as proof of consent. */
     consentText: `${heading} ${tagline} [${button}] ${SIGNUP_DISCLAIMER} How we use your email: ${PRIVACY_PATH}`,
     registerOptInLabel,
@@ -122,5 +129,22 @@ export const FREQUENCY_NOTE = DEFAULT_COPY.frequencyNote;
 
 export const NEWSLETTER_PROVIDERS = ["builtin", "beehiiv"] as const;
 export type NewsletterProvider = (typeof NEWSLETTER_PROVIDERS)[number];
-/** Where beehiiv's subscribe form should send people after they sign up. */
+/** Former redirect target of beehiiv's embedded form. Kept as a page for old links; the native form never redirects. */
 export const THANKS_PATH = "/newsletter/thanks/";
+
+/**
+ * Native signup form placements (sent to beehiiv as utm_campaign). The browser
+ * sends one of these; the server re-checks it against this list.
+ */
+export const SIGNUP_PLACEMENTS = ["homepage_hero", "homepage", "newsletter_page", "newsletter_issue", "footer", "article", "event", "explore", "account"] as const;
+export type SignupPlacement = (typeof SIGNUP_PLACEMENTS)[number];
+
+/** What the native form says after beehiiv answers (by subscription status). Never reveals more than this. */
+export const BEEHIIV_SIGNUP_MESSAGES = {
+  subscribed: "You're subscribed. Watch your inbox for the next issue.",
+  pending: "Almost done — check your inbox to confirm your subscription.",
+  neutral: "Thanks. If this address can receive our newsletter, you'll hear from us soon. If you unsubscribed before, use the link in a past issue to rejoin.",
+  retry: "We couldn't reach our newsletter service. Please try again in a minute.",
+  invalidEmail: "Please enter a valid email address.",
+  tooMany: "Too many signup attempts. Please try again in a few minutes.",
+} as const;

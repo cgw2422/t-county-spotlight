@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
-import { absoluteUrl } from "@/lib/utils";
+import { absoluteUrl, formatDateTime } from "@/lib/utils";
 import { getNewsletterSettings, newsletterSender } from "@/lib/newsletter/settings";
 import { resendConfigured, smtpConfigured, webhookSecretConfigured } from "@/lib/newsletter/provider";
 import { broadcastReadiness } from "@/lib/newsletter/send";
 import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { ActionForm, Submit } from "@/components/admin/action-form";
 import { FormGrid, SelectField, TextArea, TextField } from "@/components/admin/form-field";
-import { saveNewsletterSettingsAction, saveProviderSettingsAction } from "../actions";
-import { beehiivEnvStatus } from "@/lib/beehiiv/client";
+import { checkBeehiivConnectionAction, saveNewsletterSettingsAction, saveProviderSettingsAction, sendTestSignupAction } from "../actions";
 import { ARCHIVE_TAG, ARTICLE_TAG } from "@/lib/beehiiv/sync";
-import { newsletterCopy, theName, THANKS_PATH } from "@/lib/newsletter/copy";
-import { BeehiivEmbed } from "@/components/newsletter/beehiiv-embed";
+import { beehiivReadiness, statusLabel } from "@/lib/beehiiv/signup";
+import { newsletterCopy, theName } from "@/lib/newsletter/copy";
+import { NativeSignupForm } from "@/components/newsletter/native-signup";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -31,52 +31,94 @@ const code = "rounded bg-slate-100 px-1 text-xs break-all";
 
 export default async function NewsletterSettingsPage() {
   await requireAdmin();
-  const [s, sender, ready, scheduled] = await Promise.all([getNewsletterSettings(), newsletterSender(), broadcastReadiness(), db.newsletter.count({ where: { status: { in: ["SCHEDULED", "SENDING"] } } })]);
+  const [s, sender, ready, scheduled, bh] = await Promise.all([getNewsletterSettings(), newsletterSender(), broadcastReadiness(), db.newsletter.count({ where: { status: { in: ["SCHEDULED", "SENDING"] } } }), beehiivReadiness()]);
   const copy = newsletterCopy(s);
-  const env = beehiivEnvStatus();
-  const thanksUrl = absoluteUrl(THANKS_PATH);
-  const readyToSwitch = !!s.beehiivEmbedUrl && env.apiKey && env.publicationId;
+  const readyToSwitch = bh.ready;
+  const when = (iso?: string) => (iso ? formatDateTime(new Date(iso)) : "");
   return (
     <>
       <PageHeader title="Newsletter settings" description={`Signup provider, wording, sender identity, legal footer and consent wording version for ${theName(copy.name)}.`} />
 
       <div className="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" id="provider">
-        <Card title="Signup & sending provider" description="Which signup form the site shows and who sends issues. Stays on Built-in until you switch it here.">
-          <ActionForm action={saveProviderSettingsAction} warnUnsaved className="space-y-5">
-            <SelectField name="provider" label="Signup & sending provider" defaultValue={s.provider} data-testid="provider-select"
-              options={[{ value: "builtin", label: "Built-in (current signup form & campaigns)" }, { value: "beehiiv", label: "beehiiv (embedded beehiiv form; send from beehiiv)" }]}
-              help="beehiiv: every signup placement shows beehiiv's form, signups go straight to beehiiv (no account, no local subscriber), and built-in campaigns can't be created, scheduled or sent. Unsubscribe/preferences links in past emails keep working either way." />
-            <TextArea name="beehiivEmbedUrl" label="beehiiv embed form URL" defaultValue={s.beehiivEmbedUrl} rows={2} maxLength={4000} data-testid="embed-url"
-              placeholder="https://embeds.beehiiv.com/00000000-0000-0000-0000-000000000000"
-              help={<>Paste the form URL, or the whole embed code — only the iframe&rsquo;s address is kept (scripts are never stored). Must be https on embeds.beehiiv.com or subscribe-forms.beehiiv.com.</>} />
-            <div className="border-t border-slate-100 pt-4"><Submit pendingText="Saving…">Save provider</Submit></div>
-          </ActionForm>
-          {s.beehiivEmbedUrl && (
-            <div className="mt-6 border-t border-slate-100 pt-5">
-              <p className="label">Live preview of the beehiiv form</p>
-              <p className="help mb-3">This is exactly what visitors will see{s.provider === "beehiiv" ? "" : " after you switch"}. Try a test signup here before switching.</p>
-              <div className="overflow-hidden rounded-xl bg-white ring-1 ring-slate-200" data-testid="embed-preview"><BeehiivEmbed url={s.beehiivEmbedUrl} name={theName(copy.name)} eager /></div>
+        <div className="min-w-0 space-y-6">
+          <Card title="Signup & sending provider" description="Which signup form the site shows and who sends issues. Stays on Built-in until you switch it here.">
+            <ActionForm action={saveProviderSettingsAction} warnUnsaved className="space-y-5">
+              <SelectField name="provider" label="Signup & sending provider" defaultValue={s.provider} data-testid="provider-select"
+                options={[{ value: "builtin", label: "Built-in (current signup form & campaigns)" }, { value: "beehiiv", label: "beehiiv (our signup form, sent to beehiiv; send from beehiiv)" }]}
+                help="beehiiv: every signup placement shows our own form, which our server sends to beehiiv (no account, no local subscriber), and built-in campaigns can't be created, scheduled or sent. Switching is refused until the beehiiv connection is ready. Unsubscribe/preferences links in past emails keep working either way." />
+              <div className="border-t border-slate-100 pt-4"><Submit pendingText="Saving…">Save provider</Submit></div>
+            </ActionForm>
+          </Card>
+
+          <Card title="beehiiv connection" description="The signup form talks to beehiiv only from our server. Keys are never shown or sent to browsers.">
+            <ul className="space-y-2" data-testid="bh-env">
+              <Status ok={bh.env.apiKey} label="BEEHIIV_API_KEY" yes="Present" no="Missing" detail="Server environment variable (Railway → Variables)." testId="env-api-key" />
+              <Status ok={bh.env.publicationId} label="BEEHIIV_PUBLICATION_ID" yes="Present" no="Missing" detail="Starts with pub_." testId="env-publication" />
+            </ul>
+            <div className="mt-4 rounded-xl border border-slate-200 p-4" data-testid="bh-connection" data-ok={bh.checkOk && !bh.connectionProblem ? "true" : "false"}>
+              <p className="text-sm font-semibold text-slate-800">Connection check</p>
+              {bh.check ? (
+                bh.check.ok && !bh.connectionProblem ? (
+                  <p className="mt-1 text-sm text-emerald-700">OK — publication <strong data-testid="bh-publication-name">{bh.check.publicationName ?? "(no name returned)"}</strong> <span className="text-xs text-slate-500">· checked {when(bh.check.at)}</span></p>
+                ) : (
+                  <p className="mt-1 text-sm text-red-700" data-testid="bh-connection-problem"><strong>Connection problem</strong> — {bh.check.ok ? "a signup was refused by beehiiv after the last good check (check the API key and publication id, then check again)." : bh.check.error} <span className="text-xs text-slate-500">· checked {when(bh.check.at)}</span></p>
+                )
+              ) : bh.connectionProblem ? (
+                <p className="mt-1 text-sm text-red-700" data-testid="bh-connection-problem"><strong>Connection problem</strong> — a recent signup was refused by beehiiv.</p>
+              ) : (
+                <p className="mt-1 text-sm text-slate-500">Not checked yet.</p>
+              )}
+              <p className="help">Reads the publication from beehiiv (GET /publications/&#123;id&#125;) so you can confirm the name is &ldquo;T County Connect&rdquo;.</p>
+              <ActionForm action={checkBeehiivConnectionAction} className="mt-3">
+                <Submit pendingText="Checking…" data-testid="bh-check">Check connection</Submit>
+              </ActionForm>
             </div>
-          )}
-        </Card>
-        <div className="space-y-6">
+            <div className="mt-4 rounded-xl border border-slate-200 p-4" data-testid="bh-test" data-ok={bh.verifiedOk ? "true" : "false"}>
+              <p className="text-sm font-semibold text-slate-800">Send a test signup</p>
+              <p className="help">Sends an address you control through the same code path as the public form (utm_campaign &ldquo;admin_test&rdquo;), then looks it up in beehiiv to prove it landed in this publication. Only a masked address is stored.</p>
+              {bh.verification && (
+                <p className={bh.verification.ok ? "mt-2 text-sm text-emerald-700" : "mt-2 text-sm text-red-700"} data-testid="bh-test-result">
+                  {bh.verification.ok
+                    ? <>Verified in <strong>{bh.verification.publicationName ?? "the publication"}</strong>: {bh.verification.maskedEmail} is <strong data-testid="bh-test-status">{statusLabel(bh.verification.status)}</strong></>
+                    : <>Not verified{bh.verification.maskedEmail ? ` (${bh.verification.maskedEmail})` : ""}: {bh.verification.error}</>}
+                  <span className="text-xs text-slate-500"> · {when(bh.verification.at)}</span>
+                </p>
+              )}
+              <ActionForm action={sendTestSignupAction} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <label htmlFor="bh-test-email" className="label">Test email address</label>
+                  <input id="bh-test-email" name="email" type="email" required maxLength={254} autoComplete="off" className="input" data-testid="bh-test-email" placeholder="you+test@yourdomain.com" />
+                </div>
+                <Submit pendingText="Sending…" data-testid="bh-test-submit">Send test signup</Submit>
+              </ActionForm>
+            </div>
+          </Card>
+
+          <Card title="Preview the native form" description={`What visitors see${s.provider === "beehiiv" ? "" : " after you switch"} — the real component with the current wording. The preview never submits.`}>
+            <div className="grid gap-4 xl:grid-cols-2" data-testid="native-preview">
+              <div className="rounded-2xl bg-navy-900 p-4"><NativeSignupForm preview placement="homepage_hero" heading={copy.heading} description={copy.tagline} button={copy.button} footnote={copy.footnote} /></div>
+              <div className="rounded-2xl bg-slate-100 p-4"><NativeSignupForm preview placement="footer" heading={copy.heading} description={copy.tagline} button={copy.button} footnote={copy.footnote} /></div>
+            </div>
+          </Card>
+        </div>
+        <div className="min-w-0 space-y-6">
           <Card title={readyToSwitch ? "Ready to switch" : "Not ready to switch yet"}>
             <ul className="space-y-2" data-testid="ready-check" data-ready={readyToSwitch ? "true" : "false"}>
-              <Status ok={!!s.beehiivEmbedUrl} label="beehiiv embed form URL" yes="Set" no="Missing" testId="ready-embed" />
-              <Status ok={env.apiKey} label="BEEHIIV_API_KEY" yes="Present" no="Missing" detail="Server environment variable (Railway). Used only for the content sync." testId="ready-api-key" />
-              <Status ok={env.publicationId} label="BEEHIIV_PUBLICATION_ID" yes="Present" no="Missing" detail="Starts with pub_." testId="ready-publication" />
+              <Status ok={bh.envOk} label="beehiiv keys on the server" yes="Present" no="Missing" testId="ready-env" />
+              <Status ok={bh.checkOk && !bh.connectionProblem} label="Connection check" yes={bh.check?.publicationName ? `OK — ${bh.check.publicationName}` : "OK"} no={bh.connectionProblem ? "Connection problem" : "Not passed"} testId="ready-connection" />
+              <Status ok={bh.verifiedOk} label="Test signup verified in beehiiv" yes={bh.verification ? `Yes — ${when(bh.verification.at)}` : "Yes"} no="Not yet" testId="ready-verified" />
             </ul>
             <p className="mt-3 text-sm text-slate-600">Current provider: <strong data-testid="current-provider">{s.provider === "beehiiv" ? "beehiiv" : "Built-in"}</strong>.{s.provider === "beehiiv" && scheduled ? ` ${scheduled} scheduled/sending campaign(s) will not send.` : ""}</p>
-            <p className="mt-3 text-xs text-slate-500">Values are never shown here — only whether they are set.</p>
+            <p className="mt-3 text-xs text-slate-500">Values are never shown here — only whether they are set. A new API key or publication id needs a new check and test signup.</p>
           </Card>
           <Card title="beehiiv setup checklist">
             <ol className="list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
               <li>Export subscribers in <Link href="/admin/newsletter/subscribers/" className="font-semibold text-brand-700 hover:underline">Subscribers → Export for beehiiv</Link> and import the CSV in beehiiv (Audience → Subscribers → Import). Also download <em>Export unsubscribes &amp; suppressions</em> and never import those addresses.</li>
-              <li>In beehiiv, create an embedded subscribe form (Audience → Subscribe forms) and set its <strong>redirect URL</strong> to <code className={code} data-testid="thanks-url">{thanksUrl}</code></li>
-              <li>Copy the form&rsquo;s embed URL into the field on the left and check the live preview.</li>
               <li>Set <code className={code}>BEEHIIV_API_KEY</code> and <code className={code}>BEEHIIV_PUBLICATION_ID</code> on the server (Railway → Variables) and redeploy.</li>
+              <li>Click <strong>Check connection</strong> and confirm the publication name is &ldquo;T County Connect&rdquo;.</li>
+              <li>Send a test signup to an address you control. With double opt-in on in beehiiv it shows <em>pending — confirmation email sent</em>; confirm the email arrives.</li>
               <li>In beehiiv, tag posts <code className={code}>{ARCHIVE_TAG}</code> (newsletter archive) and/or <code className={code}>{ARTICLE_TAG}</code> (site article). Publish them to <strong>Email and web</strong> for the best result on the site.</li>
-              <li>Run <Link href="/admin/newsletter/beehiiv/" className="font-semibold text-brand-700 hover:underline">beehiiv → Sync now</Link>, do a test signup in the preview, then switch the provider to beehiiv.</li>
+              <li>Run <Link href="/admin/newsletter/beehiiv/" className="font-semibold text-brand-700 hover:underline">beehiiv → Sync now</Link>, then switch the provider to beehiiv.</li>
             </ol>
           </Card>
         </div>
@@ -89,9 +131,10 @@ export default async function NewsletterSettingsPage() {
               <TextField name="name" label="Name in emails & prose" defaultValue={s.name} required maxLength={80} data-testid="nl-name" help={<>Reads as &ldquo;{theName(copy.name)}&rdquo; in emails and on the site.</>} />
               <TextField name="navLabel" label="Navigation label & archive title" defaultValue={s.navLabel} required maxLength={40} data-testid="nl-navlabel" help="Title of /newsletter/ and the small label on signup cards." />
               <TextField name="heading" label="Signup heading" defaultValue={s.heading} required maxLength={120} data-testid="nl-heading" help="Homepage hero card and every signup card." />
-              <TextField name="button" label="Signup button (built-in form)" defaultValue={s.button} required maxLength={40} data-testid="nl-button" help="beehiiv's own button text is set in beehiiv's form editor." />
+              <TextField name="button" label="Signup button" defaultValue={s.button} required maxLength={40} data-testid="nl-button" help="Built-in form and the native beehiiv form." />
             </FormGrid>
             <TextField name="tagline" label="Signup description" defaultValue={s.tagline} required maxLength={200} data-testid="nl-tagline" help="Shown under the signup heading on every signup card." />
+            <TextField name="footnote" label="Line under the form (beehiiv mode)" defaultValue={s.footnote} required maxLength={120} data-testid="nl-footnote" help="Shown under the native signup form." />
             <FormGrid>
               <TextField name="fromName" label="From name" defaultValue={s.fromName} maxLength={80} help="Shown as the sender of built-in newsletter emails. Leave blank to use the site email name." />
               <TextField name="fromAddress" type="email" label="From address" defaultValue={s.fromAddress} maxLength={254} help={`Must be on a domain verified with your email provider.${process.env.NEWSLETTER_FROM ? " Overrides NEWSLETTER_FROM when set." : ""}`} />

@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: `Thanks for subscribing to ${theName(c.name)}`, robots: { index: false, follow: true } };
 }
 
-/** Where beehiiv's embedded form redirects after a signup (set the form's redirect URL to /newsletter/thanks/). */
+/** Former redirect target of beehiiv's embedded form. Kept for old links; the native signup form shows its result inline and never redirects here. */
 export default async function NewsletterThanksPage() {
   const c = await getNewsletterConfig();
   return (

@@ -3,8 +3,8 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import type { Prisma } from "@/generated/prisma/client";
 import { cache } from "react";
-import { DEFAULT_NAV_LABEL, DEFAULT_NEWSLETTER_NAME, DEFAULT_SIGNUP_BUTTON, DEFAULT_SIGNUP_HEADING, DEFAULT_SIGNUP_TAGLINE, newsletterCopy, type NewsletterProvider } from "./copy";
-import { normalizeBeehiivEmbedUrl } from "@/lib/beehiiv/embed";
+import { DEFAULT_NAV_LABEL, DEFAULT_NEWSLETTER_NAME, DEFAULT_SIGNUP_BUTTON, DEFAULT_SIGNUP_FOOTNOTE, DEFAULT_SIGNUP_HEADING, DEFAULT_SIGNUP_TAGLINE, newsletterCopy, type NewsletterProvider } from "./copy";
+import { beehiivEnv } from "@/lib/beehiiv/client";
 
 const KEY = "newsletter";
 
@@ -24,12 +24,12 @@ export type NewsletterSettings = {
   heading: string;
   /** Supporting line under the signup heading. */
   tagline: string;
-  /** Built-in form button ("Sign me up"). */
+  /** Signup button ("Sign me up"), built-in and native beehiiv form. */
   button: string;
+  /** Line under the native beehiiv form ("Free to join. Unsubscribe anytime."). */
+  footnote: string;
   /** "Signup & sending provider". Stays "builtin" until an admin switches it. */
   provider: NewsletterProvider;
-  /** beehiiv embedded subscribe form URL (validated: https, embeds.beehiiv.com / subscribe-forms.beehiiv.com). */
-  beehiivEmbedUrl: string;
 };
 
 export const DEFAULT_NEWSLETTER_SETTINGS: NewsletterSettings = {
@@ -44,19 +44,21 @@ export const DEFAULT_NEWSLETTER_SETTINGS: NewsletterSettings = {
   heading: DEFAULT_SIGNUP_HEADING,
   tagline: DEFAULT_SIGNUP_TAGLINE,
   button: DEFAULT_SIGNUP_BUTTON,
+  footnote: DEFAULT_SIGNUP_FOOTNOTE,
   provider: "builtin",
-  beehiivEmbedUrl: "",
 };
+
+/** Keys from earlier versions that are no longer read (the beehiiv embed URL was replaced by the native form). */
+const RETIRED_KEYS = ["beehiivEmbedUrl"] as const;
 
 export async function getNewsletterSettings(): Promise<NewsletterSettings> {
   try {
     const row = await db.setting.findUnique({ where: { key: KEY } });
     const v = (row?.value && typeof row.value === "object" ? row.value : {}) as Partial<NewsletterSettings>;
     const merged = { ...DEFAULT_NEWSLETTER_SETTINGS, ...Object.fromEntries(Object.entries(v).filter(([, x]) => typeof x === "string")) } as NewsletterSettings;
-    for (const k of ["name", "navLabel", "heading", "tagline", "button"] as const) if (!merged[k].trim()) merged[k] = DEFAULT_NEWSLETTER_SETTINGS[k];
+    for (const k of ["name", "navLabel", "heading", "tagline", "button", "footnote"] as const) if (!merged[k].trim()) merged[k] = DEFAULT_NEWSLETTER_SETTINGS[k];
     if (merged.provider !== "beehiiv") merged.provider = "builtin";
-    // Never trust a stored URL blindly: anything that doesn't validate is treated as unset.
-    merged.beehiivEmbedUrl = normalizeBeehiivEmbedUrl(merged.beehiivEmbedUrl) ?? "";
+    for (const k of RETIRED_KEYS) delete (merged as Record<string, unknown>)[k];
     return merged;
   } catch {
     return DEFAULT_NEWSLETTER_SETTINGS;
@@ -64,7 +66,7 @@ export async function getNewsletterSettings(): Promise<NewsletterSettings> {
 }
 
 /** Fields that follow the code default while they equal it (so a future default change still applies). */
-const FOLLOW_DEFAULT = ["name", "navLabel", "heading", "tagline", "button", "provider", "beehiivEmbedUrl"] as const;
+const FOLLOW_DEFAULT = ["name", "navLabel", "heading", "tagline", "button", "footnote", "provider"] as const;
 
 export async function saveNewsletterSettings(patch: Partial<NewsletterSettings>) {
   const merged: Record<string, unknown> = { ...(await getNewsletterSettings()), ...patch };
@@ -85,15 +87,16 @@ export async function newsletterSender() {
 
 export type NewsletterConfig = ReturnType<typeof newsletterCopy> & {
   provider: NewsletterProvider;
-  beehiivEmbedUrl: string;
-  /** provider = beehiiv: signups go to beehiiv's form; built-in sending is retired. */
+  /** provider = beehiiv: signups go through our native form to beehiiv's API; built-in sending is retired. */
   isBeehiiv: boolean;
+  /** BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID are set on the server (values never leave the server). */
+  beehiivConfigured: boolean;
 };
 
 /** Public-facing newsletter config (name, copy, provider). Cached per request. */
 export const getNewsletterConfig = cache(async (): Promise<NewsletterConfig> => {
   const s = await getNewsletterSettings();
-  return { ...newsletterCopy(s), provider: s.provider, beehiivEmbedUrl: s.beehiivEmbedUrl, isBeehiiv: s.provider === "beehiiv" };
+  return { ...newsletterCopy(s), provider: s.provider, isBeehiiv: s.provider === "beehiiv", beehiivConfigured: !!beehiivEnv() };
 });
 
 /** True when built-in campaign sending is retired (provider = beehiiv). Never cached, so a switch applies immediately. */

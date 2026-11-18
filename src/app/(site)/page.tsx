@@ -51,7 +51,7 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       // Right side (Admin → Homepage → "Right Side of Homepage Hero"):
       //   pulse (default): the featured, published Community Pulse; the newsletter card when none is active.
       //   newsletter: always the newsletter card (Community Pulse elsewhere is unaffected).
-      // Nothing displayable (e.g. beehiiv mode without an embed URL) → full-width headline, no empty column.
+      // Nothing displayable (e.g. beehiiv mode without beehiiv credentials on the server) → full-width headline, no empty column.
       const wantPulse = settings.heroAside !== "newsletter";
       const [pulse, appearance, seasonal, nl] = await Promise.all([wantPulse ? getFeaturedPulse() : null, getHeroAppearance(), getSeasonalHero(), getNewsletterConfig()]);
       const aside = pulse ? <PulseHeroCard pulse={pulse} /> : signupAvailable(nl) ? <NewsletterSignup source="homepage" variant="hero" /> : null;

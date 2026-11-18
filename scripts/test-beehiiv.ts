@@ -9,7 +9,7 @@
  * article, both → both, untagged ignored); dedupe on re-run + title updates;
  * locally edited articles kept; removal handling; email-only fallback flagged;
  * sanitization; missing env → no-op; concurrent-run lock; API key never stored;
- * embed URL validation; exports; built-in sending retired in beehiiv mode.
+ * retired embed URL ignored; exports; built-in sending retired in beehiiv mode.
  */
 import http from "node:http";
 import assert from "node:assert/strict";
@@ -108,7 +108,6 @@ async function main() {
   const port = (server.address() as AddressInfo).port;
   const { db } = await import("@/lib/db");
   const { syncBeehiiv, maybeSyncBeehiivFromCron, getLastSyncResult, isLive, RESERVED_ISSUE_SLUGS } = await import("@/lib/beehiiv/sync");
-  const { normalizeBeehiivEmbedUrl } = await import("@/lib/beehiiv/embed");
   const { prepareBeehiivContent } = await import("@/lib/beehiiv/html");
   const { getNewsletterSettings, saveNewsletterSettings } = await import("@/lib/newsletter/settings");
   const exportLib = await import("@/lib/newsletter/export");
@@ -331,16 +330,12 @@ async function main() {
       assert.equal((await getLastSyncResult())?.trigger, "cron");
     });
 
-    await test("embed URL validation", async () => {
-      const ok = "https://embeds.beehiiv.com/00000000-0000-0000-0000-000000000000";
-      assert.equal(normalizeBeehiivEmbedUrl(ok), ok);
-      assert.equal(normalizeBeehiivEmbedUrl(`${ok}?slim=true`), `${ok}?slim=true`);
-      assert.equal(normalizeBeehiivEmbedUrl("https://subscribe-forms.beehiiv.com/0f1e2d3c-aaaa-bbbb-cccc-111122223333"), "https://subscribe-forms.beehiiv.com/0f1e2d3c-aaaa-bbbb-cccc-111122223333");
-      assert.equal(normalizeBeehiivEmbedUrl(`<script async src="https://subscribe-forms.beehiiv.com/embed.js"></script><iframe src="${ok}" class="beehiiv-embed" frameborder="0"></iframe>`), ok);
-      for (const bad of ["http://embeds.beehiiv.com/00000000-0000-0000-0000-000000000000", "https://evil.com/00000000-0000", "https://embeds.beehiiv.com.evil.com/00000000-0000", "javascript:alert(1)",
-        "https://embeds.beehiiv.com/../../x", "https://user:pw@embeds.beehiiv.com/00000000-0000", "https://embeds.beehiiv.com:8443/00000000-0000", "<script>alert(1)</script>", "https://embeds.beehiiv.com/00000000-0000?x=<b>", ""]) {
-        assert.equal(normalizeBeehiivEmbedUrl(bad), null, bad);
-      }
+    await test("embed removed: a stored beehiiv embed URL is ignored and dropped on save", async () => {
+      await db.setting.upsert({ where: { key: "newsletter" }, create: { key: "newsletter", value: { beehiivEmbedUrl: "https://embeds.beehiiv.com/00000000-0000-0000-0000-000000000000" } }, update: { value: { ...((originalNlRow?.value as object) ?? {}), beehiivEmbedUrl: "https://embeds.beehiiv.com/00000000-0000-0000-0000-000000000000" } as never } });
+      assert.equal("beehiivEmbedUrl" in (await getNewsletterSettings()), false);
+      await saveNewsletterSettings({ provider: "builtin" });
+      const raw = (await db.setting.findUniqueOrThrow({ where: { key: "newsletter" } })).value as Record<string, unknown>;
+      assert.equal("beehiivEmbedUrl" in raw, false);
     });
 
     await test("exports: active only for beehiiv; unsubscribes & suppressions separate (case-insensitive)", async () => {
@@ -362,7 +357,7 @@ async function main() {
     });
 
     await test("beehiiv mode retires built-in sending; built-in mode unchanged", async () => {
-      await saveNewsletterSettings({ provider: "beehiiv", beehiivEmbedUrl: "https://embeds.beehiiv.com/00000000-0000-0000-0000-000000000000" });
+      await saveNewsletterSettings({ provider: "beehiiv" });
       const nl = await db.newsletter.create({ data: { subject: "bhtest campaign", content: {}, status: "SCHEDULED", approvedAt: new Date(), scheduledFor: new Date(Date.now() - 60_000) } });
       const due = await send.processDueNewsletters();
       assert.equal(due.skipped, "beehiiv");

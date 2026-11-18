@@ -105,7 +105,7 @@ export default async function HomepageManager() {
               <SelectField name="heroAside" label="Show beside the hero headline" defaultValue={settings.heroAside === "newsletter" ? "newsletter" : "pulse"} data-testid="hero-aside-select"
                 options={[{ value: "pulse", label: "Community Pulse" }, { value: "newsletter", label: "Newsletter Signup" }]}
                 help={<>Community Pulse: the featured, published Pulse card; when none is active, the newsletter signup card (“{nl.heading}”) shows instead. Newsletter Signup: always the signup card (Community Pulse sections elsewhere are unaffected). On phones the card sits below the headline. If neither can be shown, the headline uses the full width.</>} />
-              <p className="text-xs text-slate-500">The signup card uses the current newsletter provider ({nl.isBeehiiv ? "beehiiv embedded form" : "built-in form"}) — change it in <Link href="/admin/newsletter/settings/" className="font-semibold text-brand-700 hover:underline">Newsletter → Settings</Link>.</p>
+              <p className="text-xs text-slate-500">The signup card uses the current newsletter provider ({nl.isBeehiiv ? "native form, sent to beehiiv" : "built-in form"}) — change it in <Link href="/admin/newsletter/settings/" className="font-semibold text-brand-700 hover:underline">Newsletter → Settings</Link>.</p>
               <Submit className="btn-primary btn-sm" pendingText="Saving…">Save hero right side</Submit>
             </ActionForm>
           </Card>

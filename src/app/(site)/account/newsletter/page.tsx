@@ -29,9 +29,7 @@ export default async function AccountNewsletterPage() {
           <p className="mt-1 text-sm text-slate-600">{nl.tagline} {nl.frequencyNote}</p>
           <p className="mt-3 text-sm text-slate-700">Your newsletter subscription is separate from your T County Connect account. To change your email preferences or unsubscribe, use the links at the bottom of any issue you&rsquo;ve received — they work without signing in.</p>
         </section>
-        <section className="card p-5 sm:p-6">
-          <NewsletterSignup source="account" variant="compact" />
-        </section>
+        <NewsletterSignup source="account" variant="compact" />
         {active && (
           <section className="card p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-navy-900">Earlier subscription on this site</h2>

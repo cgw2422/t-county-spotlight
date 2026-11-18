@@ -73,7 +73,7 @@ export default async function NewsletterIssuePage({ params }: Props) {
           </nav>
         )}
 
-        <NewsletterSignup source="newsletter_page" variant="inline" className="mt-10" />
+        <NewsletterSignup source="newsletter_page" placement="newsletter_issue" variant="inline" className="mt-10" />
       </div>
       <JsonLd
         data={{

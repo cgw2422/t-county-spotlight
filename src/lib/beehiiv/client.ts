@@ -93,3 +93,120 @@ export async function listConfirmedPostsByTag(env: BeehiivEnv, tag: string, fetc
   }
   return out;
 }
+
+// ───────── Subscriptions & publication (native signup form) ─────────
+//   POST /publications/{publicationId}/subscriptions                    create a subscription
+//   GET  /publications/{publicationId}                                  publication name (admin connection check)
+//   GET  /publications/{publicationId}/subscriptions/by_email/{email}   verify a test signup landed (email URL-encoded)
+
+/** Signup requests must answer quickly: the visitor is waiting on the form. */
+export const BEEHIIV_SIGNUP_TIMEOUT_MS = 8_000;
+
+/** How a failed call failed. `config` (401/403/404) means the key or publication id is wrong. */
+export type BeehiivFailure = "network" | "timeout" | "rate_limited" | "server" | "config" | "bad_request" | "unexpected";
+
+export class BeehiivCallError extends BeehiivError {
+  constructor(message: string, status: number, public kind: BeehiivFailure) {
+    super(message, status);
+  }
+}
+
+/** Subscription statuses beehiiv documents (anything else is treated like "pending"). */
+export type BeehiivSubscriptionStatus = "validating" | "invalid" | "pending" | "active" | "inactive" | "needs_attention";
+
+export type BeehiivSubscription = { id?: string; email?: string; status?: string; created?: number | null };
+export type BeehiivPublication = { id?: string; name?: string | null; organization_name?: string | null; created?: number | null };
+
+function failureKind(status: number): BeehiivFailure {
+  if (status === 429) return "rate_limited";
+  if (status >= 500) return "server";
+  if (status === 401 || status === 403 || status === 404) return "config";
+  if (status >= 400) return "bad_request";
+  return "unexpected";
+}
+
+/** beehiiv's error body is `{ errors: [{ message, code }] }`. Only a short, email-free hint is kept. */
+async function errorHint(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as { errors?: { message?: unknown; code?: unknown }[]; message?: unknown };
+    const first = Array.isArray(j?.errors) ? j.errors[0] : undefined;
+    const msg = String(first?.message ?? j?.message ?? "").replace(/[^\s@<>"']+@[^\s@<>"']+/g, "[email]").replace(/\s+/g, " ").slice(0, 160);
+    const code = first?.code ? String(first.code).slice(0, 40) : "";
+    return [code, msg].filter(Boolean).join(": ");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * One JSON call to beehiiv. Throws BeehiivCallError (never containing the key)
+ * with a `kind` the caller maps to a user-facing message.
+ */
+async function beehiivJson<T>(env: BeehiivEnv, method: "GET" | "POST", path: string, body: unknown, fetchImpl: typeof fetch, timeoutMs: number): Promise<{ status: number; data: T }> {
+  let res: Response;
+  try {
+    res = await fetchImpl(`${env.apiBase}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${env.apiKey}`, Accept: "application/json", ...(body !== undefined ? { "Content-Type": "application/json" } : {}), "User-Agent": "TCountyConnect/1.0" },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (e) {
+    const name = (e as Error)?.name;
+    const timeout = name === "TimeoutError" || name === "AbortError";
+    throw new BeehiivCallError(timeout ? `beehiiv did not answer within ${Math.round(timeoutMs / 1000)}s` : `Network error contacting beehiiv (${name || "error"})`, 0, timeout ? "timeout" : "network");
+  }
+  if (!res.ok) {
+    const kind = failureKind(res.status);
+    const hint = await errorHint(res);
+    const why = kind === "config" ? (res.status === 404 ? " — publication not found (check BEEHIIV_PUBLICATION_ID)" : " — check BEEHIIV_API_KEY and its access to BEEHIIV_PUBLICATION_ID") : kind === "rate_limited" ? " — rate limited" : "";
+    throw new BeehiivCallError(`beehiiv API returned HTTP ${res.status}${why}${hint ? ` (${hint})` : ""}`, res.status, kind);
+  }
+  const json = (await res.json().catch(() => null)) as { data?: T } | null;
+  if (!json || typeof json !== "object" || !json.data || typeof json.data !== "object") throw new BeehiivCallError("beehiiv API returned an unexpected response", res.status, "unexpected");
+  return { status: res.status, data: json.data };
+}
+
+const pubPath = (env: BeehiivEnv) => `/publications/${encodeURIComponent(env.publicationId)}`;
+
+export type CreateSubscriptionInput = {
+  email: string;
+  /** Where on the site the form was, e.g. "homepage_hero". */
+  utmCampaign: string;
+  /** Absolute URL of the page the visitor signed up on. */
+  referringSite: string;
+};
+
+/**
+ * Request body sent to beehiiv. `send_welcome_email` is deliberately omitted so
+ * beehiiv applies its own default for API signups; `double_opt_override:
+ * "not_set"` keeps the publication's double opt-in setting; existing
+ * (unsubscribed) addresses are never reactivated from the site.
+ */
+export function subscriptionBody(input: CreateSubscriptionInput) {
+  return {
+    email: input.email,
+    reactivate_existing: false,
+    double_opt_override: "not_set",
+    utm_source: "tcountyconnect.com",
+    utm_medium: "website",
+    utm_campaign: input.utmCampaign,
+    referring_site: input.referringSite,
+  };
+}
+
+/** POST /publications/{id}/subscriptions. */
+export async function createSubscription(env: BeehiivEnv, input: CreateSubscriptionInput, fetchImpl: typeof fetch = fetch, timeoutMs = BEEHIIV_SIGNUP_TIMEOUT_MS) {
+  return (await beehiivJson<BeehiivSubscription>(env, "POST", `${pubPath(env)}/subscriptions`, subscriptionBody(input), fetchImpl, timeoutMs)).data;
+}
+
+/** GET /publications/{id} — used to show the publication's name in admin. */
+export async function getPublication(env: BeehiivEnv, fetchImpl: typeof fetch = fetch, timeoutMs = BEEHIIV_SIGNUP_TIMEOUT_MS) {
+  return (await beehiivJson<BeehiivPublication>(env, "GET", pubPath(env), undefined, fetchImpl, timeoutMs)).data;
+}
+
+/** GET /publications/{id}/subscriptions/by_email/{email}. */
+export async function getSubscriptionByEmail(env: BeehiivEnv, email: string, fetchImpl: typeof fetch = fetch, timeoutMs = BEEHIIV_SIGNUP_TIMEOUT_MS) {
+  return (await beehiivJson<BeehiivSubscription>(env, "GET", `${pubPath(env)}/subscriptions/by_email/${encodeURIComponent(email)}`, undefined, fetchImpl, timeoutMs)).data;
+}

@@ -6,7 +6,9 @@ import { findByUnsubscribeToken, findMemberSubscriber, normalizeEmail, requestSu
 import type { ActionState } from "@/components/ui/form-message";
 import { cleanCommunities, communityName } from "@/lib/my-t-county-shared";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
-import { theName } from "@/lib/newsletter/copy";
+import { theName, BEEHIIV_SIGNUP_MESSAGES } from "@/lib/newsletter/copy";
+import { headers } from "next/headers";
+import { handlePublicSignup, type SignupState } from "@/lib/beehiiv/signup";
 
 const BEEHIIV_MODE_ERROR = "Signups now go through our newsletter form. Please reload the page and use the form there.";
 
@@ -17,7 +19,7 @@ export async function subscribeAction(_: ActionState, fd: FormData): Promise<Act
   const email = normalizeEmail(fd.get("email"));
   if (!email) return { error: "Please enter a valid email address.", fieldErrors: { email: "Enter a valid email address" } };
   const config = await getNewsletterConfig();
-  // beehiiv mode: the built-in list takes no new signups (the page shows beehiiv's form instead).
+  // beehiiv mode: the built-in list takes no new signups (the page shows the native beehiiv form instead).
   if (config.isBeehiiv) return { error: BEEHIIV_MODE_ERROR };
   const rawSource = String(fd.get("source") ?? "");
   const source = ((PUBLIC_SIGNUP_SOURCES as readonly string[]).includes(rawSource) ? rawSource : "newsletter_page") as SignupSource;
@@ -34,6 +36,27 @@ export async function subscribeAction(_: ActionState, fd: FormData): Promise<Act
     return { error: "Something went wrong. Please try again." };
   }
   return { ok: true, message: SIGNUP_NEUTRAL_MESSAGE };
+}
+
+/**
+ * Native signup form (provider beehiiv): our server forwards the address to
+ * beehiiv's API. Works without JavaScript (plain form POST) and with it
+ * (useActionState). Same-origin only; no local subscriber record.
+ */
+export async function beehiivSignupAction(_: SignupState, fd: FormData): Promise<SignupState> {
+  const typed = String(fd.get("email") ?? "").trim().slice(0, 254);
+  const h = await headers();
+  const origin = h.get("origin");
+  const host = h.get("x-forwarded-host") || h.get("host");
+  if (origin && host) {
+    let same = false;
+    try { same = new URL(origin).host === host; } catch { same = false; }
+    if (!same) return { error: BEEHIIV_SIGNUP_MESSAGES.retry, email: typed };
+  }
+  const config = await getNewsletterConfig();
+  // Built-in mode: this form isn't on the site (only in the admin preview, which doesn't submit).
+  if (!config.isBeehiiv) return { error: "Please reload the page and try again.", email: typed };
+  return handlePublicSignup({ email: fd.get("email"), honeypot: fd.get("website"), placement: fd.get("placement"), page: fd.get("page"), ip: await clientIp() });
 }
 
 function prefsFrom(fd: FormData): Preferences {

@@ -32,7 +32,7 @@ export default async function NewsletterPage({ searchParams }: { searchParams: S
     <div className="pb-6">
       <div className="bg-gradient-to-b from-brand-50/70 to-white">
         <div className="container-page max-w-5xl pt-8 sm:pt-12">
-          <NewsletterSignup source="newsletter_page" variant="card" eager />
+          <NewsletterSignup source="newsletter_page" variant="card" />
         </div>
       </div>
 
@@ -65,7 +65,7 @@ export default async function NewsletterPage({ searchParams }: { searchParams: S
             <div>
               <dt className="font-semibold text-navy-900">What we collect</dt>
               <dd className="mt-1">{c.isBeehiiv
-                ? <>Your email address and anything else you choose to enter in the signup form, plus when you subscribed. The form is provided by our newsletter service, <strong>beehiiv</strong>, which stores your subscription — signing up doesn&rsquo;t create a {s.siteName} account.</>
+                ? <>Your email address, the page you signed up on, and when you subscribed. Our signup form passes your address straight to our newsletter service, <strong>beehiiv</strong>, which stores your subscription — we don&rsquo;t keep a copy, and signing up doesn&rsquo;t create a {s.siteName} account.</>
                 : <>Your email address, your first name if you choose to give it, where on the site you signed up (for example the homepage or an event page), and the date and time you agreed to receive the newsletter and confirmed your address. If you&rsquo;re signed in, we link the subscription to your account so you can manage it there.</>}</dd>
             </div>
             <div>

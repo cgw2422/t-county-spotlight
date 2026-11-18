@@ -14,7 +14,7 @@ import { autoPopulate, searchItems } from "@/lib/newsletter/populate";
 import { addSuppression, normalizeEmail, requestSubscription, unsubscribe } from "@/lib/newsletter/subscribers";
 import { broadcastReadiness, kickOffProcessing, sendTest, SENDING_RETIRED_MESSAGE, startCampaign } from "@/lib/newsletter/send";
 import { builtinSendingRetired, getNewsletterSettings, saveNewsletterSettings } from "@/lib/newsletter/settings";
-import { normalizeBeehiivEmbedUrl } from "@/lib/beehiiv/embed";
+import { beehiivReadiness, checkBeehiivConnection, sendTestSignup } from "@/lib/beehiiv/signup";
 import { syncBeehiiv } from "@/lib/beehiiv/sync";
 import { plainName } from "@/lib/newsletter/copy";
 import { emailUpdateLabel, isEmailUpdateKey } from "@/lib/notification-categories";
@@ -276,11 +276,12 @@ const settingsSchema = z.object({
   heading: z.string().trim().min(3, "Add a signup heading").max(120, "Keep the heading under 120 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
   button: z.string().trim().min(2, "Add the button text").max(40, "Keep the button text under 40 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
   navLabel: z.string().trim().min(2, "Add a navigation label").max(40, "Keep the label under 40 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
+  footnote: z.string().trim().min(3, "Add the line shown under the form").max(120, "Keep the line under 120 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
 });
 
 export async function saveNewsletterSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin();
-  const p = settingsSchema.safeParse(Object.fromEntries(["fromName", "fromAddress", "replyTo", "postalAddress", "consentVersion", "description", "name", "tagline", "heading", "button", "navLabel"].map((k) => [k, String(fd.get(k) ?? "")])));
+  const p = settingsSchema.safeParse(Object.fromEntries(["fromName", "fromAddress", "replyTo", "postalAddress", "consentVersion", "description", "name", "tagline", "heading", "button", "navLabel", "footnote"].map((k) => [k, String(fd.get(k) ?? "")])));
   if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form." };
   const before = await getNewsletterSettings();
   await saveNewsletterSettings(p.data);
@@ -296,33 +297,62 @@ function refreshPublic() {
 
 const providerSchema = z.object({
   provider: z.enum(["builtin", "beehiiv"], { message: "Choose Built-in or beehiiv" }),
-  beehiivEmbedUrl: z.string().max(4000),
 });
 
 /**
- * "Signup & sending provider" + beehiiv embed URL. The URL must be an https
- * embeds.beehiiv.com / subscribe-forms.beehiiv.com form URL (pasted embed code is
- * reduced to its iframe src — scripts are never stored). Switching to beehiiv
- * requires a valid embed URL; switching retires built-in campaign sending.
+ * "Signup & sending provider". Switching to beehiiv is refused until the
+ * beehiiv connection is ready (env present, connection check passed, a test
+ * signup verified in the publication). Switching retires built-in sending.
  */
 export async function saveProviderSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin();
-  const p = providerSchema.safeParse({ provider: String(fd.get("provider") ?? ""), beehiivEmbedUrl: String(fd.get("beehiivEmbedUrl") ?? "") });
+  const p = providerSchema.safeParse({ provider: String(fd.get("provider") ?? "") });
   if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form." };
-  const rawUrl = p.data.beehiivEmbedUrl.trim();
-  const url = rawUrl ? normalizeBeehiivEmbedUrl(rawUrl) : "";
-  if (url === null) return { error: "That isn't a beehiiv embed form URL. Use the https://embeds.beehiiv.com/… or https://subscribe-forms.beehiiv.com/… address from the form's embed code.", fieldErrors: { beehiivEmbedUrl: "Not a beehiiv embed form URL" } };
-  if (p.data.provider === "beehiiv" && !url) return { error: "Add the beehiiv embed form URL before switching to beehiiv.", fieldErrors: { beehiivEmbedUrl: "Required for beehiiv" } };
   const before = await getNewsletterSettings();
-  await saveNewsletterSettings({ provider: p.data.provider, beehiivEmbedUrl: url });
-  await audit(user.id, "newsletter.provider", "Setting", "newsletter", { provider: p.data.provider, previousProvider: before.provider, beehiivEmbedUrl: url || null });
+  if (p.data.provider === "beehiiv" && before.provider !== "beehiiv") {
+    const r = await beehiivReadiness();
+    if (!r.ready) {
+      const missing = [
+        !r.envOk && "set BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID on the server",
+        r.envOk && (!r.checkOk || r.connectionProblem) && "run a successful connection check",
+        r.envOk && !r.verifiedOk && "send a test signup and get it verified in beehiiv",
+      ].filter(Boolean);
+      await audit(user.id, "newsletter.provider_refused", "Setting", "newsletter", { provider: "beehiiv", missing: missing as string[] });
+      return { error: `Not switched — beehiiv isn't ready yet. First ${missing.join(", then ")}. The site keeps the built-in signup until then.` };
+    }
+  }
+  await saveNewsletterSettings({ provider: p.data.provider });
+  await audit(user.id, "newsletter.provider", "Setting", "newsletter", { provider: p.data.provider, previousProvider: before.provider });
   refreshPublic();
   if (p.data.provider === "beehiiv" && before.provider !== "beehiiv") {
     const scheduled = await db.newsletter.count({ where: { status: { in: ["SCHEDULED", "SENDING"] } } });
-    return { ok: true, message: `Switched to beehiiv. Every signup form now shows the beehiiv form, and built-in campaign sending is off${scheduled ? ` — ${scheduled} scheduled/sending campaign(s) will not send` : ""}.` };
+    return { ok: true, message: `Switched to beehiiv. Every signup placement now shows the native form (sent to beehiiv), and built-in campaign sending is off${scheduled ? ` — ${scheduled} scheduled/sending campaign(s) will not send` : ""}.` };
   }
   if (p.data.provider === "builtin" && before.provider === "beehiiv") return { ok: true, message: "Switched back to the built-in signup & sending. Scheduled campaigns that are due will send on the next cron run." };
   return { ok: true, message: "Provider settings saved." };
+}
+
+// ───────── beehiiv connection ─────────
+
+/** GET /publications/{id}: shows the publication name so the owner can confirm it's the right one. */
+export async function checkBeehiivConnectionAction(): Promise<ActionState> {
+  const user = await requireAdmin();
+  if (!rateLimit(`beehiiv-check:${user.id}`, 20, 3600_000).ok) return { error: "Check limit reached (20 per hour). Try again later." };
+  const c = await checkBeehiivConnection();
+  await audit(user.id, "beehiiv.connection_check", "Setting", "beehiiv.connection", { ok: c.ok, publicationName: c.publicationName ?? null, error: c.error ?? null });
+  revalidatePath("/admin/newsletter/settings");
+  if (!c.ok) return { error: `Connection problem: ${c.error}` };
+  return { ok: true, message: `Connected to beehiiv publication “${c.publicationName ?? "(no name returned)"}”.` };
+}
+
+/** Admin-only test signup through the public code path, verified via by_email. Only a masked address is stored. */
+export async function sendTestSignupAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin();
+  if (!rateLimit(`beehiiv-test-signup:${user.id}`, 10, 3600_000).ok) return { error: "Test signup limit reached (10 per hour). Try again later." };
+  const r = await sendTestSignup(fd.get("email"));
+  if (r.maskedEmail) await audit(user.id, "beehiiv.test_signup", "Setting", "beehiiv.connection", { email: r.maskedEmail, ok: r.ok, status: r.status ?? null, publicationName: r.publicationName ?? null, error: r.error ?? null });
+  revalidatePath("/admin/newsletter/settings");
+  return r.ok ? { ok: true, message: r.message } : { error: r.message };
 }
 
 // ───────── beehiiv sync ─────────
