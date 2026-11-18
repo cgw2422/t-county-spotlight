@@ -55,7 +55,7 @@ const HOMEPAGE_SECTIONS = [
   { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
   { key: "events", type: "events", title: "Upcoming Community Events", subtitle: null, limit: 6 },
   { key: "businesses", type: "businesses", title: "Featured Local Businesses", subtitle: null, limit: 8 },
-  { key: "newsletter", type: "newsletter", title: "Love Local. Stay in the Loop.", subtitle: null, limit: 0 },
+  { key: "newsletter", type: "newsletter", title: "", subtitle: null, limit: 0 },
   { key: "cta", type: "cta", title: "Own a local business?", subtitle: "Get listed in the Tuscarawas County business directory — free.", limit: 0 },
 ];
 
@@ -68,7 +68,7 @@ const MENU = [
 ];
 const FOOTER = [
   ["List Your Business", "/list-your-business/"], ["Memberships", "/memberships/"], ["Submit an Event", "/events/submit/"],
-  ["Business Spotlights", "/spotlights/"], ["T County Connect Weekly", "/newsletter/"], ["Search", "/search/"],
+  ["Business Spotlights", "/spotlights/"], ["Newsletter", "/newsletter/"], ["Search", "/search/"],
 ];
 
 async function main() {
@@ -98,7 +98,7 @@ async function main() {
       }
     }
     if (!(await db.menuItem.findFirst({ where: { location: "FOOTER", href: "/newsletter/" } }))) {
-      await db.menuItem.create({ data: { location: "FOOTER", label: "T County Connect Weekly", href: "/newsletter/", sortOrder: 99 } });
+      await db.menuItem.create({ data: { location: "FOOTER", label: "Newsletter", href: "/newsletter/", sortOrder: 99 } });
     }
   }
   if (isNewInstall) {

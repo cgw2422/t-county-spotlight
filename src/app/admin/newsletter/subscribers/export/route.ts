@@ -29,7 +29,7 @@ export async function GET() {
   return new Response(lines.join("\r\n") + "\r\n", {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="t-county-weekly-subscribers-${date}.csv"`,
+      "Content-Disposition": `attachment; filename="newsletter-subscribers-${date}.csv"`,
       "Cache-Control": "no-store",
     },
   });

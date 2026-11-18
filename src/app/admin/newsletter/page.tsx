@@ -13,6 +13,8 @@ import { ActionButton } from "@/components/admin/action-button";
 import { emailUpdateLabel } from "@/lib/notification-categories";
 import { emailUpdateStatus } from "@/lib/notifications/run";
 import { EVENT_LABELS } from "./labels";
+import { getNewsletterSettings } from "@/lib/newsletter/settings";
+import { RetiredCampaignsBanner } from "./retired-banner";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Newsletter" };
@@ -29,7 +31,8 @@ export default async function NewsletterOverview() {
     broadcastReadiness(),
     db.newsletter.findFirst({ where: { status: { in: ["SCHEDULED", "SENDING"] } }, orderBy: { scheduledFor: "asc" } }),
   ]);
-  const updates = await emailUpdateStatus(7);
+  const [updates, ns] = await Promise.all([emailUpdateStatus(7), getNewsletterSettings()]);
+  const beehiiv = ns.provider === "beehiiv";
   const n = (s: string) => byStatus.find((g) => g.status === s)?._count._all ?? 0;
   const total = byStatus.reduce((a, g) => a + g._count._all, 0);
   const sources = [...new Set([...recentBySource.map((r) => r.source), ...confirmedBySource.map((r) => r.source)])]
@@ -40,11 +43,12 @@ export default async function NewsletterOverview() {
   return (
     <>
       <PageHeader
-        title="T County Connect Weekly"
-        description="Permission-based email newsletter. Everyone on this list asked to subscribe and confirmed their address."
-        actions={<form action={createCampaignAction}><button className="btn-primary"><Plus className="h-4 w-4" /> New campaign</button></form>}
+        title={ns.navLabel}
+        description={beehiiv ? "Signups and sending are handled by beehiiv. The built-in list below is kept for your records and exports." : "Permission-based email newsletter. Everyone on this list asked to subscribe and confirmed their address."}
+        actions={beehiiv ? <Link href="/admin/newsletter/beehiiv/" className="btn-secondary">beehiiv sync</Link> : <form action={createCampaignAction}><button className="btn-primary"><Plus className="h-4 w-4" /> New campaign</button></form>}
       />
-      {!ready.ok && (
+      <RetiredCampaignsBanner />
+      {!ready.ok && !beehiiv && (
         <div className="mb-6">
           <Notice tone="warn" title="Broadcasts are turned off until setup is complete">
             <ul className="list-disc pl-5">{ready.problems.map((p) => <li key={p}>{p}</li>)}</ul>

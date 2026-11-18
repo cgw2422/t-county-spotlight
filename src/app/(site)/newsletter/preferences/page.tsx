@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { XCircle } from "lucide-react";
 import { findByUnsubscribeToken } from "@/lib/newsletter/subscribers";
-import { FREQUENCY_NOTE, NEWSLETTER_NAME, readPreferences } from "@/lib/newsletter/copy";
+import { readPreferences, theName } from "@/lib/newsletter/copy";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
 import { AuthShell } from "@/components/account/auth-shell";
 import { PreferencesForm } from "@/components/newsletter/token-forms";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 
 export default async function PreferencesPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;
+  const nl = await getNewsletterConfig();
+  const NAME = theName(nl.name);
   const sub = await findByUnsubscribeToken(typeof token === "string" ? token : null);
   if (!sub) {
     return (
@@ -26,8 +29,8 @@ export default async function PreferencesPage({ searchParams }: { searchParams: 
   }
   if (sub.status !== "ACTIVE") {
     return (
-      <AuthShell title="Not currently subscribed" subtitle={`${maskEmail(sub.email)} isn't receiving the ${NEWSLETTER_NAME}${sub.status === "PENDING" ? " yet — check your inbox for the confirmation link" : ""}.`}>
-        <NewsletterSignup source="newsletter_page" variant="compact" title="Subscribe" subtitle="We'll send a link to confirm your address." />
+      <AuthShell title="Not currently subscribed" subtitle={`${maskEmail(sub.email)} isn't receiving ${NAME}${sub.status === "PENDING" ? " yet — check your inbox for the confirmation link" : ""}.`}>
+        <NewsletterSignup source="newsletter_page" variant="compact" builtinTitle="Subscribe" builtinSubtitle="We'll send a link to confirm your address." />
       </AuthShell>
     );
   }
@@ -35,7 +38,7 @@ export default async function PreferencesPage({ searchParams }: { searchParams: 
   const member = sub.userId ? await db.user.findUnique({ where: { id: sub.userId }, select: { homeCommunity: true, extraCommunities: true } }) : null;
   const fallback = member ? subscriberCommunities({ communities: [], user: member }) : [];
   return (
-    <AuthShell title="Email preferences" subtitle={<>For {maskEmail(sub.email)}. {FREQUENCY_NOTE}</>}
+    <AuthShell title="Email preferences" subtitle={<>For {maskEmail(sub.email)}. {nl.frequencyNote}</>}
       footer={<>Don&rsquo;t want the newsletter? <Link href={`/newsletter/unsubscribe/?token=${encodeURIComponent(sub.unsubscribeToken)}`} className="font-semibold text-brand-700 hover:underline">Unsubscribe</Link></>}>
       <PreferencesForm token={sub.unsubscribeToken} prefs={readPreferences(sub.preferences)} firstName={sub.firstName} communities={sub.communities} fallbackCommunities={fallback} />
     </AuthShell>

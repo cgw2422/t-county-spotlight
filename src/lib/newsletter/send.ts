@@ -5,7 +5,10 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { sendBroadcastBatch, sendMessage, type OutgoingEmail } from "@/lib/email";
 import { broadcastProvider, ProviderError, RESEND_BATCH_MAX } from "./provider";
-import { newsletterSender } from "./settings";
+import { builtinSendingRetired, newsletterSender } from "./settings";
+
+/** Shown whenever built-in sending is refused because the provider is beehiiv. */
+export const SENDING_RETIRED_MESSAGE = "Built-in newsletter sending is turned off because the signup & sending provider is beehiiv. Send issues from beehiiv instead (switch back to Built-in in Newsletter → Settings to use campaigns here).";
 import { normalizeContent, type NewsletterContent } from "./content";
 import { listUnsubscribeHeaders, personalize, recipientLinks, renderNewsletter } from "./render";
 import { readPreferences, type TopicKey } from "./copy";
@@ -28,7 +31,7 @@ export async function renderCampaign(nl: { subject: string; preheader: string | 
   const s = await newsletterSender();
   return renderNewsletter(
     { subject: nl.subject, preheader: nl.preheader, content: normalizeContent(nl.content) },
-    { siteName: s.site.siteName, logoUrl: emailLogo(s.site), postalAddress: s.settings.postalAddress || "Postal address not set", sponsoredLabel: s.site.sponsoredLabel },
+    { siteName: s.site.siteName, newsletterName: s.settings.name, newsletterLabel: s.settings.navLabel, logoUrl: emailLogo(s.site), postalAddress: s.settings.postalAddress || "Postal address not set", sponsoredLabel: s.site.sponsoredLabel },
   );
 }
 
@@ -66,6 +69,7 @@ export async function startCampaign(newsletterId: string, actorId?: string | nul
   const nl = await db.newsletter.findUnique({ where: { id: newsletterId } });
   if (!nl) return { ok: false, error: "Campaign not found." };
   if (!nl.approvedAt) return { ok: false, error: "This campaign must be approved before it can be sent." };
+  if (await builtinSendingRetired()) return { ok: false, error: SENDING_RETIRED_MESSAGE };
   const ready = await broadcastReadiness();
   if (!ready.ok) return { ok: false, error: ready.problems.join(" ") };
   const started = await db.newsletter.updateMany({
@@ -122,6 +126,8 @@ export async function processCampaign(newsletterId: string, opts: { maxPerRun?: 
   const nl = await db.newsletter.findUnique({ where: { id: newsletterId } });
   if (!nl || nl.status !== "SENDING") return { ...res, stoppedReason: "not sending" };
   if (!broadcastProvider()) return { ...res, stoppedReason: "no provider" };
+  // beehiiv mode: nothing more goes out from here (queued rows stay QUEUED; switching back resumes them).
+  if (await builtinSendingRetired()) return { ...res, stoppedReason: "skipped: beehiiv" };
   if (!(await acquireLease(nl.id))) return { ...res, stoppedReason: "locked" };
   let stopError: string | undefined;
   try {
@@ -205,7 +211,9 @@ export function kickOffProcessing(newsletterId: string) {
 }
 
 /** Called by /api/cron/: starts due scheduled campaigns and continues sending ones. */
-export async function processDueNewsletters() {
+export async function processDueNewsletters(): Promise<{ started: number; processed: number; errors: string[]; skipped?: "beehiiv" }> {
+  // Retired while the provider is beehiiv: scheduled campaigns stay stored but never send.
+  if (await builtinSendingRetired()) return { started: 0, processed: 0, errors: [], skipped: "beehiiv" };
   const out = { started: 0, processed: 0, errors: [] as string[] };
   const due = await db.newsletter.findMany({ where: { status: "SCHEDULED", scheduledFor: { lte: new Date() } }, select: { id: true, scheduledFor: true } });
   for (const d of due) {

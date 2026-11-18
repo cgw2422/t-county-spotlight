@@ -64,3 +64,16 @@ export async function saveHeroBanner(_: ActionState, fd: FormData): Promise<Acti
   revalidatePath("/", "layout");
   return { ok: true, message: "Hero & banner saved." };
 }
+
+/** "Right Side of Homepage Hero": Community Pulse (default; newsletter card when no Pulse is active) or always the newsletter signup. */
+export async function saveHeroAside(_: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireStaff();
+  const p = parseForm(z.object({ heroAside: z.enum(["pulse", "newsletter"], { message: "Choose Community Pulse or Newsletter Signup" }) }), fd);
+  if (p.error) return p.error;
+  const before = (await db.setting.findUnique({ where: { key: "heroAside" } }))?.value ?? "pulse";
+  await saveSettings({ heroAside: p.data.heroAside });
+  await audit(user.id, "settings.save", "Setting", "heroAside", { heroAside: p.data.heroAside, previous: before as string });
+  revalidatePath("/admin/homepage");
+  revalidatePath("/");
+  return { ok: true, message: p.data.heroAside === "newsletter" ? "The hero now shows the newsletter signup." : "The hero now shows the featured Community Pulse (or the newsletter signup when none is active)." };
+}

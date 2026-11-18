@@ -9,6 +9,7 @@ import { REGISTER_HEADLINE, REGISTER_SUBHEAD, loginHref, parseRegisterSource } f
 import { AuthShell } from "@/components/account/auth-shell";
 import { TrackView } from "@/components/public/track";
 import { RegisterForm } from "./register-form";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
 
 export const metadata: Metadata = { title: "Create a free account", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
   // A guest who already picked a community on this device gets it pre-selected (still optional).
   const pref = await getCommunityPreference();
   const community = pref.community ? communitySlug(pref.community) ?? "" : "";
+  const nl = await getNewsletterConfig();
   return (
     <AuthShell
       title={REGISTER_HEADLINE}
@@ -38,7 +40,8 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       }
     >
       <TrackView type="register_view" targetType="REGISTER" targetId={source} />
-      <RegisterForm next={next} business={sp.business === "1"} source={source} community={community} />
+      <RegisterForm next={next} business={sp.business === "1"} source={source} community={community}
+        newsletter={{ mode: nl.isBeehiiv ? "beehiiv" : "builtin", label: nl.registerOptInLabel, tagline: nl.tagline, heading: nl.heading }} />
     </AuthShell>
   );
 }

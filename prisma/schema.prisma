@@ -383,6 +383,11 @@ model Article {
   wpModifiedAt     DateTime?
   localEditedAt    DateTime?     // set when edited in the new CMS; importer will not overwrite
   wpMeta           Json?
+  /// beehiiv post id (posts tagged `tcc-article`); dedupe key for the beehiiv sync
+  beehiivPostId        String?   @unique
+  /// "web" | "email" — which beehiiv content the body came from
+  beehiivContentSource String?
+  beehiivSyncedAt      DateTime?
   deletedAt        DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -1717,4 +1722,28 @@ model BusinessRecommendation {
   @@index([businessId, createdAt])
   @@index([createdAt])
   @@index([ipHash])
+}
+
+/// Newsletter issues synced from beehiiv (posts tagged `newsletter-archive`), shown at /newsletter/<slug>/.
+model NewsletterIssue {
+  id            String    @id @default(cuid())
+  beehiivPostId String    @unique
+  slug          String    @unique
+  title         String
+  subtitle      String?
+  html          String    // sanitized
+  thumbnailUrl  String?
+  publishedAt   DateTime
+  webUrl        String?
+  /// "web" | "email" (email = fallback to the email layout; flagged in admin)
+  contentSource String    @default("web")
+  /// Hidden from the public archive (by an admin, or because the post is no longer live in beehiiv)
+  hidden        Boolean   @default(false)
+  /// Set when the sync hid the issue because beehiiv no longer returns it as live; cleared when it comes back
+  removedAt     DateTime?
+  syncedAt      DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([hidden, publishedAt])
 }

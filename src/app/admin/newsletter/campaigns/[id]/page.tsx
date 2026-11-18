@@ -19,6 +19,7 @@ import {
 } from "../../actions";
 import { CampaignEditor } from "./editor";
 import { AutoRefresh, EmailPreview } from "./preview";
+import { RetiredCampaignsBanner } from "../../retired-banner";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Campaign" };
@@ -73,6 +74,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           <ConfirmButton action={deleteCampaignAction} fields={fields} title="Delete this campaign?" body="This can't be undone."><Trash2 className="h-4 w-4" /> Delete</ConfirmButton>
         ) : undefined}
       />
+      <RetiredCampaignsBanner />
 
       <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-6">

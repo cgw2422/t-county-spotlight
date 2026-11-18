@@ -28,7 +28,7 @@ export function DataTable<T>({ rows, columns, rowKey, empty, actions }: {
   const rest = columns.filter((c) => c !== primary && !c.hideOnMobile);
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="relative hidden overflow-x-auto md:block">
         <table className="table-base">
           <thead>
             <tr>

@@ -42,6 +42,8 @@ export type SiteSettings = {
   stripeMode: "test" | "live";
   membershipIntro: string;
   sponsoredLabel: string;
+  /** Right side of the homepage hero: featured Community Pulse (newsletter card when none is active) or always the newsletter signup. */
+  heroAside: "pulse" | "newsletter";
 };
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -81,6 +83,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   stripeMode: "test",
   membershipIntro: "Get your business in front of Tuscarawas County residents.",
   sponsoredLabel: "Sponsored",
+  heroAside: "pulse",
 };
 
 export const getSettings = cache(async (): Promise<SiteSettings> => {

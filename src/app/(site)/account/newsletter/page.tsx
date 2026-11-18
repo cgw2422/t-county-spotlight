@@ -2,7 +2,9 @@ import Link from "next/link";
 import { CheckCircle2, Clock, MailX } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { findMemberSubscriber } from "@/lib/newsletter/subscribers";
-import { FREQUENCY_NOTE, NEWSLETTER_NAME, readPreferences, SIGNUP_DESCRIPTION } from "@/lib/newsletter/copy";
+import { readPreferences, TheName, theName } from "@/lib/newsletter/copy";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
+import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { formatDate } from "@/lib/utils";
 import { subscriberCommunities } from "@/lib/newsletter/community-block";
 import { AccountSubscribeForm, PreferencesForm, UnsubscribeForm } from "@/components/newsletter/token-forms";
@@ -13,15 +15,42 @@ export const metadata = { title: "Newsletter", robots: { index: false } };
 export default async function AccountNewsletterPage() {
   const user = await getCurrentUser();
   if (!user) return null;
-  const sub = await findMemberSubscriber(user);
+  const [sub, nl] = await Promise.all([findMemberSubscriber(user), getNewsletterConfig()]);
   const active = sub?.status === "ACTIVE";
   const pending = sub?.status === "PENDING";
+  const NEWSLETTER = theName(nl.name);
+
+  if (nl.isBeehiiv) {
+    // beehiiv mode: subscriptions live in beehiiv and are managed from the links in each issue.
+    return (
+      <div className="space-y-6" data-testid="account-newsletter-beehiiv">
+        <section className="card p-5 sm:p-6">
+          <h2 className="text-lg font-semibold text-navy-900">{TheName(nl.name)}</h2>
+          <p className="mt-1 text-sm text-slate-600">{nl.tagline} {nl.frequencyNote}</p>
+          <p className="mt-3 text-sm text-slate-700">Your newsletter subscription is separate from your T County Connect account. To change your email preferences or unsubscribe, use the links at the bottom of any issue you&rsquo;ve received — they work without signing in.</p>
+        </section>
+        <section className="card p-5 sm:p-6">
+          <NewsletterSignup source="account" variant="compact" />
+        </section>
+        {active && (
+          <section className="card p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-navy-900">Earlier subscription on this site</h2>
+            <p className="mt-1 text-sm text-slate-600">We still have a subscription for <strong>{sub!.email}</strong> from our previous sign-up form. Unsubscribe here if you&rsquo;d rather not receive {NEWSLETTER} — we&rsquo;ll keep the address on our do-not-email list.</p>
+            <div className="mt-4"><UnsubscribeForm /></div>
+          </section>
+        )}
+        <p className="text-sm text-slate-600">
+          Email newsletter and app notifications are separate — manage push alerts under <Link href="/account/notifications/" className="font-semibold text-brand-700 hover:underline">Alerts</Link>. <Link href="/newsletter/#privacy" className="font-semibold text-brand-700 hover:underline">How we use your email</Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <section className="card p-5 sm:p-6">
-        <h2 className="text-lg font-semibold text-navy-900">The {NEWSLETTER_NAME}</h2>
-        <p className="mt-1 text-sm text-slate-600">{SIGNUP_DESCRIPTION} {FREQUENCY_NOTE}</p>
+        <h2 className="text-lg font-semibold text-navy-900">{TheName(nl.name)}</h2>
+        <p className="mt-1 text-sm text-slate-600">{nl.tagline} {nl.frequencyNote}</p>
 
         <div className="mt-4">
           {active ? (
@@ -44,7 +73,7 @@ export default async function AccountNewsletterPage() {
           )}
         </div>
 
-        {!active && <div className="mt-5"><AccountSubscribeForm email={user.email} /></div>}
+        {!active && <div className="mt-5"><AccountSubscribeForm email={user.email} name={nl.name} /></div>}
       </section>
 
       {active && (
@@ -56,7 +85,7 @@ export default async function AccountNewsletterPage() {
           </section>
           <section className="card p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-navy-900">Unsubscribe</h2>
-            <p className="mt-1 text-sm text-slate-600">Stop receiving the {NEWSLETTER_NAME}. Your account and saved items aren&rsquo;t affected.</p>
+            <p className="mt-1 text-sm text-slate-600">Stop receiving {NEWSLETTER}. Your account and saved items aren&rsquo;t affected.</p>
             <div className="mt-4"><UnsubscribeForm /></div>
           </section>
         </>

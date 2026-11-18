@@ -238,7 +238,7 @@ async function main() {
       assert.equal(await subs.requestSubscription({ email: `  ${email.toUpperCase()} `, firstName: "Ann", source: "homepage" }), "confirmation_sent");
       const s = await db.newsletterSubscriber.findUniqueOrThrow({ where: { email } });
       assert.equal(s.status, "PENDING");
-      assert.ok(s.consentAt && s.consentText?.includes("Love Local") && s.consentVersion && s.confirmTokenHash && s.confirmTokenHash.length === 64);
+      assert.ok(s.consentAt && s.consentText?.includes("Get T County Connect in your inbox") && s.consentVersion && s.confirmTokenHash && s.confirmTokenHash.length === 64);
       const confirmMail = calls.find((c) => c.url.endsWith("/emails"))!.body as { text: string; to: string[] };
       assert.deepEqual(confirmMail.to, [email]);
       const token = confirmMail.text.match(/confirm\/\?token=([\w-]+)/)![1];

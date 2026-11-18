@@ -23,7 +23,8 @@ import { ArticleCard } from "@/components/cards/article-card";
 import { SpecialCard } from "@/components/cards/special-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GivesHomeSection } from "@/components/gives/home-section";
-import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
+import { NewsletterSignup, signupAvailable } from "@/components/newsletter/newsletter-signup";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
 import { getFeaturedPulse, getRecentPulses } from "@/lib/pulse";
 import { PulseHeroCard } from "@/components/pulse/pulse-hero-card";
 import { PulseCard } from "@/components/pulse/pulse-card";
@@ -47,9 +48,15 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
 async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null) {
   switch (s.type) {
     case "hero": {
-      const [pulse, appearance, seasonal] = await Promise.all([getFeaturedPulse(), getHeroAppearance(), getSeasonalHero()]);
+      // Right side (Admin → Homepage → "Right Side of Homepage Hero"):
+      //   pulse (default): the featured, published Community Pulse; the newsletter card when none is active.
+      //   newsletter: always the newsletter card (Community Pulse elsewhere is unaffected).
+      // Nothing displayable (e.g. beehiiv mode without an embed URL) → full-width headline, no empty column.
+      const wantPulse = settings.heroAside !== "newsletter";
+      const [pulse, appearance, seasonal, nl] = await Promise.all([wantPulse ? getFeaturedPulse() : null, getHeroAppearance(), getSeasonalHero(), getNewsletterConfig()]);
+      const aside = pulse ? <PulseHeroCard pulse={pulse} /> : signupAvailable(nl) ? <NewsletterSignup source="homepage" variant="hero" /> : null;
       // Seasonal photo when the active season has one; otherwise the normal hero appearance (never blank).
-      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={seasonal?.appearance ?? appearance} season={seasonal} aside={pulse ? <PulseHeroCard pulse={pulse} /> : null} />;
+      return <Hero key={s.id} headline={s.title || settings.heroHeadline} sub={s.subtitle || settings.heroSubheadline} appearance={seasonal?.appearance ?? appearance} season={seasonal} aside={aside} />;
     }
     case "explore":
       return <ExploreGrid key={s.id} title={s.title} />;
@@ -180,7 +187,7 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
     }
     case "newsletter":
       return (
-        <section key={s.id} id="newsletter" aria-label="T County Connect Weekly newsletter" className="container-page scroll-mt-24 py-12">
+        <section key={s.id} id="newsletter" aria-label="Newsletter" className="container-page scroll-mt-24 py-12">
           <NewsletterSignup source="homepage" variant="card" title={s.title} subtitle={s.subtitle} />
         </section>
       );

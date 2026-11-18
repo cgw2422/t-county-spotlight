@@ -33,6 +33,8 @@ import { TYPE_LABEL as LOCAL_TYPE_LABEL } from "@/lib/notifications/items";
 import { MY_T_COUNTY_TAGLINE, registerHref } from "@/lib/resident-accounts";
 import { BenefitsHero } from "@/components/my-t-county/benefits-hero";
 import { WelcomePanel } from "@/components/my-t-county/welcome-panel";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
+import { TheName, theName } from "@/lib/newsletter/copy";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -70,7 +72,7 @@ function Panel({ id, title, href, linkLabel, count, localCount, community, empty
 }
 
 export default async function MyTCountyPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
-  const [pref, user, sp] = await Promise.all([getCommunityPreference(), getCurrentUser(), searchParams]);
+  const [pref, user, sp, nl] = await Promise.all([getCommunityPreference(), getCurrentUser(), searchParams, getNewsletterConfig()]);
   const welcome = !!user && sp.welcome === "1";
   const c = pref.active;
   const order = [c, ...pref.extraCommunities];
@@ -282,7 +284,7 @@ export default async function MyTCountyPage({ searchParams }: { searchParams: Pr
               </p>
             ) : (
               <p className="text-sm text-slate-700">
-                Email updates need a free account so you can choose exactly what you get and unsubscribe any time. <Link href={registerHref("my_t_county", "/my-t-county/")} className="font-semibold text-brand-700 hover:underline">Create an account</Link> or <Link href="/newsletter/" className="font-semibold text-brand-700 hover:underline">sign up for the weekly newsletter</Link>.
+                Email updates need a free account so you can choose exactly what you get and unsubscribe any time. <Link href={registerHref("my_t_county", "/my-t-county/")} className="font-semibold text-brand-700 hover:underline">Create an account</Link> or <Link href="/newsletter/" className="font-semibold text-brand-700 hover:underline">sign up for {theName(nl.name)}</Link>.
               </p>
             )}
           </div>
@@ -290,7 +292,7 @@ export default async function MyTCountyPage({ searchParams }: { searchParams: Pr
             <div className="card mt-4 flex items-start gap-3 p-5" data-testid="mtc-newsletter">
               <Mail className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden />
               <p className="text-sm text-slate-700">
-                The free T County Connect Weekly is separate from these updates and only arrives if you sign up and confirm. <Link href="/account/newsletter/" className="font-semibold text-brand-700 hover:underline">Newsletter settings</Link>.
+                {TheName(nl.name)} (free) is separate from these updates and only arrives if you sign up{nl.isBeehiiv ? "" : " and confirm"}. <Link href={nl.isBeehiiv ? "/newsletter/" : "/account/newsletter/"} className="font-semibold text-brand-700 hover:underline">{nl.isBeehiiv ? nl.heading : "Newsletter settings"}</Link>.
               </p>
             </div>
           )}

@@ -11,6 +11,8 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { pageParams, spGet, type SP } from "../../_lib/list";
 import { createCampaignAction } from "../actions";
+import { RetiredCampaignsBanner } from "../retired-banner";
+import { getNewsletterSettings } from "@/lib/newsletter/settings";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Newsletter campaigns" };
@@ -30,6 +32,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
   const tab = TABS.find((t) => t.key === spGet(sp, "tab")) ?? TABS[0];
   const { page, take, skip, perPage } = pageParams(sp);
   const where: Prisma.NewsletterWhereInput = { status: { in: tab.statuses } };
+  const beehiiv = (await getNewsletterSettings()).provider === "beehiiv";
   const [rows, total, counts] = await Promise.all([
     db.newsletter.findMany({ where, skip, take, orderBy: [{ sentAt: "desc" }, { scheduledFor: "asc" }, { updatedAt: "desc" }] }),
     db.newsletter.count({ where }),
@@ -37,7 +40,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
   ]);
   return (
     <>
-      <PageHeader title="Campaigns" description="Build an issue from site content, preview it, send a test, approve it, then schedule or send." actions={<form action={createCampaignAction}><button className="btn-primary"><Plus className="h-4 w-4" /> New campaign</button></form>} />
+      <PageHeader title="Campaigns" description={beehiiv ? "Built-in sending is off while the provider is beehiiv. Past campaigns are kept for your records." : "Build an issue from site content, preview it, send a test, approve it, then schedule or send."} actions={beehiiv ? undefined : <form action={createCampaignAction}><button className="btn-primary"><Plus className="h-4 w-4" /> New campaign</button></form>} />
+      <RetiredCampaignsBanner refused={spGet(sp, "refused") === "beehiiv"} />
       <LinkTabs items={TABS.map((t, i) => ({ label: t.label, href: `/admin/newsletter/campaigns/?tab=${t.key}`, active: t.key === tab.key, count: counts[i] }))} />
       <div className="card overflow-hidden">
         <DataTable

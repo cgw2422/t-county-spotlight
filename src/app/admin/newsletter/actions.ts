@@ -12,9 +12,11 @@ import type { ActionState } from "@/components/ui/form-message";
 import { normalizeContent, emptyContent, SECTION_KEYS, type NewsletterContent, type NLItem, type NLSectionKey } from "@/lib/newsletter/content";
 import { autoPopulate, searchItems } from "@/lib/newsletter/populate";
 import { addSuppression, normalizeEmail, requestSubscription, unsubscribe } from "@/lib/newsletter/subscribers";
-import { broadcastReadiness, kickOffProcessing, sendTest, startCampaign } from "@/lib/newsletter/send";
-import { saveNewsletterSettings } from "@/lib/newsletter/settings";
-import { NEWSLETTER_NAME } from "@/lib/newsletter/copy";
+import { broadcastReadiness, kickOffProcessing, sendTest, SENDING_RETIRED_MESSAGE, startCampaign } from "@/lib/newsletter/send";
+import { builtinSendingRetired, getNewsletterSettings, saveNewsletterSettings } from "@/lib/newsletter/settings";
+import { normalizeBeehiivEmbedUrl } from "@/lib/beehiiv/embed";
+import { syncBeehiiv } from "@/lib/beehiiv/sync";
+import { plainName } from "@/lib/newsletter/copy";
 import { emailUpdateLabel, isEmailUpdateKey } from "@/lib/notification-categories";
 import { sendTestUpdate } from "@/lib/notifications/run";
 
@@ -38,6 +40,7 @@ export async function inviteSubscriberAction(_: ActionState, fd: FormData): Prom
   const email = normalizeEmail(fd.get("email"));
   if (!email) return { error: "Enter a valid email address." };
   if (String(fd.get("confirmPermission") ?? "") !== "on") return { error: "Confirm that this person asked to receive the newsletter." };
+  if (await builtinSendingRetired()) return { error: "The provider is beehiiv, so the built-in list takes no new subscribers. Add people in beehiiv instead." };
   if (!rateLimit(`nl-invite:${user.id}`, 30, 3600_000).ok) return { error: "Invite limit reached. Try again later." };
   const outcome = await requestSubscription({ email, firstName: String(fd.get("firstName") ?? ""), source: "admin_invite" });
   await audit(user.id, "newsletter.invite", "NewsletterSubscriber", email, { outcome });
@@ -74,8 +77,14 @@ export async function deleteSubscriberAction(_: ActionState, fd: FormData): Prom
 
 export async function createCampaignAction() {
   const user = await requireAdmin();
+  // beehiiv mode: built-in campaigns are retired so an issue can't go out twice.
+  if (await builtinSendingRetired()) {
+    await audit(user.id, "newsletter.create_refused", "Newsletter", undefined, { reason: "provider beehiiv" });
+    redirect("/admin/newsletter/campaigns/?refused=beehiiv");
+  }
+  const { name } = await getNewsletterSettings();
   const date = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", month: "long", day: "numeric" }).format(new Date());
-  const nl = await db.newsletter.create({ data: { subject: `${NEWSLETTER_NAME}: ${date}`, content: emptyContent() as unknown as Prisma.InputJsonValue, createdById: user.id } });
+  const nl = await db.newsletter.create({ data: { subject: `${plainName(name)}: ${date}`, content: emptyContent() as unknown as Prisma.InputJsonValue, createdById: user.id } });
   await audit(user.id, "newsletter.create", "Newsletter", nl.id, { subject: nl.subject });
   redirect(`/admin/newsletter/campaigns/${nl.id}/`);
 }
@@ -182,6 +191,7 @@ export async function returnToDraftAction(_: ActionState, fd: FormData): Promise
 
 export async function scheduleCampaignAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin();
+  if (await builtinSendingRetired()) return { error: SENDING_RETIRED_MESSAGE };
   const when = fromDateInput(String(fd.get("scheduledFor") ?? ""));
   if (!when) return { error: "Pick a date and time (Eastern)." };
   if (when.getTime() < Date.now() + 5 * 60_000) return { error: "Schedule at least 5 minutes from now, or use Send now." };
@@ -206,6 +216,10 @@ export async function cancelScheduleAction(_: ActionState, fd: FormData): Promis
 
 export async function sendNowAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin();
+  if (await builtinSendingRetired()) {
+    await audit(user.id, "newsletter.send_refused", "Newsletter", id(fd), { reason: "provider beehiiv" });
+    return { error: SENDING_RETIRED_MESSAGE };
+  }
   const r = await startCampaign(id(fd), user.id);
   if (!r.ok) return { error: r.error };
   await clearLastError(id(fd));
@@ -226,6 +240,7 @@ export async function stopSendingAction(_: ActionState, fd: FormData): Promise<A
 
 export async function resumeCampaignAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin();
+  if (await builtinSendingRetired()) return { error: SENDING_RETIRED_MESSAGE };
   const ready = await broadcastReadiness();
   if (!ready.ok) return { error: ready.problems.join(" ") };
   const n = await db.newsletter.updateMany({ where: { id: id(fd), status: "FAILED", sendStartedAt: { not: null } }, data: { status: "SENDING" } });
@@ -256,16 +271,84 @@ const settingsSchema = z.object({
   postalAddress: z.string().trim().max(300),
   consentVersion: z.string().trim().min(1, "Consent version is required").max(40).regex(/^[\w.\-]+$/, "Use letters, numbers, dots and dashes"),
   description: z.string().trim().max(500),
+  name: z.string().trim().min(2, "The name is required").max(80, "Keep the name under 80 characters").regex(/^[^<>"\r\n]*$/, "The name can't contain quotes or angle brackets"),
+  tagline: z.string().trim().min(5, "Add a short signup description").max(200, "Keep the description under 200 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
+  heading: z.string().trim().min(3, "Add a signup heading").max(120, "Keep the heading under 120 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
+  button: z.string().trim().min(2, "Add the button text").max(40, "Keep the button text under 40 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
+  navLabel: z.string().trim().min(2, "Add a navigation label").max(40, "Keep the label under 40 characters").regex(/^[^<>\r\n]*$/, "No angle brackets or line breaks"),
 });
 
 export async function saveNewsletterSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin();
-  const p = settingsSchema.safeParse(Object.fromEntries(["fromName", "fromAddress", "replyTo", "postalAddress", "consentVersion", "description"].map((k) => [k, String(fd.get(k) ?? "")])));
+  const p = settingsSchema.safeParse(Object.fromEntries(["fromName", "fromAddress", "replyTo", "postalAddress", "consentVersion", "description", "name", "tagline", "heading", "button", "navLabel"].map((k) => [k, String(fd.get(k) ?? "")])));
   if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form." };
+  const before = await getNewsletterSettings();
   await saveNewsletterSettings(p.data);
-  await audit(user.id, "newsletter.settings", "Setting", "newsletter", p.data);
-  refresh();
+  await audit(user.id, "newsletter.settings", "Setting", "newsletter", { ...p.data, ...(before.name !== p.data.name ? { previousName: before.name } : {}) });
+  refreshPublic();
   return { ok: true, message: "Newsletter settings saved." };
+}
+
+function refreshPublic() {
+  revalidatePath("/admin/newsletter", "layout");
+  revalidatePath("/", "layout");
+}
+
+const providerSchema = z.object({
+  provider: z.enum(["builtin", "beehiiv"], { message: "Choose Built-in or beehiiv" }),
+  beehiivEmbedUrl: z.string().max(4000),
+});
+
+/**
+ * "Signup & sending provider" + beehiiv embed URL. The URL must be an https
+ * embeds.beehiiv.com / subscribe-forms.beehiiv.com form URL (pasted embed code is
+ * reduced to its iframe src — scripts are never stored). Switching to beehiiv
+ * requires a valid embed URL; switching retires built-in campaign sending.
+ */
+export async function saveProviderSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin();
+  const p = providerSchema.safeParse({ provider: String(fd.get("provider") ?? ""), beehiivEmbedUrl: String(fd.get("beehiivEmbedUrl") ?? "") });
+  if (!p.success) return { error: p.error.issues[0]?.message ?? "Check the form." };
+  const rawUrl = p.data.beehiivEmbedUrl.trim();
+  const url = rawUrl ? normalizeBeehiivEmbedUrl(rawUrl) : "";
+  if (url === null) return { error: "That isn't a beehiiv embed form URL. Use the https://embeds.beehiiv.com/… or https://subscribe-forms.beehiiv.com/… address from the form's embed code.", fieldErrors: { beehiivEmbedUrl: "Not a beehiiv embed form URL" } };
+  if (p.data.provider === "beehiiv" && !url) return { error: "Add the beehiiv embed form URL before switching to beehiiv.", fieldErrors: { beehiivEmbedUrl: "Required for beehiiv" } };
+  const before = await getNewsletterSettings();
+  await saveNewsletterSettings({ provider: p.data.provider, beehiivEmbedUrl: url });
+  await audit(user.id, "newsletter.provider", "Setting", "newsletter", { provider: p.data.provider, previousProvider: before.provider, beehiivEmbedUrl: url || null });
+  refreshPublic();
+  if (p.data.provider === "beehiiv" && before.provider !== "beehiiv") {
+    const scheduled = await db.newsletter.count({ where: { status: { in: ["SCHEDULED", "SENDING"] } } });
+    return { ok: true, message: `Switched to beehiiv. Every signup form now shows the beehiiv form, and built-in campaign sending is off${scheduled ? ` — ${scheduled} scheduled/sending campaign(s) will not send` : ""}.` };
+  }
+  if (p.data.provider === "builtin" && before.provider === "beehiiv") return { ok: true, message: "Switched back to the built-in signup & sending. Scheduled campaigns that are due will send on the next cron run." };
+  return { ok: true, message: "Provider settings saved." };
+}
+
+// ───────── beehiiv sync ─────────
+
+export async function syncBeehiivNowAction(): Promise<ActionState> {
+  const user = await requireAdmin();
+  if (!rateLimit(`beehiiv-sync:${user.id}`, 6, 3600_000).ok) return { error: "Sync limit reached (6 per hour). Try again later." };
+  const r = await syncBeehiiv({ trigger: "admin", actorId: user.id });
+  refreshPublic();
+  if (r.status === "not_configured" || r.status === "locked") return { error: r.message };
+  const c = r.counts;
+  const summary = `Issues: ${c.issuesCreated} new, ${c.issuesUpdated} updated, ${c.issuesHidden} hidden. Articles: ${c.articlesCreated} new, ${c.articlesUpdated} updated, ${c.articlesUnpublished} unpublished, ${c.preservedLocalEdits} kept (edited here). Skipped: ${c.skipped}.`;
+  if (r.status === "error") return { error: `${r.message} ${r.errors.slice(0, 3).join(" ")}` };
+  return { ok: true, message: `${r.message} ${summary}${r.errors.length ? ` ${r.errors.length} warning(s) — see below.` : ""}` };
+}
+
+export async function toggleIssueHiddenAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin();
+  const issue = await db.newsletterIssue.findUnique({ where: { id: id(fd) } });
+  if (!issue) return { error: "Issue not found." };
+  const hidden = !issue.hidden;
+  // A manual change clears removedAt, so the sync won't undo it.
+  await db.newsletterIssue.update({ where: { id: issue.id }, data: { hidden, removedAt: null } });
+  await audit(user.id, hidden ? "newsletter.issue_hide" : "newsletter.issue_unhide", "NewsletterIssue", issue.id, { title: issue.title, slug: issue.slug });
+  refreshPublic();
+  return { ok: true, message: hidden ? `“${issue.title}” is hidden from the archive.` : `“${issue.title}” is visible in the archive.` };
 }
 
 // ───────── Member email updates ─────────

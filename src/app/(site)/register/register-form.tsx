@@ -8,12 +8,13 @@ import { Field } from "@/components/account/auth-shell";
 import { NewPasswordFields } from "@/components/account/password-fields";
 import { sendTrack } from "@/components/public/track";
 import { ALL_COUNTY, ALL_COUNTY_LABEL, COMMUNITIES } from "@/lib/my-t-county-shared";
-import { PRIVACY_PATH, REGISTER_OPT_IN_LABEL, SIGNUP_DESCRIPTION, SIGNUP_DISCLAIMER } from "@/lib/newsletter/copy";
+import { PRIVACY_PATH, SIGNUP_DISCLAIMER } from "@/lib/newsletter/copy";
 import type { RegisterSource } from "@/lib/resident-accounts";
 import { registerAction } from "./actions";
 import { echoed, echoedChecked } from "@/components/dashboard/fields";
 
-export function RegisterForm({ next, business, source, community }: { next?: string; business?: boolean; source: RegisterSource; community: string }) {
+/** `newsletter.mode` "builtin": optional opt-in checkbox (double opt-in). "beehiiv": a small link to /newsletter/ instead. */
+export function RegisterForm({ next, business, source, community, newsletter }: { next?: string; business?: boolean; source: RegisterSource; community: string; newsletter: { mode: "builtin" | "beehiiv"; label: string; tagline: string; heading: string } }) {
   const [state, action] = useActionState(registerAction, null);
   const started = useRef(false);
   const fe = state?.fieldErrors ?? {};
@@ -52,13 +53,21 @@ export function RegisterForm({ next, business, source, community }: { next?: str
         </select>
         <p id="f-community-help" className={fe.community ? "mt-1 text-xs text-red-600" : "help"}>{fe.community || "Shows what’s happening near you first. You can change it any time."}</p>
       </div>
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 hover:border-brand-200" data-testid="register-newsletter">
-        <input type="checkbox" name="newsletter" defaultChecked={echoedChecked(v, "newsletter", false)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-brand-600" />
-        <span className="text-sm">
-          <span className="block font-semibold text-navy-900"><Mail className="mr-1 inline h-4 w-4 align-[-2px]" aria-hidden />{REGISTER_OPT_IN_LABEL} <span className="font-normal text-slate-500">(optional)</span></span>
-          <span className="mt-0.5 block text-slate-600">{SIGNUP_DESCRIPTION} {SIGNUP_DISCLAIMER} We&apos;ll email you a link to confirm first. <Link href={PRIVACY_PATH} className="underline underline-offset-2 hover:text-brand-700">How we use your email</Link></span>
-        </span>
-      </label>
+      {newsletter.mode === "beehiiv" ? (
+        <p className="text-sm text-slate-600" data-testid="register-newsletter-link">
+          <Mail className="mr-1 inline h-4 w-4 align-[-2px] text-brand-700" aria-hidden />
+          <Link href="/newsletter/" className="font-semibold text-brand-700 underline-offset-2 hover:underline">{newsletter.heading}</Link>{" "}
+          <span className="text-slate-500">— free, separate from your account.</span>
+        </p>
+      ) : (
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 hover:border-brand-200" data-testid="register-newsletter">
+          <input type="checkbox" name="newsletter" defaultChecked={echoedChecked(v, "newsletter", false)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-brand-600" />
+          <span className="text-sm">
+            <span className="block font-semibold text-navy-900"><Mail className="mr-1 inline h-4 w-4 align-[-2px]" aria-hidden />{newsletter.label} <span className="font-normal text-slate-500">(optional)</span></span>
+            <span className="mt-0.5 block text-slate-600">{newsletter.tagline} {SIGNUP_DISCLAIMER} We&apos;ll email you a link to confirm first. <Link href={PRIVACY_PATH} className="underline underline-offset-2 hover:text-brand-700">How we use your email</Link></span>
+          </span>
+        </label>
+      )}
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 hover:border-brand-200">
         <input type="checkbox" name="ownsBusiness" defaultChecked={echoedChecked(v, "ownsBusiness", !!business)} className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-brand-600" />
         <span className="text-sm">

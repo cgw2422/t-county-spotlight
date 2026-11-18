@@ -5,6 +5,7 @@ import { audit } from "@/lib/audit";
 import { processDueNewsletters } from "@/lib/newsletter/send";
 import { processEmailUpdates } from "@/lib/notifications/run";
 import { reconcileRecommendationCounts } from "@/lib/recommendations";
+import { maybeSyncBeehiivFromCron } from "@/lib/beehiiv/sync";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,10 @@ function authorized(req: Request) {
  *   curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/
  * - publishes SCHEDULED articles whose publishedAt has passed
  * - removes expired sessions and expired/used verification tokens
- * - starts due scheduled newsletters and continues sending ones (batched)
+ * - starts due scheduled newsletters and continues sending ones (batched) —
+ *   skipped entirely while the newsletter provider is beehiiv ("skipped: beehiiv")
+ * - imports live beehiiv posts (newsletter-archive / tcc-article tags) at most
+ *   once an hour; no-op without BEEHIIV_API_KEY / BEEHIIV_PUBLICATION_ID
  * - sends opt-in member email updates whose window is open (weekend summary,
  *   saved event reminders, new in my communities; at most 200 per run, each
  *   update at most once per member — run this at least hourly)
@@ -48,13 +52,16 @@ async function run(req: Request) {
     where: { OR: [{ expiresAt: { lt: now } }, { usedAt: { lt: new Date(now.getTime() - 7 * 86400_000) } }] },
   });
 
-  let newsletters: Awaited<ReturnType<typeof processDueNewsletters>> | { error: string };
+  let newsletters: Awaited<ReturnType<typeof processDueNewsletters>> | { error: string } | string;
   try {
-    newsletters = await processDueNewsletters();
+    const r = await processDueNewsletters();
+    newsletters = r.skipped === "beehiiv" ? "skipped: beehiiv" : r;
   } catch (e) {
     console.error("[cron] newsletter processing failed", e);
     newsletters = { error: (e as Error).message };
   }
+
+  const beehiiv = await maybeSyncBeehiivFromCron(now);
 
   let emailUpdates: Awaited<ReturnType<typeof processEmailUpdates>> | { error: string };
   try {
@@ -79,6 +86,7 @@ async function run(req: Request) {
     deletedSessions: sessions.count,
     deletedTokens: tokens.count,
     newsletters,
+    beehiiv,
     emailUpdates,
     recommendationCountsFixed,
   });

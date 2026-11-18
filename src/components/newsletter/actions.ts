@@ -5,6 +5,10 @@ import { PUBLIC_SIGNUP_SOURCES, SIGNUP_NEUTRAL_MESSAGE, TOPICS, type Preferences
 import { findByUnsubscribeToken, findMemberSubscriber, normalizeEmail, requestSubscription, unsubscribe, updatePreferences } from "@/lib/newsletter/subscribers";
 import type { ActionState } from "@/components/ui/form-message";
 import { cleanCommunities, communityName } from "@/lib/my-t-county-shared";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
+import { theName } from "@/lib/newsletter/copy";
+
+const BEEHIIV_MODE_ERROR = "Signups now go through our newsletter form. Please reload the page and use the form there.";
 
 /** Public signup. Always answers with the same neutral message for valid addresses. */
 export async function subscribeAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -12,6 +16,9 @@ export async function subscribeAction(_: ActionState, fd: FormData): Promise<Act
   if (String(fd.get("website") ?? "").trim()) return { ok: true, message: SIGNUP_NEUTRAL_MESSAGE };
   const email = normalizeEmail(fd.get("email"));
   if (!email) return { error: "Please enter a valid email address.", fieldErrors: { email: "Enter a valid email address" } };
+  const config = await getNewsletterConfig();
+  // beehiiv mode: the built-in list takes no new signups (the page shows beehiiv's form instead).
+  if (config.isBeehiiv) return { error: BEEHIIV_MODE_ERROR };
   const rawSource = String(fd.get("source") ?? "");
   const source = ((PUBLIC_SIGNUP_SOURCES as readonly string[]).includes(rawSource) ? rawSource : "newsletter_page") as SignupSource;
   const ip = await clientIp();
@@ -21,7 +28,7 @@ export async function subscribeAction(_: ActionState, fd: FormData): Promise<Act
   const user = await getCurrentUser();
   try {
     const community = communityName(String(fd.get("community") ?? ""));
-    await requestSubscription({ email, firstName: String(fd.get("firstName") ?? ""), source, userId: user?.id ?? null, ip, communities: community ? [community] : [] });
+    await requestSubscription({ email, firstName: String(fd.get("firstName") ?? ""), source, userId: user?.id ?? null, ip, communities: community ? [community] : [], consentText: config.consentText });
   } catch (e) {
     console.error("[newsletter] signup failed", e);
     return { error: "Something went wrong. Please try again." };
@@ -59,7 +66,8 @@ export async function unsubscribeByTokenAction(_: ActionState, fd: FormData): Pr
   const sub = await findByUnsubscribeToken(String(fd.get("token") ?? ""));
   if (!sub) return { error: "This link is invalid. Use the link from your most recent email." };
   await unsubscribe(sub.id, { reason: String(fd.get("reason") ?? ""), method: "link" });
-  return { ok: true, message: "You've been unsubscribed. You won't receive the T County Connect Weekly anymore." };
+  const { name } = await getNewsletterConfig();
+  return { ok: true, message: `You've been unsubscribed. You won't receive ${theName(name)} anymore.` };
 }
 
 // ── Signed-in members (/account/newsletter/) ──
@@ -73,10 +81,12 @@ async function memberSubscriber() {
 export async function accountSubscribeAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const { user } = await memberSubscriber();
   if (!user) return { error: "Please sign in again." };
+  const config = await getNewsletterConfig();
+  if (config.isBeehiiv) return { error: BEEHIIV_MODE_ERROR };
   if (String(fd.get("consent") ?? "") !== "on") return { error: "Please tick the box to confirm you'd like the newsletter." };
   if (!rateLimit(`nl-signup-email:${user.email.toLowerCase()}`, 5, 3600_000).ok) return { error: "Please wait a little before trying again." };
-  await requestSubscription({ email: user.email, firstName: user.name?.split(/\s+/)[0] ?? null, source: "account", userId: user.id, ip: await clientIp() });
-  return { ok: true, message: `Almost done! We sent a confirmation link to ${user.email}. Open it to start receiving the T County Connect Weekly.` };
+  await requestSubscription({ email: user.email, firstName: user.name?.split(/\s+/)[0] ?? null, source: "account", userId: user.id, ip: await clientIp(), consentText: config.consentText });
+  return { ok: true, message: `Almost done! We sent a confirmation link to ${user.email}. Open it to start receiving ${theName(config.name)}.` };
 }
 
 export async function accountPreferencesAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -92,5 +102,6 @@ export async function accountUnsubscribeAction(_: ActionState, fd: FormData): Pr
   const { sub } = await memberSubscriber();
   if (!sub) return { error: "You're not subscribed." };
   await unsubscribe(sub.id, { reason: String(fd.get("reason") ?? ""), method: "account" });
-  return { ok: true, message: "You've been unsubscribed from the T County Connect Weekly." };
+  const { name } = await getNewsletterConfig();
+  return { ok: true, message: `You've been unsubscribed from ${theName(name)}.` };
 }

@@ -16,6 +16,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { pageParams, spGet, type SP } from "../../_lib/list";
 import { adminUnsubscribeAction, deleteSubscriberAction, inviteSubscriberAction } from "../actions";
 import { SUB_STATUSES } from "../labels";
+import { subscriberCounts } from "@/lib/newsletter/export";
+import { getNewsletterSettings } from "@/lib/newsletter/settings";
+import { theName } from "@/lib/newsletter/copy";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Newsletter subscribers" };
@@ -30,9 +33,11 @@ export default async function SubscribersPage({ searchParams }: { searchParams: 
     ...((SUB_STATUSES as readonly string[]).includes(status) ? { status: status as SubscriberStatus } : {}),
     ...(source ? { source } : {}),
   };
-  const [rows, total] = await Promise.all([
+  const [rows, total, counts, ns] = await Promise.all([
     db.newsletterSubscriber.findMany({ where, skip, take, orderBy: { createdAt: "desc" } }),
     db.newsletterSubscriber.count({ where }),
+    subscriberCounts(),
+    getNewsletterSettings(),
   ]);
 
   return (
@@ -43,6 +48,21 @@ export default async function SubscribersPage({ searchParams }: { searchParams: 
         // eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from a route handler
         actions={<a href="/admin/newsletter/subscribers/export/" className="btn-secondary"><Download className="h-4 w-4" /> Export active (CSV)</a>}
       />
+      <Card className="mb-6" title="Move to beehiiv" description="Download files for beehiiv's subscriber import. Nothing is emailed and nothing is imported automatically.">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="export-counts">
+          <div className="rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-200"><dt className="text-xs font-medium text-emerald-800">Active (will export)</dt><dd className="text-2xl font-bold tabular-nums text-emerald-900" data-testid="count-active">{counts.active}</dd></div>
+          <div className="rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200"><dt className="text-xs font-medium text-amber-800">Pending (not exported)</dt><dd className="text-2xl font-bold tabular-nums text-amber-900" data-testid="count-pending">{counts.pending}</dd></div>
+          <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200"><dt className="text-xs font-medium text-slate-700">Unsubscribed</dt><dd className="text-2xl font-bold tabular-nums text-slate-900" data-testid="count-unsubscribed">{counts.unsubscribed}</dd>{counts.bouncedOrComplained > 0 && <dd className="text-xs text-slate-500">+ {counts.bouncedOrComplained} bounced/complained</dd>}</div>
+          <div className="rounded-xl bg-red-50 p-3 ring-1 ring-red-200"><dt className="text-xs font-medium text-red-800">Suppressed</dt><dd className="text-2xl font-bold tabular-nums text-red-900" data-testid="count-suppressed">{counts.suppressed}</dd></div>
+        </dl>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from a route handler */}
+          <a href="/admin/newsletter/subscribers/export-beehiiv/" className="btn-primary" data-testid="export-beehiiv"><Download className="h-4 w-4" /> Export for beehiiv</a>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from a route handler */}
+          <a href="/admin/newsletter/subscribers/export-suppressions/" className="btn-secondary" data-testid="export-suppressions"><Download className="h-4 w-4" /> Export unsubscribes &amp; suppressions</a>
+        </div>
+        <p className="mt-3 text-xs text-slate-500">“Export for beehiiv” includes only confirmed, active subscribers who never unsubscribed and aren&rsquo;t on the suppression list (matched case-insensitively). Columns: email, first_name, created_at, utm_source, signup_source, community — map the extras to custom fields in beehiiv or skip them. Keep the unsubscribes &amp; suppressions file to make sure those addresses are never imported (beehiiv: Audience → Subscribers → Import, and unsubscribe them there if they already exist).</p>
+      </Card>
       <div className="card overflow-hidden">
         <ListToolbar
           placeholder="Search email or name…"
@@ -88,7 +108,7 @@ export default async function SubscribersPage({ searchParams }: { searchParams: 
           <TextField name="email" type="email" label="Email" required maxLength={254} />
           <TextField name="firstName" label="First name (optional)" maxLength={80} />
           <Submit pendingText="Sending…">Send invitation</Submit>
-          <div className="sm:col-span-3"><Checkbox name="confirmPermission" label="This person asked to receive the T County Connect Weekly" help="Never invite imported business contacts or people who haven't asked." /></div>
+          <div className="sm:col-span-3"><Checkbox name="confirmPermission" label={`This person asked to receive ${theName(ns.name)}`} help="Never invite imported business contacts or people who haven't asked." /></div>
         </ActionForm>
       </Card>
     </>

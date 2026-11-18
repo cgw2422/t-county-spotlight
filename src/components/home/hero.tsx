@@ -7,9 +7,10 @@ import { SeasonIcon } from "./season-icon";
 
 /**
  * Homepage hero. Left: headline, description, search, quick links.
- * Right (desktop) / below quick links (mobile): optional `aside`, e.g. the
- * featured Community Pulse card. Without an aside the original single-column
- * layout is used. The background (admin-managed image or default gradient) is
+ * Right (desktop) / below quick links (mobile): optional `aside` — the featured
+ * Community Pulse card or the newsletter signup card (Admin → Homepage →
+ * "Right Side of Homepage Hero"). Without an aside the original full-width
+ * single-column layout is used (never an empty column). The background (admin-managed image or default gradient) is
  * rendered by <HeroBackground>.
  */
 /** `season`: active seasonal theme (Admin → Seasonal themes) — adds the eyebrow line and a thin accent edge; null = the normal hero. */
@@ -17,8 +18,8 @@ export function Hero({ headline, sub, appearance, aside, season }: { headline: s
   return (
     <section className="relative isolate overflow-hidden bg-navy-900">
       <HeroBackground appearance={appearance} />
-      <div className={cn("container-page py-14 sm:py-20 lg:py-28", !!aside && "grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-12")}>
-        <div className="max-w-3xl">
+      <div data-testid="hero-layout" data-has-aside={aside ? "true" : "false"} className={cn("container-page py-14 sm:py-20 lg:py-28", !!aside && "grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:gap-12")}>
+        <div className="max-w-3xl" data-testid="hero-main">
           {season && (
             <p className="mb-3 flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider text-[var(--season-hero-eyebrow)]" data-testid="season-eyebrow">
               {season.showAccents && <SeasonIcon season={season.season} />}
@@ -39,7 +40,7 @@ export function Hero({ headline, sub, appearance, aside, season }: { headline: s
             ))}
           </div>
         </div>
-        {aside && <div className="min-w-0">{aside}</div>}
+        {aside && <div className="min-w-0" data-testid="hero-aside">{aside}</div>}
       </div>
       {season && <div aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-[var(--season-decor)] opacity-80" data-testid="season-hero-edge" />}
     </section>

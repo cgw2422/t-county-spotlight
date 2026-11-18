@@ -34,6 +34,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/garage-sales/submit/", priority: 0.4, changeFrequency: "monthly" },
   { path: "/submit/", priority: 0.4, changeFrequency: "monthly" },
   { path: "/new/", priority: 0.7, changeFrequency: "daily" },
+  { path: "/newsletter/", priority: 0.6, changeFrequency: "weekly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -66,6 +67,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Community pages that have at least some listed content (empty ones still render, but are left out here).
       ...(await getCommunityCounts(now).then((m) => COMMUNITIES.filter((c) => hasCommunityContent(m.get(c.slug))))).map((c) => ({ url: absoluteUrl(`/communities/${c.slug}/`), changeFrequency: "daily" as const, priority: 0.7 })),
       ...(await db.businessUpdate.findMany({ where: await publicOpeningsWhere(), select: { id: true, updatedAt: true }, take: 5000 })).map((o) => ({ url: absoluteUrl(openingHref(o)), lastModified: o.updatedAt, changeFrequency: "weekly" as const, priority: 0.5 })),
+      // Newsletter issues synced from beehiiv (visible ones only).
+      ...(await db.newsletterIssue.findMany({ where: { hidden: false, publishedAt: { lte: now } }, select: { slug: true, updatedAt: true }, orderBy: { publishedAt: "desc" }, take: 5000 })).map((i) => ({ url: absoluteUrl(`/newsletter/${i.slug}/`), lastModified: i.updatedAt, changeFrequency: "monthly" as const, priority: 0.5 })),
       ...(await db.garageSale.findMany({ where: activeSaleWhere(now), select: { slug: true, updatedAt: true } })).map((g) => ({ url: absoluteUrl(garageSaleHref(g)), lastModified: g.updatedAt, changeFrequency: "daily" as const, priority: 0.5 })),
     ];
   } catch (e) {

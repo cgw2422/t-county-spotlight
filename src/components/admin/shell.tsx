@@ -74,7 +74,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: "T County Connect Weekly",
+    title: "Newsletter",
     items: [
       { href: "/admin/newsletter/", label: "Newsletter", icon: Mail, adminOnly: true },
     ],

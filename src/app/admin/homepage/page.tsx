@@ -7,10 +7,11 @@ import type { LookupItem, LookupType } from "../_actions/common";
 import { PageHeader, Card } from "@/components/admin/page-header";
 import { ActionForm, Submit } from "@/components/admin/action-form";
 import { ActionButton } from "@/components/admin/action-button";
-import { Checkbox, FormGrid, TextField } from "@/components/admin/form-field";
+import { Checkbox, FormGrid, SelectField, TextField } from "@/components/admin/form-field";
 import { SearchSelect } from "@/components/admin/search-select";
 import { cn } from "@/lib/utils";
-import { moveSection, saveHeroBanner, saveSection, toggleSection } from "./actions";
+import { moveSection, saveHeroAside, saveHeroBanner, saveSection, toggleSection } from "./actions";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Homepage" };
@@ -45,7 +46,7 @@ async function resolveFeatured(type: LookupType, ids: string[]): Promise<LookupI
 export default async function HomepageManager() {
   const user = await requireStaff();
   const isAdmin = user.role === "ADMIN";
-  const [sections, settings] = await Promise.all([db.homepageSection.findMany({ orderBy: { sortOrder: "asc" } }), getSettings()]);
+  const [sections, settings, nl] = await Promise.all([db.homepageSection.findMany({ orderBy: { sortOrder: "asc" } }), getSettings(), getNewsletterConfig()]);
   const featured = await Promise.all(sections.map((s) => (PICK[s.type] ? resolveFeatured(PICK[s.type]!.type, s.featuredIds) : Promise.resolve([]))));
   return (
     <>
@@ -99,6 +100,15 @@ export default async function HomepageManager() {
           })}
         </div>
         <div className="space-y-6 xl:sticky xl:top-20 xl:self-start">
+          <Card title="Right Side of Homepage Hero" description="Takes effect right away — no redeploy.">
+            <ActionForm action={saveHeroAside} className="space-y-4">
+              <SelectField name="heroAside" label="Show beside the hero headline" defaultValue={settings.heroAside === "newsletter" ? "newsletter" : "pulse"} data-testid="hero-aside-select"
+                options={[{ value: "pulse", label: "Community Pulse" }, { value: "newsletter", label: "Newsletter Signup" }]}
+                help={<>Community Pulse: the featured, published Pulse card; when none is active, the newsletter signup card (“{nl.heading}”) shows instead. Newsletter Signup: always the signup card (Community Pulse sections elsewhere are unaffected). On phones the card sits below the headline. If neither can be shown, the headline uses the full width.</>} />
+              <p className="text-xs text-slate-500">The signup card uses the current newsletter provider ({nl.isBeehiiv ? "beehiiv embedded form" : "built-in form"}) — change it in <Link href="/admin/newsletter/settings/" className="font-semibold text-brand-700 hover:underline">Newsletter → Settings</Link>.</p>
+              <Submit className="btn-primary btn-sm" pendingText="Saving…">Save hero right side</Submit>
+            </ActionForm>
+          </Card>
           <Card title="Hero & announcement banner">
             <ActionForm action={saveHeroBanner} className="space-y-4">
               <TextField name="heroHeadline" label="Hero headline" defaultValue={settings.heroHeadline} required maxLength={200} />

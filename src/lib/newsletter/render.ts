@@ -1,7 +1,7 @@
 import "server-only";
 import sanitizeHtml from "sanitize-html";
 import { absoluteUrl, stripHtml } from "@/lib/utils";
-import { NEWSLETTER_NAME } from "./copy";
+import { DEFAULT_NAV_LABEL, DEFAULT_NEWSLETTER_NAME, theName, TheName } from "./copy";
 import type { NewsletterContent, NLItem } from "./content";
 
 /** Replaced per recipient at send time. */
@@ -98,7 +98,7 @@ ${url ? `<div style="margin:6px 0 0;font-size:14px"><a href="${esc(url)}" style=
 </td></tr></table></td></tr>`;
 }
 
-export type RenderContext = {
+export type RenderContext = { /** Newsletter name / label from settings (fall back to the defaults). */ newsletterName?: string; newsletterLabel?: string;
   siteName: string;
   logoUrl?: string | null;
   postalAddress: string;
@@ -114,6 +114,7 @@ export function renderNewsletter(nl: { subject: string; preheader?: string | nul
   const site = absoluteUrl("/");
   const logo = abs(ctx.logoUrl);
   const sponsored = ctx.sponsoredLabel || "Sponsored";
+  const NEWSLETTER_NAME = ctx.newsletterName || DEFAULT_NEWSLETTER_NAME;
   const sections = nl.content.sections.filter((s) => s.enabled && s.items.length);
   const intro = emailRichText(nl.content.intro);
   const outro = emailRichText(nl.content.outro);
@@ -149,7 +150,7 @@ ${pre ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font
 <tr><td style="background:#ffffff;padding:20px 28px;border-bottom:4px solid ${C.green}" bgcolor="#ffffff" class="nl-pad">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
   <td style="font-family:${FONT}">${logo ? `<a href="${esc(site)}"><img src="${esc(logo)}" alt="${esc(ctx.siteName)}" height="48" style="display:block;height:48px;width:auto;border:0"></a>` : `<a href="${esc(site)}" style="font-family:${SERIF};font-size:22px;font-weight:800;color:${C.navy};text-decoration:none">${esc(ctx.siteName)}</a>`}</td>
-  <td align="right" style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${C.green}">${esc(NEWSLETTER_NAME)}</td>
+  <td align="right" style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${C.green}">${esc(ctx.newsletterLabel || DEFAULT_NAV_LABEL)}</td>
   </tr></table>
 </td></tr>
 <tr><td class="nl-pad" style="padding:28px 32px 8px;font-family:${FONT}">
@@ -166,7 +167,7 @@ ${outro ? `<tr><td class="nl-pad" style="padding:8px 32px 8px;font-family:${FONT
 <!--[if mso]></td></tr></table><![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px">
 <tr><td class="nl-pad" style="padding:20px 28px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.muted};text-align:center">
-  <p style="margin:0 0 8px;color:${C.muted}">You're receiving the ${esc(NEWSLETTER_NAME)} because you subscribed at ${esc(ctx.siteName)} and confirmed your email address.</p>
+  <p style="margin:0 0 8px;color:${C.muted}">You're receiving ${esc(theName(NEWSLETTER_NAME))} because you subscribed at ${esc(ctx.siteName)} and confirmed your email address.</p>
   <p style="margin:0 0 8px"><a href="${PREFERENCES_PLACEHOLDER}" style="color:${C.muted};text-decoration:underline">Email preferences</a> &nbsp;&middot;&nbsp; <a href="${UNSUBSCRIBE_PLACEHOLDER}" style="color:${C.muted};text-decoration:underline">Unsubscribe</a> &nbsp;&middot;&nbsp; <a href="${esc(absoluteUrl("/newsletter/#privacy"))}" style="color:${C.muted};text-decoration:underline">Privacy</a></p>
   <p style="margin:0;color:${C.muted}">${esc(ctx.siteName)} &middot; ${esc(ctx.postalAddress).replace(/\n/g, ", ")}</p>
   <p style="margin:6px 0 0;color:${C.muted}">Items marked &ldquo;${esc(sponsored)}&rdquo; are paid placements from local businesses.</p>
@@ -175,7 +176,7 @@ ${outro ? `<tr><td class="nl-pad" style="padding:8px 32px 8px;font-family:${FONT
 </body></html>`;
 
   const lines: string[] = [];
-  lines.push(`${NEWSLETTER_NAME} — ${ctx.siteName}`, "", nl.subject.toUpperCase(), "");
+  lines.push(TheName(NEWSLETTER_NAME), "", nl.subject.toUpperCase(), "");
   if (pre) lines.push(pre, "");
   const introText = htmlToText(nl.content.intro);
   if (introText) lines.push(introText, "");
@@ -192,7 +193,7 @@ ${outro ? `<tr><td class="nl-pad" style="padding:8px 32px 8px;font-family:${FONT
   const outroText = htmlToText(nl.content.outro);
   if (outroText) lines.push(outroText, "");
   lines.push(`Explore ${ctx.siteName}: ${site}`, "", "—",
-    `You're receiving the ${NEWSLETTER_NAME} because you subscribed at ${ctx.siteName} and confirmed your email address.`,
+    `You're receiving ${theName(NEWSLETTER_NAME)} because you subscribed at ${ctx.siteName} and confirmed your email address.`,
     `Email preferences: ${PREFERENCES_PLACEHOLDER}`,
     `Unsubscribe: ${UNSUBSCRIBE_PLACEHOLDER}`,
     `${ctx.siteName} · ${ctx.postalAddress.replace(/\n/g, ", ")}`);

@@ -11,7 +11,7 @@ export const BRAND = {
   description:
     "Explore local businesses, upcoming events, community news, specials, jobs, churches and nonprofits across Tuscarawas County.",
   purpose: "Bringing local people, businesses, and community information together.",
-  newsletterName: "T County Connect Weekly",
+  newsletterName: "T County Connect", // prose: "the T County Connect newsletter"; editable in Admin → Newsletter → Settings
   colors: {
     navy: "#0B2340", // County Navy
     green: "#387D14", // Hillside Green

@@ -9,7 +9,7 @@ import { safeNext, sendVerificationEmail } from "@/lib/tokens";
 import { audit } from "@/lib/audit";
 import { recordServerSignal } from "@/lib/analytics";
 import { requestSubscription } from "@/lib/newsletter/subscribers";
-import { REGISTER_CONSENT_TEXT } from "@/lib/newsletter/copy";
+import { getNewsletterConfig } from "@/lib/newsletter/settings";
 import { ALL_COUNTY, COMMUNITY_COOKIE, COOKIE_MAX_AGE, SCOPE_COOKIE, communityName, communitySlug } from "@/lib/my-t-county-shared";
 import { parseRegisterSource } from "@/lib/resident-accounts";
 import { echoValues, type FormState } from "@/components/dashboard/fields";
@@ -47,7 +47,10 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
     for (const i of parsed.error.issues) fieldErrors[String(i.path[0])] ??= i.message;
     return { error: "Please fix the highlighted fields.", fieldErrors, values };
   }
-  const { firstName, lastName, email, password, community, newsletter, ownsBusiness, next } = parsed.data;
+  const { firstName, lastName, email, password, community, newsletter: newsletterBox, ownsBusiness, next } = parsed.data;
+  // beehiiv mode: the form shows a link to /newsletter/ instead of the checkbox, and the built-in list takes no signups.
+  const nl = await getNewsletterConfig();
+  const newsletter = newsletterBox && !nl.isBeehiiv;
   const pwErr = passwordProblem(password);
   if (pwErr) return { error: pwErr, fieldErrors: { password: pwErr }, values };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "The two passwords don't match.", fieldErrors: { confirm: "Passwords don't match." }, values };
@@ -82,7 +85,7 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   if (newsletter) {
     // Marketing is separate and double opt-in: this only sends the newsletter's own confirmation link.
     try {
-      await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: REGISTER_CONSENT_TEXT });
+      await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: nl.registerConsentText });
     } catch (e) {
       console.error("[register] newsletter signup failed", e);
     }

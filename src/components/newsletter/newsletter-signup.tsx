@@ -1,162 +1,96 @@
-"use client";
-import Link from "next/link";
-import { useActionState, useId } from "react";
-import { CheckCircle2, Loader2, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ActionState } from "@/components/ui/form-message";
-import { PRIVACY_PATH, SIGNUP_BUTTON, SIGNUP_DESCRIPTION, SIGNUP_DISCLAIMER, SIGNUP_HEADLINE, type SignupSource } from "@/lib/newsletter/copy";
-import { subscribeAction } from "./actions";
-import { COMMUNITIES } from "@/lib/my-t-county-shared";
+import { getNewsletterConfig, type NewsletterConfig } from "@/lib/newsletter/settings";
+import { LEGACY_SIGNUP_HEADLINE, theName, type SignupSource } from "@/lib/newsletter/copy";
+import { BuiltinNewsletterSignup } from "./builtin-signup";
+import { BeehiivEmbed } from "./beehiiv-embed";
 
 type Props = {
   source: Exclude<SignupSource, "admin_invite">;
-  variant?: "card" | "compact" | "inline";
-  /** Background the form sits on: light, dark (navy) or green (Hillside Green site footer). */
+  /** card (homepage, /explore/, /newsletter/, account), compact (footer, token pages), inline (articles, events), hero (homepage hero aside). */
+  variant?: "card" | "compact" | "inline" | "hero";
   tone?: "light" | "dark" | "green";
+  /** Optional overrides (e.g. a homepage section title); default is "Get <name>" and the editable supporting line. */
   title?: string | null;
   subtitle?: string | null;
+  /** Wording that only fits the built-in double opt-in form (e.g. "Send a new confirmation link"); ignored in beehiiv mode. */
+  builtinTitle?: string;
+  builtinSubtitle?: string;
+  /** Load the beehiiv iframe immediately (hero, /newsletter/); others lazy-load. */
+  eager?: boolean;
   className?: string;
 };
 
+/** Whether any signup can be shown (beehiiv mode needs an embed URL; built-in always can). */
+export function signupAvailable(c: Pick<NewsletterConfig, "isBeehiiv" | "beehiivEmbedUrl">) {
+  return !c.isBeehiiv || !!c.beehiivEmbedUrl;
+}
+
 /**
- * T County Connect Weekly signup (double opt-in). Inline success/error, no reload.
- * Variants: card (homepage, /explore/, /newsletter/), compact (footer), inline (articles, events).
+ * Every public newsletter signup goes through here. Provider "Built-in": the
+ * double opt-in form (NewsletterSubscriber rows). Provider "beehiiv": beehiiv's
+ * embedded form, no local record. Renders nothing in beehiiv mode without an embed URL.
  */
-export function NewsletterSignup({ source, variant = "card", tone = "light", title, subtitle, className }: Props) {
-  const id = useId();
-  const [state, action, pending] = useActionState<ActionState, FormData>(subscribeAction, null);
-  const green = tone === "green";
-  const dark = tone === "dark" || green;
-  const done = !!state?.ok;
-  const headline = title || SIGNUP_HEADLINE;
-  const description = subtitle || SIGNUP_DESCRIPTION;
-  const showName = variant === "card";
+export async function NewsletterSignup({ source, variant = "card", tone = "light", title: titleProp, subtitle: subtitleProp, builtinTitle, builtinSubtitle, eager, className }: Props) {
+  const c = await getNewsletterConfig();
+  if (!signupAvailable(c)) return null;
+  const title = (!c.isBeehiiv && builtinTitle) || titleProp;
+  const subtitle = (!c.isBeehiiv && builtinSubtitle) || subtitleProp;
+  const headline = (title && title !== LEGACY_SIGNUP_HEADLINE ? title : "") || c.heading;
+  const description = subtitle || c.tagline;
+  const dark = tone === "dark" || tone === "green" || variant === "hero";
 
-  const disclaimer = (
-    <p className={cn("text-xs", green ? "text-hillside-50" : dark ? "text-slate-400" : "text-slate-500")}>
-      {SIGNUP_DISCLAIMER}{" "}
-      <Link href={PRIVACY_PATH} className={cn("underline underline-offset-2", green ? "text-white" : dark ? "hover:text-white" : "hover:text-brand-700")}>How we use your email</Link>
-    </p>
-  );
-
-  const success = (
-    <div role="status" aria-live="polite" className={cn("flex items-start gap-3 rounded-xl p-4", green ? "bg-white/15 text-white ring-1 ring-white/25" : dark ? "bg-white/10 text-white" : "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200")}>
-      <CheckCircle2 className={cn("mt-0.5 h-5 w-5 shrink-0", green ? "text-white" : dark ? "text-emerald-300" : "text-emerald-600")} aria-hidden />
-      <p className="text-sm">{state?.message}</p>
-    </div>
-  );
-
-  const fields = (
-    <>
-      {/* Honeypot (hidden from people and screen readers) */}
-      <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-        <label htmlFor={`${id}-website`}>Website</label>
-        <input id={`${id}-website`} name="website" type="text" tabIndex={-1} autoComplete="off" />
-      </div>
-      <input type="hidden" name="source" value={source} />
-    </>
-  );
-
-  const error = state?.error ? (
-    <p id={`${id}-err`} role="alert" className={cn("text-sm font-medium", green ? "inline-block rounded-md bg-red-700 px-2 py-1 text-white" : dark ? "text-red-300" : "text-red-700")}>{state.error}</p>
-  ) : null;
-
-  const submit = (
-    <button type="submit" disabled={pending} className={cn(dark && !green ? "btn-accent shrink-0" : "btn-primary shrink-0", variant === "card" && "w-full sm:w-auto")}>
-      {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Mail className="h-4 w-4" aria-hidden />}
-      {SIGNUP_BUTTON}
-    </button>
-  );
-
-  const emailInput = (
-    <div className="min-w-0 flex-1">
-      <label htmlFor={`${id}-email`} className={cn(variant === "card" ? "label" : "sr-only", dark && (green ? "text-white" : "text-slate-200"))}>Email address</label>
-      <input
-        id={`${id}-email`} name="email" type="email" required autoComplete="email" inputMode="email" maxLength={254}
-        placeholder="you@example.com" className="input" aria-invalid={!!state?.fieldErrors?.email || undefined}
-        aria-describedby={state?.error ? `${id}-err` : undefined}
-      />
-    </div>
-  );
-
-  if (variant === "compact") {
+  if (variant === "hero") {
     return (
-      <div className={cn(className)}>
-        <h2 className={cn("font-display text-xl font-semibold", dark ? "text-white" : "text-navy-900")}>{headline}</h2>
-        <p className={cn("mt-1 text-sm", green ? "text-hillside-50" : dark ? "text-slate-300" : "text-slate-600")}>{description}</p>
-        <div className="mt-4">
-          {done ? success : (
-            <form action={action} className="relative space-y-2" noValidate={false}>
-              {fields}
-              <div className="flex flex-col gap-2 sm:flex-row">{emailInput}{submit}</div>
-              {error}
-              {disclaimer}
-            </form>
-          )}
-        </div>
-      </div>
+      <section aria-labelledby="hero-newsletter-title" data-testid="hero-newsletter-card" data-provider={c.provider}
+        className={cn("relative overflow-hidden rounded-2xl bg-navy-950/60 p-4 text-white shadow-2xl ring-1 ring-white/20 backdrop-blur-xl sm:p-6", className)}>
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-hillside-500 via-hillside-500 to-sunset-500" />
+        <p className="flex items-center gap-2 font-display text-[11px] font-bold uppercase tracking-[0.14em] text-sunset-400"><Mail className="h-3.5 w-3.5" aria-hidden /> Newsletter</p>
+        {c.isBeehiiv ? (
+          <>
+            <h2 id="hero-newsletter-title" className="mt-2 font-display text-xl font-bold leading-snug text-white">{headline}</h2>
+            <p className="mt-1 text-sm text-white/80">{description}</p>
+            <div className="mt-4 overflow-hidden rounded-xl bg-white"><BeehiivEmbed url={c.beehiivEmbedUrl} name={theName(c.name)} eager /></div>
+          </>
+        ) : (
+          <BuiltinNewsletterSignup source={source} variant="compact" tone="dark" headline={headline} description={description} name={c.navLabel} button={c.button} headingId="hero-newsletter-title" className="mt-2" />
+        )}
+      </section>
     );
   }
 
+  if (!c.isBeehiiv) {
+    return <BuiltinNewsletterSignup source={source} variant={variant} tone={tone} headline={headline} description={description} name={c.navLabel} button={c.button} className={className} />;
+  }
+
+  const embed = <BeehiivEmbed url={c.beehiivEmbedUrl} name={theName(c.name)} eager={eager} />;
+  if (variant === "compact") {
+    return (
+      <div className={cn(className)} data-provider="beehiiv">
+        <h2 className={cn("font-display text-xl font-semibold", dark ? "text-white" : "text-navy-900")}>{headline}</h2>
+        <p className={cn("mt-1 text-sm", tone === "green" ? "text-hillside-50" : dark ? "text-slate-300" : "text-slate-600")}>{description}</p>
+        <div className={cn("mt-4 overflow-hidden rounded-xl", dark && "bg-white")}>{embed}</div>
+      </div>
+    );
+  }
   if (variant === "inline") {
     return (
-      <aside aria-labelledby={`${id}-h`} className={cn("rounded-2xl border border-brand-100 bg-brand-50/60 p-5 sm:p-6", className)}>
-        <div className="flex items-start gap-3">
-          <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-brand-700 shadow-sm sm:flex"><Mail className="h-5 w-5" aria-hidden /></span>
-          <div className="min-w-0 flex-1">
-            <h2 id={`${id}-h`} className="font-display text-xl font-semibold text-navy-900">{headline}</h2>
-            <p className="mt-1 text-sm text-slate-600">{description}</p>
-            <div className="mt-4">
-              {done ? success : (
-                <form action={action} className="relative space-y-2">
-                  {fields}
-                  <div className="flex flex-col gap-2 sm:flex-row">{emailInput}{submit}</div>
-                  {error}
-                  {disclaimer}
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
+      <aside aria-label={headline} data-provider="beehiiv" className={cn("rounded-2xl border border-brand-100 bg-brand-50/60 p-5 sm:p-6", className)}>
+        <h2 className="font-display text-xl font-semibold text-navy-900">{headline}</h2>
+        <p className="mt-1 text-sm text-slate-600">{description}</p>
+        <div className="mt-4 overflow-hidden rounded-xl bg-white">{embed}</div>
       </aside>
     );
   }
-
   return (
-    <div className={cn("overflow-hidden rounded-3xl bg-cream ring-1 ring-amber-200/70", className)}>
+    <div data-provider="beehiiv" className={cn("overflow-hidden rounded-3xl bg-cream ring-1 ring-amber-200/70", className)}>
       <div className="grid gap-6 p-6 sm:p-10 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-10">
-        <div>
-          <p className="eyebrow">The T County Connect Weekly</p>
+        <div className="min-w-0">
+          <p className="eyebrow">{c.navLabel}</p>
           <h2 className="mt-2 font-display text-3xl font-semibold leading-tight text-navy-900 text-balance sm:text-4xl">{headline}</h2>
           <p className="mt-3 text-slate-700 sm:text-lg">{description}</p>
         </div>
-        <div>
-          {done ? success : (
-            <form action={action} className="relative space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
-              {fields}
-              {showName && (
-                <div>
-                  <label htmlFor={`${id}-first`} className="label">First name <span className="font-normal text-slate-400">(optional)</span></label>
-                  <input id={`${id}-first`} name="firstName" type="text" autoComplete="given-name" maxLength={80} className="input" />
-                </div>
-              )}
-              {emailInput}
-              {showName && (
-                <div>
-                  <label htmlFor={`${id}-community`} className="label">Your community <span className="font-normal text-slate-400">(optional)</span></label>
-                  <select id={`${id}-community`} name="community" className="input" defaultValue="">
-                    <option value="">All of Tuscarawas County</option>
-                    {COMMUNITIES.map((c) => <option key={c.slug} value={c.name}>{c.name}</option>)}
-                  </select>
-                  <p className="mt-1 text-xs text-slate-500">Adds a short section about what&rsquo;s happening there each week.</p>
-                </div>
-              )}
-              {error}
-              {submit}
-              {disclaimer}
-            </form>
-          )}
-        </div>
+        <div className="min-w-0 overflow-hidden rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-200">{embed}</div>
       </div>
     </div>
   );
