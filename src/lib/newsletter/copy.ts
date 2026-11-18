@@ -16,7 +16,7 @@ export const DEFAULT_SIGNUP_TAGLINE = "Local stories, weekend plans, and what's 
 export const DEFAULT_SIGNUP_BUTTON = "Sign me up";
 /** Previous default headline; homepage sections still carrying it use the signup heading instead. */
 export const LEGACY_SIGNUP_HEADLINE = "Love Local. Stay in the Loop.";
-export const SIGNUP_DISCLAIMER = "Free to subscribe. Unsubscribe anytime.";
+export const SIGNUP_DISCLAIMER = "Free to join. Unsubscribe anytime.";
 /** Line under the native (beehiiv) signup form. Editable in Admin → Newsletter → Settings. */
 export const DEFAULT_SIGNUP_FOOTNOTE = "Free to join. Unsubscribe anytime.";
 /** Visible label of the email field. */

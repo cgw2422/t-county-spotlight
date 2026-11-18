@@ -148,7 +148,7 @@ export function AccountSubscribeForm({ email, name }: { email: string; name: str
       </label>
       <FormMessage state={state} />
       <Btn pending={pending} className="btn-primary w-full sm:w-auto">Get {name}</Btn>
-      <p className="text-xs text-slate-500">We&rsquo;ll email you a link to confirm. Free to subscribe. Unsubscribe anytime.</p>
+      <p className="text-xs text-slate-500">We&rsquo;ll email you a link to confirm. Free to join. Unsubscribe anytime.</p>
     </form>
   );
 }
