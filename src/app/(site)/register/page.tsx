@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { FORCED_PASSWORD_CHANGE_PATH, getSessionUser } from "@/lib/auth";
 import { homeForRole, safeNext } from "@/lib/tokens";
 import { getCommunityPreference } from "@/lib/my-t-county";
-import { communitySlug } from "@/lib/my-t-county-shared";
+import { ALL_COUNTY, communitySlug } from "@/lib/my-t-county-shared";
 import { REGISTER_HEADLINE, REGISTER_SUBHEAD, loginHref, parseRegisterSource } from "@/lib/resident-accounts";
 import { AuthShell } from "@/components/account/auth-shell";
 import { TrackView } from "@/components/public/track";
@@ -14,16 +14,18 @@ import { getNewsletterConfig } from "@/lib/newsletter/settings";
 export const metadata: Metadata = { title: "Create a free account", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string; business?: string; source?: string }> }) {
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string; business?: string; source?: string; community?: string; newsletter?: string }> }) {
   const sp = await searchParams;
   const next = safeNext(sp.next) ?? undefined;
   const source = parseRegisterSource(sp.source);
   const user = await getSessionUser();
   if (user?.mustChangePassword) redirect(FORCED_PASSWORD_CHANGE_PATH);
   if (user) redirect(next ?? homeForRole(user.role));
-  // A guest who already picked a community on this device gets it pre-selected (still optional).
+  // ?community= (e.g. from the homepage My T County signup; allowlisted, "all" = All of Tuscarawas County)
+  // wins; otherwise a guest who already picked a community on this device gets it pre-selected (still optional).
+  const asked = typeof sp.community === "string" ? sp.community.trim().toLowerCase().slice(0, 60) : "";
   const pref = await getCommunityPreference();
-  const community = pref.community ? communitySlug(pref.community) ?? "" : "";
+  const community = asked === ALL_COUNTY ? ALL_COUNTY : communitySlug(asked) ?? (pref.community ? communitySlug(pref.community) ?? "" : "");
   const nl = await getNewsletterConfig();
   return (
     <AuthShell
@@ -41,7 +43,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
     >
       <TrackView type="register_view" targetType="REGISTER" targetId={source} />
       <RegisterForm next={next} business={sp.business === "1"} source={source} community={community}
-        newsletter={{ mode: nl.isBeehiiv ? "beehiiv" : "builtin", label: nl.registerOptInLabel, tagline: nl.tagline, heading: nl.heading }} />
+        newsletter={{ mode: nl.isBeehiiv ? "beehiiv" : "builtin", tagline: nl.tagline, checked: sp.newsletter === "1" }} />
     </AuthShell>
   );
 }

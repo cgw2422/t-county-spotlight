@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { PartyPopper, X } from "lucide-react";
 
 /** One-time welcome after registration (?welcome=1). Dismissing removes the query string. */
-export function WelcomePanel({ name, children }: { name: string | null; children: React.ReactNode }) {
+export function WelcomePanel({ name, newsletterNote, children }: { name: string | null; /** Neutral line shown only when they ticked the newsletter box at registration. */ newsletterNote?: string | null; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   const router = useRouter();
   if (!open) return null;
@@ -19,6 +19,7 @@ export function WelcomePanel({ name, children }: { name: string | null; children
           <PartyPopper className="h-5 w-5 text-sunset-500" aria-hidden /> Welcome to My T County{name ? `, ${name}` : ""}!
         </h2>
         <p className="mt-1 text-sm text-slate-600">Optional: pick your community and a few favorite categories so the most relevant things show up first. You can change these any time under My Preferences.</p>
+        {newsletterNote && <p className="mt-2 text-sm text-slate-600" data-testid="mtc-welcome-newsletter">{newsletterNote}</p>}
         <div className="mt-5">{children}</div>
         <button type="button" onClick={close} className="btn-ghost btn-sm mt-3 min-h-11">Skip for now</button>
       </div>

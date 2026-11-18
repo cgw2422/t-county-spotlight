@@ -33,6 +33,7 @@ import { TYPE_LABEL as LOCAL_TYPE_LABEL } from "@/lib/notifications/items";
 import { MY_T_COUNTY_TAGLINE, registerHref } from "@/lib/resident-accounts";
 import { BenefitsHero } from "@/components/my-t-county/benefits-hero";
 import { WelcomePanel } from "@/components/my-t-county/welcome-panel";
+import { REGISTER_NEWSLETTER_NOTE } from "@/lib/newsletter/copy";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
 import { TheName, theName } from "@/lib/newsletter/copy";
 
@@ -71,7 +72,7 @@ function Panel({ id, title, href, linkLabel, count, localCount, community, empty
   );
 }
 
-export default async function MyTCountyPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+export default async function MyTCountyPage({ searchParams }: { searchParams: Promise<{ welcome?: string; newsletter?: string }> }) {
   const [pref, user, sp, nl] = await Promise.all([getCommunityPreference(), getCurrentUser(), searchParams, getNewsletterConfig()]);
   const welcome = !!user && sp.welcome === "1";
   const c = pref.active;
@@ -137,7 +138,7 @@ export default async function MyTCountyPage({ searchParams }: { searchParams: Pr
         <BenefitsHero />
       )}
       {welcome && user && (
-        <WelcomePanel name={user.firstName || null}>
+        <WelcomePanel name={user.firstName || null} newsletterNote={sp.newsletter === "1" ? REGISTER_NEWSLETTER_NOTE : null}>
           <PreferencesForm idPrefix="welcome" member community={pref.community} extraCommunities={pref.extraCommunities} interests={pref.interests} />
         </WelcomePanel>
       )}

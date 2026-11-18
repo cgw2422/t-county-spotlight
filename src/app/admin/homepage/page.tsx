@@ -29,7 +29,7 @@ const PICK: Record<string, { type: LookupType; label: string } | undefined> = {
 const TYPE_LABEL: Record<string, string> = {
   hero: "Hero banner", explore: "Explore categories grid", today: "Today and tonight's events (hidden when none)", weekend: "This weekend's events", events: "Upcoming events", businesses: "Featured businesses",
   spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner", community_pulse: "Community Pulse (recent entries)", new_coming_soon: "New & Coming Soon (openings; each leaves after its homepage date)",
-  join: "Free account invitation (signed-in members see a small “Go to My T County” link)", newsletter: "Newsletter signup", gives: "T County Gives", food_trucks: "Food trucks", garage_sales: "Garage sales",
+  join: "Free account invitation (signed-in members see a small “Go to My T County” link)", newsletter: "My T County signup (bottom)", gives: "T County Gives", food_trucks: "Food trucks", garage_sales: "Garage sales",
   seasonal: "Around T County This Season (seasonal picks; hidden unless a seasonal theme is on and there are real items — set up in Seasonal themes)",
 };
 
@@ -69,7 +69,7 @@ export default async function HomepageManager() {
                   <details className="group min-w-0 flex-1">
                     <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 py-1">
                       <span className="min-w-0 flex-1">
-                        <span className={cn("block font-semibold", s.isEnabled ? "text-slate-900" : "text-slate-500")}>{s.title || TYPE_LABEL[s.type]}</span>
+                        <span className={cn("block font-semibold", s.isEnabled ? "text-slate-900" : "text-slate-500")}>{(s.type === "newsletter" ? TYPE_LABEL.newsletter : s.title) || TYPE_LABEL[s.type]}</span>
                         <span className="block text-xs text-slate-500">{TYPE_LABEL[s.type] ?? s.type}{pick ? ` · shows up to ${s.limit}` : ""}{s.featuredIds.length ? ` · ${s.featuredIds.length} pinned` : ""}</span>
                       </span>
                       <span className={s.isEnabled ? "badge-green" : "badge-gray"}>{s.isEnabled ? "Visible" : "Hidden"}</span>
@@ -84,6 +84,7 @@ export default async function HomepageManager() {
                       </FormGrid>
                       <TextField name="subtitle" label="Subtitle" defaultValue={s.subtitle ?? ""} maxLength={400} />
                       {s.type === "hero" && <p className="text-xs text-slate-500">Leave the title/subtitle blank to use the hero text below.</p>}
+                      {s.type === "newsletter" && <p className="text-xs text-slate-500" data-testid="admin-account-signup-note">This section invites visitors to create a free My T County account (with an optional newsletter checkbox) and uses fixed wording; the title/subtitle above aren&rsquo;t shown. Signed-in members see the &ldquo;Go to My T County&rdquo; link here only when the Free account invitation section is hidden.</p>}
                       {pick && (
                         <SearchSelect name="featured" type={pick.type} ordered label={pick.label} initial={featured[i]} placeholder="Search to pin items…" help="Pinned items show first, in this order; the rest fill automatically. Only published items appear on the site." />
                       )}

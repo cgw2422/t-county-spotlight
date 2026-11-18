@@ -10,6 +10,8 @@ import { audit } from "@/lib/audit";
 import { recordServerSignal } from "@/lib/analytics";
 import { requestSubscription } from "@/lib/newsletter/subscribers";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
+import { subscribeAfterRegistration } from "@/lib/beehiiv/signup";
+import { PRIVACY_PATH, REGISTER_NEWSLETTER_LABEL, SIGNUP_DISCLAIMER } from "@/lib/newsletter/copy";
 import { ALL_COUNTY, COMMUNITY_COOKIE, COOKIE_MAX_AGE, SCOPE_COOKIE, communityName, communitySlug } from "@/lib/my-t-county-shared";
 import { parseRegisterSource } from "@/lib/resident-accounts";
 import { echoValues, type FormState } from "@/components/dashboard/fields";
@@ -48,9 +50,11 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
     return { error: "Please fix the highlighted fields.", fieldErrors, values };
   }
   const { firstName, lastName, email, password, community, newsletter: newsletterBox, ownsBusiness, next } = parsed.data;
-  // beehiiv mode: the form shows a link to /newsletter/ instead of the checkbox, and the built-in list takes no signups.
+  // Built-in mode: pending (double opt-in) subscriber. beehiiv mode: the address goes to beehiiv after the
+  // account exists, and the built-in list takes no signups.
   const nl = await getNewsletterConfig();
   const newsletter = newsletterBox && !nl.isBeehiiv;
+  const beehiivOptIn = newsletterBox && nl.isBeehiiv;
   const pwErr = passwordProblem(password);
   if (pwErr) return { error: pwErr, fieldErrors: { password: pwErr }, values };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "The two passwords don't match.", fieldErrors: { confirm: "Passwords don't match." }, values };
@@ -79,17 +83,19 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   } catch {
     return { error: NEUTRAL, values };
   }
-  await audit(user.id, "user.register", "User", user.id, { ownsBusiness, source, newsletterOptIn: newsletter, community: home ?? (community === ALL_COUNTY ? "all" : null) });
+  await audit(user.id, "user.register", "User", user.id, { ownsBusiness, source, newsletterOptIn: newsletterBox, newsletterProvider: newsletterBox ? (nl.isBeehiiv ? "beehiiv" : "builtin") : null, community: home ?? (community === ALL_COUNTY ? "all" : null) });
   // Account/security email: always sent, whatever the newsletter choice.
   await sendVerificationEmail({ id: user.id, email: user.email, name: firstName });
   if (newsletter) {
     // Marketing is separate and double opt-in: this only sends the newsletter's own confirmation link.
     try {
-      await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: nl.registerConsentText });
+      await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: `[x] ${REGISTER_NEWSLETTER_LABEL} ${nl.tagline} ${SIGNUP_DISCLAIMER} We'll email you a link to confirm first. How we use your email: ${PRIVACY_PATH}` });
     } catch (e) {
       console.error("[register] newsletter signup failed", e);
     }
   }
+  // Short timeout; never blocks or undoes the account, and nothing tells them they're subscribed.
+  if (beehiivOptIn) await subscribeAfterRegistration(email, ip);
   await recordServerSignal("register_complete", source);
 
   await destroySession();
@@ -100,5 +106,9 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
     jar.delete(SCOPE_COOKIE);
   }
   if (ownsBusiness) redirect("/list-your-business/?welcome=1");
-  redirect(safeNext(next) ?? "/my-t-county/?welcome=1");
+  // My T County (no next, or next=/my-t-county/) opens with the one-time welcome; `newsletter=1` adds a
+  // neutral "check your inbox" note there when they ticked the newsletter box.
+  const dest = safeNext(next);
+  if (!dest || dest === "/my-t-county/") redirect(`/my-t-county/?welcome=1${newsletterBox ? "&newsletter=1" : ""}`);
+  redirect(dest);
 }

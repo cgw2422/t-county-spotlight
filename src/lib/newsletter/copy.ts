@@ -23,6 +23,11 @@ export const DEFAULT_SIGNUP_FOOTNOTE = "Free to join. Unsubscribe anytime.";
 export const SIGNUP_FIELD_LABEL = "Email address";
 export const PRIVACY_PATH = "/newsletter/#privacy";
 
+/** Optional newsletter checkbox on /register/ and the homepage My T County signup (both providers). */
+export const REGISTER_NEWSLETTER_LABEL = "Email me the T County Connect newsletter.";
+/** Shown after registration only when that box was ticked; never claims a subscription. */
+export const REGISTER_NEWSLETTER_NOTE = "If you asked for the newsletter, check your inbox for a confirmation from T County Connect.";
+
 /** Mid-sentence form: "the T County Connect newsletter". */
 export function theName(name: string) {
   const n = name.trim() || DEFAULT_NEWSLETTER_NAME;

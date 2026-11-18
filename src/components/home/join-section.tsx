@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Bookmark, MapPin, ThumbsUp } from "lucide-react";
+import { Bookmark, MapPin, ThumbsUp } from "lucide-react";
+import { MyTCountyLinkCard } from "./my-t-county-link";
 import { getCurrentUser } from "@/lib/auth";
 import { MY_T_COUNTY_NAME, MY_T_COUNTY_TAGLINE, registerHref } from "@/lib/resident-accounts";
 
@@ -9,20 +10,7 @@ import { MY_T_COUNTY_NAME, MY_T_COUNTY_TAGLINE, registerHref } from "@/lib/resid
  */
 export async function JoinSection({ title, subtitle }: { title?: string | null; subtitle?: string | null }) {
   const user = await getCurrentUser();
-  if (user) {
-    return (
-      <section aria-label={MY_T_COUNTY_NAME} className="container-page py-6" data-testid="home-join-member">
-        <Link href="/my-t-county/" className="card card-hover flex min-h-14 items-center gap-3 px-4 py-3 sm:px-5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-hillside-50 text-hillside-700"><MapPin className="h-5 w-5" aria-hidden /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-display font-bold text-navy-900">Go to {MY_T_COUNTY_NAME}</span>
-            <span className="block truncate text-sm text-slate-600">Your saved places, recommendations and community, all in one spot.</span>
-          </span>
-          <ArrowRight className="h-5 w-5 shrink-0 text-brand-700" aria-hidden />
-        </Link>
-      </section>
-    );
-  }
+  if (user) return <MyTCountyLinkCard />;
   return (
     <section aria-labelledby="home-join-title" className="container-page py-10 sm:py-12" data-testid="home-join">
       <div className="overflow-hidden rounded-3xl bg-hillside-50 px-5 py-8 ring-1 ring-hillside-100 sm:px-10 sm:py-10">

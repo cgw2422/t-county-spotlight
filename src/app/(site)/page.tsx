@@ -33,6 +33,7 @@ import { CommunityBar } from "@/components/my-t-county/community-bar";
 import { CommunityGroups } from "@/components/my-t-county/community-groups";
 import { OpeningsHomeSection } from "@/components/openings/home-section";
 import { JoinSection } from "@/components/home/join-section";
+import { AccountSignupSection } from "@/components/home/account-signup-section";
 import { getHomepageAnnouncements } from "@/lib/announcements";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ type Section = Awaited<ReturnType<typeof db.homepageSection.findMany>>[number];
  * sections — local items first, countywide items still shown. With null, every
  * section renders exactly as before.
  */
-async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null) {
+async function renderSection(s: Section, settings: Awaited<ReturnType<typeof getSettings>>, community: string | null = null, hasJoin = false) {
   switch (s.type) {
     case "hero": {
       // Right side (Admin → Homepage → "Right Side of Homepage Hero"):
@@ -186,11 +187,10 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       );
     }
     case "newsletter":
-      return (
-        <section key={s.id} id="newsletter" aria-label="Newsletter" className="container-page scroll-mt-24 py-12">
-          <NewsletterSignup source="homepage" variant="card" title={s.title} subtitle={s.subtitle} />
-        </section>
-      );
+      // Type key kept for existing ordering/toggles; it now invites visitors to a free My T County account
+      // (fixed copy — the section's stored title/subtitle were newsletter wording). The newsletter itself
+      // stays an optional checkbox handed to /register/. See AccountSignupSection.
+      return <AccountSignupSection key={s.id} joinShowsLink={hasJoin} />;
     case "gives":
       return <GivesHomeSection key={s.id} title={s.title} subtitle={s.subtitle} limit={s.limit} featuredIds={s.featuredIds} community={community} />;
     case "cta":
@@ -250,7 +250,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     getCommunityPreference(),
     getBrandAssetUrls(),
   ]);
-  const rendered = await Promise.all(sections.map((s) => renderSection(s, settings, pref.active)));
+  // The enabled "join" section already shows signed-in visitors the "Go to My T County" link.
+  const hasJoin = sections.some((s) => s.type === "join");
+  const rendered = await Promise.all(sections.map((s) => renderSection(s, settings, pref.active, hasJoin)));
   // Community prompt / switcher sits right below the hero (or at the top when there is no hero).
   const heroAt = sections.findIndex((s) => s.type === "hero");
   rendered.splice(heroAt + 1, 0, <CommunityBar key="community-bar" community={pref.community} active={pref.active} showPrompt={pref.showPrompt} className="pt-6" />);

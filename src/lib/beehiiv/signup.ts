@@ -135,11 +135,11 @@ export async function beehiivReadiness(): Promise<BeehiivReadiness> {
 type SubscribeResult = { ok: true; status: string | null; outcome: SignupOutcome } | { ok: false; kind: BeehiivCallError["kind"] | "not_configured"; httpStatus: number; message: string };
 
 /** The single code path every signup uses (public form and admin test). Never throws. */
-async function subscribeEmail(email: string, placement: SignupPlacement | "admin_test", referringSite: string): Promise<SubscribeResult> {
+async function subscribeEmail(email: string, placement: SignupPlacement | "admin_test" | "register", referringSite: string, timeoutMs?: number): Promise<SubscribeResult> {
   const env = beehiivEnv();
   if (!env) return { ok: false, kind: "not_configured", httpStatus: 0, message: "BEEHIIV_API_KEY / BEEHIIV_PUBLICATION_ID not set" };
   try {
-    const sub = await createSubscription(env, { email, utmCampaign: placement, referringSite });
+    const sub = await createSubscription(env, { email, utmCampaign: placement, referringSite }, fetch, timeoutMs);
     const status = typeof sub.status === "string" ? sub.status.toLowerCase() : null;
     return { ok: true, status, outcome: outcomeForStatus(status) };
   } catch (e) {
@@ -179,6 +179,33 @@ export async function handlePublicSignup(req: SignupRequest): Promise<SignupStat
   // Aggregate only: which placement produced a signup. No email, no visitor id.
   await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: placement } }).catch(() => {});
   return { ok: true, outcome: r.outcome, message: messageForOutcome(r.outcome) };
+}
+
+/** Short timeout for the opt-in made while creating an account (registration never waits long on beehiiv). */
+export const REGISTER_SIGNUP_TIMEOUT_MS = 4_000;
+
+/**
+ * The newsletter checkbox on /register/ (beehiiv mode), called only after the account exists.
+ * Same validation, per-IP/per-address limits and beehiiv request as the public form, with
+ * utm_campaign "register". Never throws and returns nothing the caller could show: any failure,
+ * rate limit or inactive/invalid address is logged (no email) and ignored. No local subscriber row.
+ */
+export async function subscribeAfterRegistration(rawEmail: unknown, ip: string): Promise<void> {
+  try {
+    const email = normalizeSignupEmail(rawEmail);
+    if (!email) return;
+    if (!rateLimit(`bh-signup-ip:${ip}`, SIGNUP_LIMITS.ip.limit, SIGNUP_LIMITS.ip.windowMs).ok) return;
+    if (!rateLimit(`bh-signup-email:${email}`, SIGNUP_LIMITS.email.limit, SIGNUP_LIMITS.email.windowMs).ok) return;
+    const r = await subscribeEmail(email, "register", referringSiteFor("/register/", "account"), REGISTER_SIGNUP_TIMEOUT_MS);
+    if (!r.ok) {
+      console.warn(`[beehiiv] newsletter opt-in at registration failed (${r.kind}): ${r.message}`);
+      if (r.kind === "config") await patchConnectionState({ signupProblem: { at: new Date().toISOString(), httpStatus: r.httpStatus } }).catch(() => {});
+      return;
+    }
+    await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: "register" } }).catch(() => {});
+  } catch (e) {
+    console.warn("[beehiiv] newsletter opt-in at registration failed (unexpected)", (e as Error)?.name ?? "error");
+  }
 }
 
 // ───────── Admin: connection check & test signup ─────────
