@@ -48,3 +48,21 @@ export async function runNewsletterMenuMigration(db: PrismaClient, log: (m: stri
   log(`[menus] newsletter signup link: ${changes.join("; ") || "already present"}`);
   return { skipped: false as const, changes };
 }
+
+const GET_LISTED_MARKER = "menuGetListed";
+export const GET_LISTED_LABEL = "Get Listed";
+const GET_LISTED_HREFS = ["/memberships/", "/memberships"];
+/** Labels the /memberships/ link was seeded with. Anything else counts as an admin's own wording and is left alone. */
+const SEEDED_MEMBERSHIP_LABELS = ["Memberships", "Membership", "Business Memberships"];
+
+/**
+ * Public menus: links to /memberships/ (URL unchanged) still carrying a seeded "Memberships" label become "Get Listed",
+ * in every menu location. Custom labels and all other items are never touched.
+ */
+export async function runGetListedMenuMigration(db: PrismaClient, log: (m: string) => void = console.log) {
+  if (await db.setting.findUnique({ where: { key: GET_LISTED_MARKER } })) return { skipped: true as const, count: 0 };
+  const r = await db.menuItem.updateMany({ where: { href: { in: GET_LISTED_HREFS }, label: { in: SEEDED_MEMBERSHIP_LABELS } }, data: { label: GET_LISTED_LABEL } });
+  await db.setting.create({ data: { key: GET_LISTED_MARKER, value: { at: new Date().toISOString(), renamed: r.count } } });
+  log(`[menus] "Memberships" → "${GET_LISTED_LABEL}": ${r.count} link(s)`);
+  return { skipped: false as const, count: r.count };
+}

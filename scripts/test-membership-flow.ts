@@ -94,6 +94,30 @@ async function main() {
   } finally {
     await cleanup();
   }
+  await test("menu migration: seeded 'Memberships' links → 'Get Listed' (URL unchanged); custom labels untouched; runs once", async () => {
+    const { runGetListedMenuMigration } = await import("@/lib/menu-migrations");
+    const marker = await db.setting.findUnique({ where: { key: "menuGetListed" } });
+    const tmp = await Promise.all([
+      db.menuItem.create({ data: { location: "MOBILE", label: "Memberships", href: "/memberships", sortOrder: 999 } }),
+      db.menuItem.create({ data: { location: "FOOTER", label: `${P}Our plans`, href: "/memberships/", sortOrder: 999 } }),
+      db.menuItem.create({ data: { location: "FOOTER", label: "Memberships", href: "/somewhere-else/", sortOrder: 999 } }),
+    ]);
+    try {
+      await db.setting.deleteMany({ where: { key: "menuGetListed" } });
+      await runGetListedMenuMigration(db as never, () => {});
+      const [a, b, c] = await Promise.all(tmp.map((t) => db.menuItem.findUniqueOrThrow({ where: { id: t.id } })));
+      assert.equal(a.label, "Get Listed"); assert.equal(a.href, "/memberships");
+      assert.equal(b.label, `${P}Our plans`);
+      assert.equal(c.label, "Memberships");
+      await db.menuItem.update({ where: { id: a.id }, data: { label: "Memberships" } });
+      assert.equal((await runGetListedMenuMigration(db as never, () => {})).skipped, true);
+      assert.equal((await db.menuItem.findUniqueOrThrow({ where: { id: a.id } })).label, "Memberships", "later admin edits win");
+    } finally {
+      await db.menuItem.deleteMany({ where: { id: { in: tmp.map((t) => t.id) } } });
+      await db.setting.deleteMany({ where: { key: "menuGetListed" } });
+      if (marker) await db.setting.create({ data: { key: marker.key, value: marker.value as never } });
+    }
+  });
   console.log(results.join("\n"));
   console.log(failed ? `${failed} FAILED` : `ALL ${results.length} PASS`);
   process.exit(failed ? 1 : 0);

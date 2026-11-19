@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Check, CreditCard, Info, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { requireBusinessOwner } from "@/lib/auth";
@@ -185,7 +184,7 @@ export default async function MembershipPage({ params, searchParams }: { params:
 
       <p className="mt-10 text-sm text-slate-500">
         Memberships add tools to your listing. They never buy editorial coverage — our Spotlight stories are chosen independently, and anything
-        sponsored is always clearly labeled. <Link href="/memberships/" className="font-medium text-brand-700 hover:underline">Learn more</Link>
+        sponsored is always clearly labeled. Your standard listing stays free whether or not you upgrade.
       </p>
     </>
   );
