@@ -19,7 +19,7 @@ export const publicBusinessWhere = (extra: Prisma.BusinessWhereInput = {}): Pris
 
 const articleCardSelect = {
   id: true, slug: true, title: true, excerpt: true, featuredImageUrl: true, featuredImageAlt: true,
-  publishedAt: true, legacyPath: true, kind: true, categories: { select: { name: true } },
+  publishedAt: true, legacyPath: true, kind: true, categories: { select: { name: true } }, beehiivPostId: true,
 } satisfies Prisma.ArticleSelect;
 
 /** Business card fields without the derived spotlight (for places that never render the badge). */

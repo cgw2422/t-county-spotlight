@@ -50,7 +50,7 @@ function SavedCard({ item, remove }: { item: ResolvedSaved; remove: RemoveHandle
     <>
       <span className={cn("relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-navy-800", over && "opacity-50 grayscale")}>
         {item.image
-          ? <SmartImage src={item.image} alt="" fill sizes="64px" className="object-cover" />
+          ? <SmartImage src={item.image} alt="" fill sizes="64px" className={item.imageFit === "contain" ? "object-contain object-center" : "object-cover"} />
           : <span className="flex h-full w-full items-center justify-center text-white/70">{item.available ? <Icon className="h-6 w-6" aria-hidden /> : <OhioMark className="h-6 w-6" />}</span>}
       </span>
       <span className={cn("min-w-0 flex-1", over && "opacity-70")}>

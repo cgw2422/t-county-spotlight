@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { JsonLd } from "@/components/public/json-ld";
 import { buildMetadata } from "@/components/public/seo";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
-import { SmartImage } from "@/components/ui/smart-image";
+import { NewsletterCover } from "@/components/ui/newsletter-cover";
 import { getSettings } from "@/lib/settings";
 import { getBrandAssetUrls } from "@/lib/brand-assets";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
@@ -60,9 +60,7 @@ export default async function NewsletterIssuePage({ params }: Props) {
       </header>
       <div className="container-page max-w-3xl">
         {issue.thumbnailUrl && (
-          <div className="relative mb-8 aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100">
-            <SmartImage src={issue.thumbnailUrl} alt="" fill priority sizes="(min-width: 768px) 768px, 100vw" className="object-cover" />
-          </div>
+          <div className="mb-8" data-fit="natural"><NewsletterCover src={issue.thumbnailUrl} alt="" /></div>
         )}
         <div className={`${PROSE_CLASSES} min-w-0 overflow-x-auto text-slate-800 [&_img]:h-auto [&_img]:max-w-full [&_table]:max-w-full! [&_table]:w-full!`} data-testid="issue-body" dangerouslySetInnerHTML={{ __html: html }} />
 

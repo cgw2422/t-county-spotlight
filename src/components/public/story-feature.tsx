@@ -4,16 +4,17 @@ import { SmartImage } from "@/components/ui/smart-image";
 import { ImagePlaceholder } from "@/components/ui/placeholder";
 import type { ArticleCardData } from "@/components/cards/article-card";
 import { articleHref } from "@/lib/links";
-import { formatDate, stripHtml, truncate } from "@/lib/utils";
+import { cn, formatDate, stripHtml, truncate } from "@/lib/utils";
+import { isNewsletterArticle, NEWSLETTER_FIT, NEWSLETTER_FRAME } from "@/components/ui/newsletter-cover";
 
 /** Large magazine-style lead story. */
 export function StoryFeature({ a, eyebrow }: { a: ArticleCardData; eyebrow?: string }) {
   const title = stripHtml(a.title);
   return (
     <Link href={articleHref(a)} className="group grid overflow-hidden rounded-3xl bg-navy-900 text-white shadow-lg lg:grid-cols-[1.4fr_1fr]">
-      <div className="relative aspect-[16/10] overflow-hidden lg:aspect-auto lg:min-h-[420px]">
+      <div className={cn("relative aspect-[16/10] overflow-hidden lg:aspect-auto lg:min-h-[420px]", isNewsletterArticle(a) && NEWSLETTER_FRAME)}>
         {a.featuredImageUrl ? (
-          <SmartImage src={a.featuredImageUrl} alt={a.featuredImageAlt || ""} fill priority sizes="(min-width:1024px) 60vw, 100vw" className="object-cover transition duration-700 group-hover:scale-105" />
+          <SmartImage src={a.featuredImageUrl} alt={a.featuredImageAlt || ""} fill priority sizes="(min-width:1024px) 60vw, 100vw" className={isNewsletterArticle(a) ? NEWSLETTER_FIT : "object-cover transition duration-700 group-hover:scale-105"} />
         ) : <ImagePlaceholder label={title} />}
       </div>
       <div className="flex flex-col justify-center p-6 sm:p-10">

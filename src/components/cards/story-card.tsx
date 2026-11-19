@@ -21,11 +21,13 @@ const KIND_EYEBROW: Record<string, string> = {
  * (object-cover); logos/graphics are contained so artwork isn't cut off. The whole card is one
  * link to the article — no nested links and no directory-style details.
  */
-export function StoryCard({ a, fit = "cover", excerpt, sizes = "120px" }: { a: ArticleCardData; fit?: StoryImageFit; excerpt?: string | null; sizes?: string }) {
+export function StoryCard({ a, fit: fitProp = "cover", excerpt, sizes = "120px" }: { a: ArticleCardData; fit?: StoryImageFit; excerpt?: string | null; sizes?: string }) {
   const title = stripHtml(a.title);
   const spotlight = a.kind === "SPOTLIGHT";
   const eyebrow = spotlight ? KIND_EYEBROW.SPOTLIGHT : a.categories?.[0]?.name ?? KIND_EYEBROW[a.kind ?? "GENERAL"] ?? KIND_EYEBROW.GENERAL;
   const img = a.featuredImageUrl;
+  // Newsletter (beehiiv) covers are graphics with text: always shown whole.
+  const fit: StoryImageFit = a.beehiivPostId ? "contain" : fitProp;
   return (
     <Link href={articleHref(a)} data-testid="story-card" data-fit={img ? fit : "placeholder"} className="card card-hover group flex h-full items-start gap-4 p-3 sm:p-4">
       <div data-testid="story-card-image" className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:w-[112px]">

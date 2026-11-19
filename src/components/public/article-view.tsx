@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, Clock, MapPin, Star, UserRound } from "lucide-react";
 import { SmartImage } from "@/components/ui/smart-image";
+import { NewsletterCover } from "@/components/ui/newsletter-cover";
 import { ArticleCard } from "@/components/cards/article-card";
 import { getSettings } from "@/lib/settings";
 import { getBrandAssetUrls } from "@/lib/brand-assets";
@@ -178,9 +179,14 @@ export async function ArticleView({ article: a, related, saved }: { article: Art
 
       {image && (
         <figure className="container-page mt-8">
-          <div className="relative mx-auto aspect-[16/9] max-w-5xl overflow-hidden rounded-2xl bg-slate-100">
-            <SmartImage src={image} alt={a.featuredImageAlt || ""} fill priority sizes="(min-width:1100px) 1024px, 100vw" className="object-cover" />
-          </div>
+          {a.beehiivPostId ? (
+            // Newsletter cover: original aspect ratio within the content width, never cropped.
+            <div className="mx-auto max-w-5xl" data-fit="natural"><NewsletterCover src={image} alt={a.featuredImageAlt || ""} /></div>
+          ) : (
+            <div className="relative mx-auto aspect-[16/9] max-w-5xl overflow-hidden rounded-2xl bg-slate-100">
+              <SmartImage src={image} alt={a.featuredImageAlt || ""} fill priority sizes="(min-width:1100px) 1024px, 100vw" className="object-cover" />
+            </div>
+          )}
         </figure>
       )}
 

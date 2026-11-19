@@ -45,6 +45,8 @@ export type ResolvedSaved = {
   title: string;
   href: string | null;
   image: string | null;
+  /** "contain" for newsletter (beehiiv) covers, which must never be cropped. */
+  imageFit?: "contain";
   /** e.g. "Sat, Nov 14 · 9 AM" or "Ends Dec 1". */
   dateLabel: string | null;
   location: string | null;

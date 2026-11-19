@@ -13,7 +13,7 @@ export function IssueList({ issues, className }: { issues: Issue[]; className?: 
         <li key={i.id}>
           <Link href={`/newsletter/${i.slug}/`} className="card card-hover flex min-h-11 items-stretch gap-4 overflow-hidden p-3 sm:p-4">
             <span className="relative hidden h-20 w-28 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:block">
-              {i.thumbnailUrl ? <SmartImage src={i.thumbnailUrl} alt="" fill sizes="112px" className="object-cover" /> : <span className="flex h-full w-full items-center justify-center text-slate-400"><Mail className="h-6 w-6" aria-hidden /></span>}
+              {i.thumbnailUrl ? <SmartImage src={i.thumbnailUrl} alt="" fill sizes="112px" className="object-contain object-center" /> : <span className="flex h-full w-full items-center justify-center text-slate-400"><Mail className="h-6 w-6" aria-hidden /></span>}
             </span>
             <span className="min-w-0 flex-1">
               <time dateTime={i.publishedAt.toISOString()} className="block text-xs font-semibold uppercase tracking-wide text-hillside-700">{formatDate(i.publishedAt)}</time>
