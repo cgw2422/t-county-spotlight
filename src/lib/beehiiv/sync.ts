@@ -4,11 +4,12 @@ import { audit } from "@/lib/audit";
 import { sanitizePlain } from "@/lib/sanitize";
 import { slugify, stripHtml, truncate } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
-import { BeehiivError, beehiivEnv, listConfirmedPostsByTag, type BeehiivPost } from "./client";
+import { BeehiivError, beehiivEnv, listConfirmedPosts, type BeehiivPost } from "./client";
 import { prepareBeehiivContent } from "./html";
 
 /** beehiiv content tags that route posts into the site. */
 export const ARCHIVE_TAG = "newsletter-archive";
+/** Legacy opt-in tag. No longer required (every public web post becomes an article); posts that still carry it keep their old behavior. */
 export const ARTICLE_TAG = "tcc-article";
 /** Never used as issue slugs: these are real routes under /newsletter/. */
 export const RESERVED_ISSUE_SLUGS = new Set(["confirm", "preferences", "unsubscribe", "thanks", "page", "archive", "feed", "rss"]);
@@ -70,8 +71,16 @@ export function isLive(p: BeehiivPost, now = Date.now()) {
 }
 
 function hasTag(p: BeehiivPost, tag: string) {
-  // The API filters by tag; when the post lists its tags, double-check (case-insensitive).
-  return !Array.isArray(p.content_tags) || p.content_tags.some((t) => String(t).trim().toLowerCase() === tag);
+  return Array.isArray(p.content_tags) && p.content_tags.some((t) => String(t).trim().toLowerCase() === tag);
+}
+
+/** Readable on the public web: published to web (Web only or Email + Web) and not premium-only (gated). */
+export function isPublicWebPost(p: BeehiivPost) {
+  const platform = String(p.platform ?? "").toLowerCase();
+  const audience = String(p.audience ?? "").toLowerCase();
+  const onWeb = platform === "web" || platform === "both" || platform === "all";
+  const gated = audience === "premium";
+  return onWeb && !gated;
 }
 
 function httpsUrl(u: string | null | undefined) {
@@ -96,8 +105,10 @@ async function uniqueSlug(base: string, taken: (slug: string) => Promise<boolean
 type Live = { post: BeehiivPost; tags: Set<string> };
 
 /**
- * Imports live beehiiv posts: `newsletter-archive` → NewsletterIssue,
- * `tcc-article` → Article (a post with both tags becomes both). Dedupe is
+ * Imports live beehiiv posts. `newsletter-archive` → NewsletterIssue only (never also an
+ * Article). Every other live, publicly readable web post (Web only or Email + Web, not
+ * premium-gated) → Article — no tag needed; posts with the legacy `tcc-article` tag keep
+ * importing as before. Drafts, scheduled-but-not-live, email-only and gated posts are skipped. Dedupe is
  * strictly by beehiiv post id. Idempotent; one run at a time (lease lock).
  * Posts that stop coming back as live: the issue is hidden, the article goes
  * to DRAFT unless it was edited locally. No-op without BEEHIIV_API_KEY /
@@ -118,25 +129,26 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
     const now = (opts.now ?? new Date()).getTime();
     const live = new Map<string, Live>();
     let complete = true;
-    for (const tag of [ARCHIVE_TAG, ARTICLE_TAG]) {
-      let posts: BeehiivPost[];
-      try {
-        posts = await listConfirmedPostsByTag(env, tag, opts.fetchImpl);
-      } catch (e) {
-        complete = false;
-        result.errors.push(e instanceof BeehiivError ? e.message : `Fetching “${tag}” posts failed`);
-        continue;
-      }
-      for (const p of posts) {
-        c.fetched++;
-        if (!hasTag(p, tag) || !isLive(p, now)) { c.skipped++; continue; }
-        const entry = live.get(p.id) ?? { post: p, tags: new Set<string>() };
-        entry.tags.add(tag);
-        live.set(p.id, entry);
-      }
+    // One listing of every confirmed post; routing is decided per post below.
+    let posts: BeehiivPost[] = [];
+    try {
+      posts = await listConfirmedPosts(env, null, opts.fetchImpl);
+    } catch (e) {
+      complete = false;
+      result.errors.push(e instanceof BeehiivError ? e.message : "Fetching beehiiv posts failed");
+    }
+    for (const p of posts) {
+      c.fetched++;
+      if (!isLive(p, now)) { c.skipped++; continue; } // drafts, archived, scheduled-but-not-yet-live
+      const tags = new Set<string>();
+      if (hasTag(p, ARCHIVE_TAG)) tags.add(ARCHIVE_TAG); // newsletter issue → /newsletter/ only
+      else if (isPublicWebPost(p) || hasTag(p, ARTICLE_TAG)) tags.add(ARTICLE_TAG); // public web post (or legacy tag) → Articles
+      if (!tags.size) { c.skipped++; continue; } // email-only send or premium-gated → not imported
+      live.set(p.id, { post: p, tags });
     }
 
     const syncedAt = new Date();
+    const liveArticleIds = new Set([...live.values()].filter((l) => l.tags.has(ARTICLE_TAG)).map((l) => l.post.id));
     for (const { post: p, tags } of live.values()) {
       const content = prepareBeehiivContent(p.content?.free?.web, p.content?.free?.email);
       const title = sanitizePlain(p.title, 300) || "(untitled)";
@@ -152,7 +164,11 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
       const webUrl = httpsUrl(p.web_url);
       try {
         if (tags.has(ARCHIVE_TAG)) await upsertIssue(p, { title, subtitle, publishedAt, thumbnailUrl, webUrl, html: content.html, source: content.source, syncedAt }, c);
-        if (tags.has(ARTICLE_TAG)) await upsertArticle(p, { title, subtitle, publishedAt, thumbnailUrl, html: content.html, source: content.source, syncedAt }, c);
+        if (tags.has(ARTICLE_TAG)) {
+          // Auto-imported articles use the public web version only; the email fallback is kept just for legacy-tagged posts.
+          if (content.source === "web" || hasTag(p, ARTICLE_TAG)) await upsertArticle(p, { title, subtitle, publishedAt, thumbnailUrl, html: content.html, source: content.source, syncedAt }, c);
+          else { c.skipped++; liveArticleIds.delete(p.id); }
+        }
       } catch (e) {
         result.errors.push(`“${title}”: ${(e as Error).message.slice(0, 200)}`);
       }
@@ -161,7 +177,7 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
     // Removal handling only after a complete fetch — a failed request must never hide the archive.
     if (complete) {
       const archiveIds = [...live.values()].filter((l) => l.tags.has(ARCHIVE_TAG)).map((l) => l.post.id);
-      const articleIds = [...live.values()].filter((l) => l.tags.has(ARTICLE_TAG)).map((l) => l.post.id);
+      const articleIds = [...liveArticleIds];
       const hidden = await db.newsletterIssue.updateMany({ where: { beehiivPostId: { notIn: archiveIds }, hidden: false }, data: { hidden: true, removedAt: syncedAt } });
       c.issuesHidden = hidden.count;
       const gone = await db.article.findMany({ where: { beehiivPostId: { not: null, notIn: articleIds }, status: "PUBLISHED", localEditedAt: null, deletedAt: null }, select: { id: true, title: true } });

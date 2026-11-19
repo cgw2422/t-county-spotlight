@@ -30,7 +30,7 @@ export default async function BeehiivAdminPage() {
   const c = last?.counts;
   return (
     <>
-      <PageHeader title="beehiiv content sync" description={<>Imports live beehiiv posts: tag <code className={code}>{ARCHIVE_TAG}</code> → newsletter archive at /newsletter/, tag <code className={code}>{ARTICLE_TAG}</code> → site article. Runs hourly from the cron job and on demand.</>} />
+      <PageHeader title="beehiiv content sync" description={<>Imports live beehiiv posts: every public web post (Web only or Email and web) → Articles, no tag needed; posts tagged <code className={code}>{ARCHIVE_TAG}</code> → newsletter archive at /newsletter/ instead. Email-only, draft, scheduled and premium-only posts are skipped. Posts tagged <code className={code}>{ARTICLE_TAG}</code> before this change keep working. Runs hourly from the cron job and on demand.</>} />
       {!configured && (
         <div className="mb-6"><Notice tone="warn" title="Sync is not configured">Set <code className={code}>BEEHIIV_API_KEY</code> ({env.apiKey ? "present" : "missing"}) and <code className={code}>BEEHIIV_PUBLICATION_ID</code> ({env.publicationId ? "present" : "missing"}) on the server. Until then the sync does nothing.</Notice></div>
       )}

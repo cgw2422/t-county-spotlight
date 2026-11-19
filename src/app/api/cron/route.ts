@@ -25,7 +25,7 @@ function authorized(req: Request) {
  * - removes expired sessions and expired/used verification tokens
  * - starts due scheduled newsletters and continues sending ones (batched) —
  *   skipped entirely while the newsletter provider is beehiiv ("skipped: beehiiv")
- * - imports live beehiiv posts (newsletter-archive / tcc-article tags) at most
+ * - imports live beehiiv posts (public web posts → Articles, newsletter-archive → /newsletter/) at most
  *   once an hour; no-op without BEEHIIV_API_KEY / BEEHIIV_PUBLICATION_ID
  * - sends opt-in member email updates whose window is open (weekend summary,
  *   saved event reminders, new in my communities; at most 200 per run, each

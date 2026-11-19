@@ -9,7 +9,7 @@ import { PageHeader, Card, Notice } from "@/components/admin/page-header";
 import { ActionForm, Submit } from "@/components/admin/action-form";
 import { FormGrid, SelectField, TextArea, TextField } from "@/components/admin/form-field";
 import { checkBeehiivConnectionAction, saveNewsletterSettingsAction, saveProviderSettingsAction, sendTestSignupAction } from "../actions";
-import { ARCHIVE_TAG, ARTICLE_TAG } from "@/lib/beehiiv/sync";
+import { ARCHIVE_TAG } from "@/lib/beehiiv/sync";
 import { beehiivReadiness, statusLabel, testSignupKind } from "@/lib/beehiiv/signup";
 import { newsletterCopy, theName } from "@/lib/newsletter/copy";
 import { NativeSignupForm } from "@/components/newsletter/native-signup";
@@ -118,7 +118,7 @@ export default async function NewsletterSettingsPage() {
               <li>Click <strong>Check connection</strong> and confirm the publication name is &ldquo;T County Connect&rdquo;.</li>
               <li>In beehiiv, turn on and write the publication&rsquo;s <strong>welcome email</strong> in beehiiv&rsquo;s email settings. Site signups are single opt-in: our server sends <code className={code}>double_opt_override: &quot;off&quot;</code> and <code className={code}>send_welcome_email: true</code>, so new subscribers are active right away and get that welcome email instead of a confirmation link.</li>
               <li>Send a test signup to a new address you control. It should show <em>active — subscribed</em> — <em>new subscriber — welcome email requested</em>; confirm the welcome email arrives. Sending the same address again shows <em>already active — no welcome email sent</em>.</li>
-              <li>In beehiiv, tag posts <code className={code}>{ARCHIVE_TAG}</code> (newsletter archive) and/or <code className={code}>{ARTICLE_TAG}</code> (site article). Publish them to <strong>Email and web</strong> for the best result on the site.</li>
+              <li>Every live, public web post in beehiiv (Web only or Email and web) is imported into Articles automatically — no tag needed. Tag a post <code className={code}>{ARCHIVE_TAG}</code> to put it in the newsletter archive at /newsletter/ instead. Email-only sends, drafts, scheduled posts and premium-only posts are not imported.</li>
               <li>Run <Link href="/admin/newsletter/beehiiv/" className="font-semibold text-brand-700 hover:underline">beehiiv → Sync now</Link>, then switch the provider to beehiiv.</li>
             </ol>
           </Card>

@@ -5,8 +5,9 @@
  *
  * Uses the real database and removes everything it creates (TEST posts use ids
  * "post_bhtest_*"). Covers: pagination; only confirmed + past publish_date
- * imported; future/draft skipped; tag routing (archive → issue, tcc-article →
- * article, both → both, untagged ignored); dedupe on re-run + title updates;
+ * imported; future/draft skipped; routing (newsletter-archive → issue only;
+ * every other public web post → article, no tag needed; email-only and
+ * premium-gated skipped; legacy tcc-article kept); dedupe on re-run + title updates;
  * locally edited articles kept; removal handling; email-only fallback flagged;
  * sanitization; missing env → no-op; concurrent-run lock; API key never stored;
  * retired embed URL ignored; exports; built-in sending retired in beehiiv mode.
@@ -36,7 +37,7 @@ type MockPost = Record<string, unknown> & { id: string; content_tags: string[] }
 const now = Math.floor(Date.now() / 1000);
 const posts = new Map<string, MockPost>();
 const requests: { url: URL; auth: string | undefined }[] = [];
-let failTag: string | null = null;
+let failPage: number | null = null;
 let delayMs = 0;
 
 function post(id: string, o: Partial<MockPost> & { tags: string[]; web?: string; email?: string }): MockPost {
@@ -76,6 +77,11 @@ function reset() {
       <a href="javascript:alert(1)">bad link</a><img src="https://media.beehiiv.com/uploads/asset/file/ok.jpg" onerror="x()" alt="ok"></div></body></html>`,
   }));
   posts.set("R1", post("R1", { tags: ["newsletter-archive"], slug: "thanks", title: "Thanks" })); // would collide with /newsletter/thanks/
+  posts.set("W1", post("W1", { tags: [], platform: "web" })); // Web only, untagged → article
+  posts.set("M1", post("M1", { tags: [], platform: "email" })); // email-only send → not an article
+  posts.set("P1", post("P1", { tags: [], audience: "premium" })); // premium-gated → not an article
+  posts.set("X1", post("X1", { tags: [], web: "" })); // public post with no web body → not auto-imported from email HTML
+  posts.set("L1", post("L1", { tags: ["tcc-article"], platform: "email", web: "" })); // legacy tag: keeps the old email fallback
 }
 
 const server = http.createServer(async (req, res) => {
@@ -87,7 +93,7 @@ const server = http.createServer(async (req, res) => {
   if (req.headers.authorization !== `Bearer ${API_KEY}`) { res.writeHead(401, { "Content-Type": "application/json" }).end(JSON.stringify({ errors: [{ message: "unauthorized" }] })); return; }
   if (decodeURIComponent(m[1]) !== PUB) { res.writeHead(404).end("{}"); return; }
   const tags = url.searchParams.getAll("content_tags[]");
-  if (failTag && tags.includes(failTag)) { res.writeHead(500).end("{}"); return; }
+  if (failPage && Number(url.searchParams.get("page") ?? 1) === failPage) { res.writeHead(500).end("{}"); return; }
   const status = url.searchParams.get("status");
   const expand = url.searchParams.getAll("expand[]");
   const limit = Math.min(100, Number(url.searchParams.get("limit") ?? 10));
@@ -161,32 +167,31 @@ async function main() {
     await test("first sync: pagination, auth header, query params", async () => {
       first = await syncBeehiiv({ trigger: "test" });
       assert.equal(first.status, "ok", JSON.stringify(first.errors));
-      const archiveReqs = requests.filter((r) => r.url.searchParams.getAll("content_tags[]").includes("newsletter-archive"));
-      // 205 + F1 + D1 + B1 + E1 + S1 + R1 = 211 tagged posts → 3 pages of 100
-      assert.equal(archiveReqs.length, 3);
-      assert.deepEqual(archiveReqs.map((r) => r.url.searchParams.get("page")), ["1", "2", "3"]);
+      // One untagged listing of every confirmed post: 205 A + F1 D1 T1 B1 U1 E1 S1 R1 W1 M1 P1 X1 L1 = 218 → 3 pages of 100
+      assert.equal(requests.length, 3);
+      assert.deepEqual(requests.map((r) => r.url.searchParams.get("page")), ["1", "2", "3"]);
       for (const r of requests) {
         assert.equal(r.auth, `Bearer ${API_KEY}`);
         assert.equal(r.url.searchParams.get("status"), "confirmed");
         assert.equal(r.url.searchParams.get("limit"), "100");
         assert.deepEqual(r.url.searchParams.getAll("expand[]"), ["free_web_content", "free_email_content"]);
-        assert.equal(r.url.searchParams.getAll("content_tags[]").length, 1);
+        assert.equal(r.url.searchParams.getAll("content_tags[]").length, 0, "no tag filter: every post is considered");
       }
-      assert.ok(!requests.some((r) => !r.url.searchParams.getAll("content_tags[]").length), "never lists untagged posts");
     });
 
     await test("only confirmed + past publish_date imported; future and draft skipped", async () => {
       assert.equal(await db.newsletterIssue.count({ where: { beehiivPostId: { in: ["post_bhtest_F1", "post_bhtest_D1"] } } }), 0);
-      assert.equal(first.counts.skipped, 2);
+      assert.equal(first.counts.skipped, 5); // F1 (scheduled), D1 (draft), M1 (email-only), P1 (premium), X1 (no web body)
       assert.equal(isLive({ id: "x", status: "confirmed", publish_date: now + 60 }), false);
       assert.equal(isLive({ id: "x", status: "confirmed", publish_date: now - 60 }), true);
       assert.equal(isLive({ id: "x", status: "archived", publish_date: now - 60 }), false);
     });
 
-    await test("tag routing: archive → issue, tcc-article → article, both → both, untagged ignored", async () => {
+    await test("routing: archive → issue only; public web posts → articles without a tag; email-only, gated and no-web skipped; legacy tag kept", async () => {
       assert.equal(await fetchedPosts(), 205 + 4); // A1..A205, B1, E1, S1, R1
       assert.equal(first.counts.issuesCreated, 209);
       assert.ok(await db.newsletterIssue.findUnique({ where: { beehiivPostId: "post_bhtest_B1" } }));
+      assert.equal(await db.article.count({ where: { beehiivPostId: "post_bhtest_B1" } }), 0, "archive-tagged post is not duplicated into Articles");
       assert.equal(await db.newsletterIssue.count({ where: { beehiivPostId: "post_bhtest_T1" } }), 0);
       const t1 = await db.article.findUnique({ where: { beehiivPostId: "post_bhtest_T1" } });
       assert.ok(t1);
@@ -196,10 +201,17 @@ async function main() {
       assert.equal(t1.slug, "bhtest-t1");
       assert.ok(t1.featuredImageUrl?.startsWith("https://media.beehiiv.com/"));
       assert.ok(t1.publishedAt && Math.abs(t1.publishedAt.getTime() - (now - 3600) * 1000) < 1000);
-      assert.ok(await db.article.findUnique({ where: { beehiivPostId: "post_bhtest_B1" } }));
+      for (const id of ["U1", "W1"]) {
+        const a = await db.article.findUnique({ where: { beehiivPostId: `post_bhtest_${id}` } });
+        assert.ok(a && a.status === "PUBLISHED" && a.beehiivContentSource === "web", `${id} imported as a public web article without a tag`);
+      }
+      for (const id of ["M1", "P1", "X1", "F1", "D1"]) {
+        assert.equal(await db.article.count({ where: { beehiivPostId: `post_bhtest_${id}` } }), 0, `${id} must not become an article`);
+      }
+      const l1 = await db.article.findUnique({ where: { beehiivPostId: "post_bhtest_L1" } });
+      assert.ok(l1 && l1.status === "PUBLISHED", "legacy tcc-article post keeps importing");
       assert.equal(await db.article.count({ where: { beehiivPostId: { startsWith: "post_bhtest_A" } } }), 0, "issues never become articles");
-      assert.equal(await db.newsletterIssue.count({ where: { beehiivPostId: "post_bhtest_U1" } }) + await db.article.count({ where: { beehiivPostId: "post_bhtest_U1" } }), 0);
-      assert.equal(first.counts.articlesCreated, 2);
+      assert.equal(first.counts.articlesCreated, 4); // T1, U1, W1, L1
     });
 
     await test("reserved slugs are never generated (static routes win)", async () => {
@@ -239,7 +251,7 @@ async function main() {
       const r = await syncBeehiiv({ trigger: "test" });
       assert.equal(r.status, "ok");
       assert.equal(await fetchedPosts(), 209);
-      assert.equal(await db.article.count({ where: { beehiivPostId: { startsWith: "post_bhtest_" } } }), 2);
+      assert.equal(await db.article.count({ where: { beehiivPostId: { startsWith: "post_bhtest_" } } }), 4); // T1, U1, W1, L1
       assert.equal(r.counts.issuesCreated, 0);
       assert.equal(r.counts.articlesCreated, 0);
       assert.equal(r.counts.issuesUpdated, 1);
@@ -262,36 +274,44 @@ async function main() {
       await db.newsletterIssue.update({ where: { beehiivPostId: "post_bhtest_A3" }, data: { hidden: true, removedAt: null } }); // admin hid it
       posts.delete("A2");
       posts.get("B1")!.status = "archived";
+      posts.get("U1")!.status = "archived";
       posts.delete("T1");
+      posts.get("W1")!.content_tags = ["newsletter-archive"]; // moved to the archive → its old article is unpublished, issue created
       const r = await syncBeehiiv({ trigger: "test" });
       assert.equal(r.status, "ok");
       assert.equal(r.counts.issuesHidden, 2); // A2, B1
-      assert.equal(r.counts.articlesUnpublished, 1); // B1 article
+      assert.equal(r.counts.articlesUnpublished, 2); // U1 (no longer live), W1 (now an archive issue)
+      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_W1" } })).status, "DRAFT");
+      assert.ok(await db.newsletterIssue.findUnique({ where: { beehiivPostId: "post_bhtest_W1" } }));
       const a2 = await db.newsletterIssue.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_A2" } });
       assert.equal(a2.hidden, true);
       assert.ok(a2.removedAt);
-      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_B1" } })).status, "DRAFT");
+      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_U1" } })).status, "DRAFT");
       assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_T1" } })).status, "PUBLISHED", "locally edited article untouched");
       // Back again
       posts.set("A2", post("A2", { tags: ["newsletter-archive"], publish_date: now - 86400 * 298 }));
       posts.get("B1")!.status = "confirmed";
+      posts.get("U1")!.status = "confirmed";
       const r2 = await syncBeehiiv({ trigger: "test" });
       assert.equal(r2.status, "ok");
       assert.equal((await db.newsletterIssue.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_A2" } })).hidden, false);
-      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_B1" } })).status, "PUBLISHED");
+      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_U1" } })).status, "PUBLISHED");
+      assert.equal(await db.article.count({ where: { beehiivPostId: { startsWith: "post_bhtest_" } } }), 4, "re-runs never duplicate articles (T1, U1, W1, L1)");
       assert.equal((await db.newsletterIssue.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_A3" } })).hidden, true, "admin hide is kept");
     });
 
     await test("a failed request never hides or unpublishes anything", async () => {
-      failTag = "tcc-article";
+      failPage = 2; // the listing fails part-way through
       posts.delete("A4");
+      posts.get("U1")!.status = "archived";
       const r = await syncBeehiiv({ trigger: "test" });
-      failTag = null;
+      failPage = null;
+      posts.get("U1")!.status = "confirmed";
       assert.equal(r.status, "error");
       assert.ok(r.errors.some((e) => /HTTP 500/.test(e)));
       assert.equal(r.counts.issuesHidden, 0);
       assert.equal((await db.newsletterIssue.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_A4" } })).hidden, false);
-      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_B1" } })).status, "PUBLISHED");
+      assert.equal((await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_U1" } })).status, "PUBLISHED");
       posts.set("A4", post("A4", { tags: ["newsletter-archive"], publish_date: now - 86400 * 296 }));
     });
 
@@ -314,7 +334,7 @@ async function main() {
       delayMs = 0;
       const statuses = [a.status, b.status].sort();
       assert.deepEqual(statuses, ["locked", "ok"]);
-      assert.equal(await fetchedPosts(), 209, "no duplicates");
+      assert.equal(await fetchedPosts(), 210, "no duplicates"); // 209 + W1, moved to the archive in the removal test
       // Lock released afterwards
       const again = await syncBeehiiv({ trigger: "test" });
       assert.equal(again.status, "ok");

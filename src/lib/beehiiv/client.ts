@@ -10,7 +10,7 @@ import "server-only";
  */
 export const BEEHIIV_DEFAULT_API_BASE = "https://api.beehiiv.com/v2";
 export const BEEHIIV_PAGE_LIMIT = 100;
-const MAX_PAGES = 50; // 5,000 posts per tag per run — far beyond a local newsletter's archive
+const MAX_PAGES = 50; // 5,000 posts per run — far beyond a local newsletter's archive
 
 export type BeehiivEnv = { apiKey: string; publicationId: string; apiBase: string };
 
@@ -62,12 +62,13 @@ export class BeehiivError extends Error {
 }
 
 /** All confirmed posts carrying `tag` (every page). Throws BeehiivError on any HTTP/network failure. */
-export async function listConfirmedPostsByTag(env: BeehiivEnv, tag: string, fetchImpl: typeof fetch = fetch): Promise<BeehiivPost[]> {
+/** All confirmed posts (optionally filtered to one content tag), newest first, with free web + email content. */
+export async function listConfirmedPosts(env: BeehiivEnv, tag: string | null, fetchImpl: typeof fetch = fetch): Promise<BeehiivPost[]> {
   const out: BeehiivPost[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
     const q = new URLSearchParams();
     q.set("status", "confirmed");
-    q.append("content_tags[]", tag);
+    if (tag) q.append("content_tags[]", tag);
     q.append("expand[]", "free_web_content");
     q.append("expand[]", "free_email_content");
     q.set("limit", String(BEEHIIV_PAGE_LIMIT));
@@ -211,4 +212,9 @@ export async function getPublication(env: BeehiivEnv, fetchImpl: typeof fetch = 
 /** GET /publications/{id}/subscriptions/by_email/{email}. A missing subscription is HTTP 404 (BeehiivCallError status 404). */
 export async function getSubscriptionByEmail(env: BeehiivEnv, email: string, fetchImpl: typeof fetch = fetch, timeoutMs = BEEHIIV_SIGNUP_TIMEOUT_MS) {
   return (await beehiivJson<BeehiivSubscription>(env, "GET", `${pubPath(env)}/subscriptions/by_email/${encodeURIComponent(email)}`, undefined, fetchImpl, timeoutMs)).data;
+}
+
+/** @deprecated kept for older callers — use listConfirmedPosts(env, tag). */
+export function listConfirmedPostsByTag(env: BeehiivEnv, tag: string, fetchImpl: typeof fetch = fetch) {
+  return listConfirmedPosts(env, tag, fetchImpl);
 }
