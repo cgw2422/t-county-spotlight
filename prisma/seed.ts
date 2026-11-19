@@ -40,9 +40,10 @@ const HOMEPAGE_SECTIONS = [
   { key: "hero", type: "hero", title: "Discover more of T County.", subtitle: null, limit: 0 },
   { key: "explore", type: "explore", title: "Explore T County", subtitle: null, limit: 8 },
   { key: "today", type: "today", title: "What's Happening Today", subtitle: "Events across Tuscarawas County today and tonight", limit: 4 },
-  { key: "weekend", type: "weekend", title: "What's Happening This Weekend", subtitle: "Events and activities across the county", limit: 4 },
+  // "weekend" renders the homepage Upcoming Events section (key/type kept for existing installs).
+  { key: "weekend", type: "weekend", title: "Upcoming Events", subtitle: "Events and activities across the county", limit: 4 },
   { key: "food_trucks", type: "food_trucks", title: "Food Trucks Near You", subtitle: "Scheduled stops from local food trucks", limit: 4 },
-  { key: "garage_sales", type: "garage_sales", title: "Garage Sales & Community Markets", subtitle: "Yard sales, rummage sales and markets coming up", limit: 4 },
+  { key: "garage_sales", type: "garage_sales", title: "Garage Sales", subtitle: "Yard, rummage and estate sales coming up this week", limit: 4 },
   { key: "join", type: "join", title: "Make T County Yours.", subtitle: "Save your favorite places, recommend businesses, and stay connected to your community with a free account.", limit: 0 },
   // Seasonal picks (Admin → Seasonal themes). Added disabled so nothing changes until the admin turns it on.
   { key: "seasonal", type: "seasonal", title: "Around T County This Season", subtitle: null, limit: 0, isEnabled: false },
@@ -53,7 +54,8 @@ const HOMEPAGE_SECTIONS = [
   { key: "spotlights", type: "spotlights", title: "Local Stories & Business Spotlights", subtitle: "Stories of the people behind T County businesses", limit: 3 },
   { key: "community_pulse", type: "community_pulse", title: "Community Pulse", subtitle: "What people across T County are talking about and recommending", limit: 3 },
   { key: "things_to_do", type: "things_to_do", title: "Things to Do", subtitle: "Attractions, entertainment and family fun", limit: 4 },
-  { key: "events", type: "events", title: "Upcoming Community Events", subtitle: null, limit: 6 },
+  // Retired — merged into Upcoming Events ("weekend"); renders nothing. Kept (disabled) so existing rows/order stay valid.
+  { key: "events", type: "events", title: "Upcoming Community Events", subtitle: null, limit: 6, isEnabled: false },
   { key: "businesses", type: "businesses", title: "Featured Local Businesses", subtitle: null, limit: 8 },
   { key: "newsletter", type: "newsletter", title: "", subtitle: null, limit: 0 },
   { key: "cta", type: "cta", title: "Own a local business?", subtitle: "Get listed in the Tuscarawas County business directory — free.", limit: 0 },

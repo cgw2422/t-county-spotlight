@@ -13,8 +13,22 @@ import { SeasonIcon } from "./season-icon";
  * single-column layout is used (never an empty column). The background (admin-managed image or default gradient) is
  * rendered by <HeroBackground>.
  */
-/** `season`: active seasonal theme (Admin → Seasonal themes) — adds the eyebrow line and a thin accent edge; null = the normal hero. */
-export function Hero({ headline, sub, appearance, aside, season }: { headline: string; sub: string; appearance?: HeroAppearance | null; aside?: React.ReactNode; season?: { season: Season; eyebrow: string; showAccents: boolean } | null }) {
+const QUICK_LINKS: { label: string; href: string; needs?: "foodTrucks" | "garageSales" }[] = [
+  { label: "Today", href: "/events/?when=today" },
+  { label: "This weekend", href: "/events/?when=weekend" },
+  { label: "Food trucks", href: "/food-trucks/", needs: "foodTrucks" },
+  { label: "Garage sales", href: "/garage-sales/", needs: "garageSales" },
+  { label: "New businesses", href: "/new/" },
+  { label: "Volunteer", href: "/gives/volunteer/" },
+];
+
+/**
+ * `season`: active seasonal theme (Admin → Seasonal themes) — adds the eyebrow line and a thin accent edge; null = the normal hero.
+ * `availability`: the Food trucks / Garage sales chips only show when something is scheduled in the next 7 days
+ * (see getHomeAvailability); omitted = all chips (admin preview).
+ */
+export function Hero({ headline, sub, appearance, aside, season, availability }: { headline: string; sub: string; appearance?: HeroAppearance | null; aside?: React.ReactNode; season?: { season: Season; eyebrow: string; showAccents: boolean } | null; availability?: { foodTrucks: boolean; garageSales: boolean } }) {
+  const links = QUICK_LINKS.filter((l) => !l.needs || !availability || availability[l.needs]);
   return (
     <section className="relative isolate overflow-hidden bg-navy-900">
       <HeroBackground appearance={appearance} />
@@ -34,8 +48,8 @@ export function Hero({ headline, sub, appearance, aside, season }: { headline: s
             <input id="hero-q" name="q" type="search" placeholder="Search businesses, events, churches and more…" className="min-h-11 w-full min-w-0 bg-transparent px-1 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none" />
             <button className="btn-accent shrink-0">Search</button>
           </form>
-          <div className="mt-5 flex flex-wrap gap-2 text-sm">
-            {[["Today", "/events/?when=today"], ["This weekend", "/events/?when=weekend"], ["Food trucks", "/food-trucks/"], ["Garage sales", "/garage-sales/"], ["New businesses", "/new/"], ["Volunteer", "/gives/volunteer/"]].map(([l, h]) => (
+          <div className="mt-5 flex flex-wrap gap-2 text-sm" data-testid="hero-quick-links">
+            {links.map(({ label: l, href: h }) => (
               <Link key={h} href={h} className="inline-flex min-h-11 items-center rounded-full bg-white/15 px-3.5 font-medium text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/25">{l}</Link>
             ))}
           </div>

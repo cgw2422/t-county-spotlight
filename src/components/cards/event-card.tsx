@@ -12,11 +12,12 @@ export type EventCardData = {
   price?: string | null; organizer?: string | null; address?: string | null;
 };
 
+/** Compact fixed-size month/day badge (48×52). Never stretches with the text beside it (self-start, shrink-0). */
 export function DateBadge({ date }: { date: Date }) {
   return (
-    <div className="flex w-14 shrink-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-sm">
-      <span className="bg-red-600 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">{formatDate(date, { month: "short" })}</span>
-      <span className="py-1 text-xl font-bold leading-none text-navy-900">{formatDate(date, { day: "numeric" })}</span>
+    <div className="flex h-[52px] w-12 shrink-0 flex-col self-start overflow-hidden rounded-lg border border-slate-200 bg-white text-center shadow-sm" data-testid="date-badge">
+      <span className="bg-red-600 py-0.5 text-[10px] font-bold uppercase leading-4 tracking-wide text-white">{formatDate(date, { month: "short" })}</span>
+      <span className="flex flex-1 items-center justify-center text-xl font-bold leading-none text-navy-900">{formatDate(date, { day: "numeric" })}</span>
     </div>
   );
 }
@@ -43,13 +44,13 @@ export function EventCard({ e, layout = "card" }: { e: EventCardData; layout?: "
     const directions = directionsUrl(e);
     // Stretched title link + a separate directions link (no nested anchors).
     return (
-      <div className="card card-hover group relative flex items-center gap-4 p-3">
+      <div className="card card-hover group relative flex items-start gap-3 p-3 sm:gap-4">
         <DateBadge date={e.occurrenceStart} />
         <div className="relative hidden h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:block">
           {e.imageUrl ? <EventThumb src={e.imageUrl} sizes="96px" /> : <ImagePlaceholder />}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-semibold text-navy-900 group-hover:text-brand-700">
+          <h3 className="line-clamp-2 font-semibold leading-snug text-navy-900 [overflow-wrap:anywhere] group-hover:text-brand-700" data-testid="event-title">
             <Link href={href} className="after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none">{e.title}</Link>
           </h3>
           <p className="text-sm text-slate-600">{formatDate(e.occurrenceStart, { weekday: "short", month: "short", day: "numeric" })} · {time}</p>
@@ -76,10 +77,10 @@ export function EventCard({ e, layout = "card" }: { e: EventCardData; layout?: "
         {e.imageUrl ? <EventThumb src={e.imageUrl} sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw" /> : <ImagePlaceholder label={e.title} />}
         {e.isSponsored && <span className="badge-sponsored absolute right-3 top-3">Sponsored</span>}
       </div>
-      <div className="flex gap-3 p-4">
+      <div className="flex items-start gap-3 p-4">
         <DateBadge date={e.occurrenceStart} />
-        <div className="min-w-0">
-          <h3 className="line-clamp-2 font-semibold text-navy-900 group-hover:text-brand-700">{e.title}</h3>
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 font-semibold leading-snug text-navy-900 [overflow-wrap:anywhere] group-hover:text-brand-700" data-testid="event-title">{e.title}</h3>
           <p className="mt-0.5 text-sm text-slate-600">{formatDate(e.occurrenceStart, { weekday: "short", month: "short", day: "numeric" })} · {time}</p>
           {(e.locationName || e.city) && <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-slate-500"><MapPin className="h-3.5 w-3.5 shrink-0" />{[e.locationName, e.city].filter(Boolean).join(", ")}</p>}
           {(admission || !!e.recurrence) && (

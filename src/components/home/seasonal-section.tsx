@@ -13,11 +13,14 @@ import { SectionHeader } from "./section-header";
  * `seasonal`). Shown only while a seasonal theme is active and only with real,
  * currently public picks — otherwise it renders nothing.
  */
-export async function SeasonalSection({ title, subtitle }: { title: string; subtitle?: string | null }) {
+export async function SeasonalSection({ title, subtitle, excludeEventIds = [] }: { title: string; subtitle?: string | null; excludeEventIds?: string[] }) {
   const theme = await getRequestTheme();
   if (!theme) return null;
-  const picks = await getSeasonalPicks(theme.season, theme.settings.picks);
-  if (picks.isEmpty) return null;
+  const all = await getSeasonalPicks(theme.season, theme.settings.picks);
+  // Events already shown higher on the homepage (Today / Upcoming Events) are not repeated here.
+  const events = all.events.filter((e) => !excludeEventIds.includes(e.id));
+  const picks = { ...all, events };
+  if (!events.length && !picks.collections.length && !picks.articles.length) return null;
   const { season } = theme;
   const heading = title || `Around T County This ${SEASON_LABEL[season]}`;
   return (

@@ -6,11 +6,8 @@ import { EventCard } from "@/components/cards/event-card";
 import { CommunityGroups } from "@/components/my-t-county/community-groups";
 import { splitByCommunity } from "@/lib/my-t-county-shared";
 
-/**
- * Homepage "What's Happening Today": events still to come (or in progress)
- * today and tonight, in America/New_York. Renders nothing when there are none.
- */
-export async function TodaySection({ title, subtitle, limit, featuredIds, community = null }: { title?: string | null; subtitle?: string | null; limit: number; featuredIds: string[]; community?: string | null }) {
+/** Events still to come (or in progress) today and tonight, as shown by TodaySection. */
+export async function getTodayItems({ limit, featuredIds, community = null }: { limit: number; featuredIds: string[]; community?: string | null }) {
   const now = new Date();
   const today = todayWindow(now);
   const tonight = tonightWindow(now);
@@ -18,8 +15,19 @@ export async function TodaySection({ title, subtitle, limit, featuredIds, commun
   const take = Math.max(1, limit || 4);
   // With a chosen community: its events first, countywide events still shown (sort, not filter).
   const items = await getUpcomingOccurrences({ from: now, to, limit: community ? undefined : take, featuredIds });
+  const groups = community && items.length ? splitByCommunity(items, (e) => e.city, community, take) : null;
+  return { items: groups ? [...groups.local, ...groups.rest] : items, groups };
+}
+export type TodayItems = Awaited<ReturnType<typeof getTodayItems>>;
+
+/**
+ * Homepage "What's Happening Today": events still to come (or in progress)
+ * today and tonight, in America/New_York. Renders nothing when there are none.
+ * `data` comes from getTodayItems (computed once by the homepage so other sections can skip these events).
+ */
+export function TodaySection({ title, subtitle, data, community = null }: { title?: string | null; subtitle?: string | null; data: TodayItems; community?: string | null }) {
+  const { items, groups } = data;
   if (!items.length) return null;
-  const groups = community ? splitByCommunity(items, (e) => e.city, community, take) : null;
   return (
     <section className="container-page py-10" aria-labelledby="home-today">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">

@@ -1,12 +1,14 @@
 import { SectionHeader } from "@/components/home/section-header";
 import { getPublicStops } from "@/lib/food-trucks";
+import { nextWeekWindow } from "@/lib/home-feed";
 import { FoodTruckStopCard } from "./stop-card";
 import { CommunityGroups } from "@/components/my-t-county/community-groups";
 import { splitByCommunity } from "@/lib/my-t-county-shared";
 
 /**
- * Homepage "Food Trucks Near You": today's stops, else the next scheduled stops
- * (clearly labeled). Renders nothing when no truck has an upcoming stop.
+ * Homepage "Food Trucks Near You": today's stops, else the next stops scheduled in the
+ * next 7 days (clearly labeled). The homepage renders it only when getHomeAvailability
+ * finds a stop for the visitor's scope; it renders nothing when the week is empty.
  */
 export async function FoodTrucksHomeSection({ title, subtitle, limit, community = null }: { title: string; subtitle?: string | null; limit: number; community?: string | null }) {
   const take = Math.min(Math.max(limit || 4, 1), 12);
@@ -15,7 +17,10 @@ export async function FoodTrucksHomeSection({ title, subtitle, limit, community 
   const fetchTake = community ? 200 : take;
   let stops = await getPublicStops({ window: "today", limit: fetchTake, now });
   const today = stops.length > 0;
-  if (!today) stops = await getPublicStops({ window: "upcoming", limit: fetchTake, now });
+  if (!today) {
+    const weekEnd = nextWeekWindow(now).end;
+    stops = (await getPublicStops({ window: "upcoming", limit: 200, now })).filter((s) => s.startAt <= weekEnd).slice(0, fetchTake);
+  }
   if (!stops.length) return null;
   const groups = community ? splitByCommunity(stops, (s) => s.city, community, take) : null;
   return (

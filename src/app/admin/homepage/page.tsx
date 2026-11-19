@@ -12,14 +12,14 @@ import { SearchSelect } from "@/components/admin/search-select";
 import { cn } from "@/lib/utils";
 import { moveSection, saveHeroAside, saveHeroBanner, saveSection, toggleSection } from "./actions";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
+import { sectionTitle, upcomingLimit } from "@/lib/home-feed";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Homepage" };
 
 const PICK: Record<string, { type: LookupType; label: string } | undefined> = {
   today: { type: "event", label: "Pinned events (shown first when happening today)" },
-  weekend: { type: "event", label: "Pinned events" },
-  events: { type: "event", label: "Pinned events" },
+  weekend: { type: "event", label: "Pinned events (always included while upcoming; cards stay in date order)" },
   businesses: { type: "business", label: "Pinned businesses" },
   spotlights: { type: "article", label: "Pinned articles" },
   things_to_do: { type: "article", label: "Pinned articles" },
@@ -27,9 +27,9 @@ const PICK: Record<string, { type: LookupType; label: string } | undefined> = {
   specials: { type: "promotion", label: "Pinned specials" },
 };
 const TYPE_LABEL: Record<string, string> = {
-  hero: "Hero banner", explore: "Explore categories grid", today: "Today and tonight's events (hidden when none)", weekend: "This weekend's events", events: "Upcoming events", businesses: "Featured businesses",
+  hero: "Hero banner", explore: "Explore categories grid", today: "Today and tonight's events (hidden when none)", weekend: "Upcoming Events (next 3–4 events, soonest first; Today and This Weekend links)", events: "Retired — merged into Upcoming Events (no longer shown on the homepage)", businesses: "Featured businesses",
   spotlights: "Business spotlights", specials: "Local specials", things_to_do: "Things to do", announcements: "Announcements", cta: "Call to action", banner: "Banner", community_pulse: "Community Pulse (recent entries)", new_coming_soon: "New & Coming Soon (openings; each leaves after its homepage date)",
-  join: "Free account invitation (signed-in members see a small “Go to My T County” link)", newsletter: "My T County signup (bottom)", gives: "T County Gives", food_trucks: "Food trucks", garage_sales: "Garage sales",
+  join: "Free account invitation (signed-in members see a small “Go to My T County” link)", newsletter: "My T County signup (bottom)", gives: "T County Gives", food_trucks: "Food trucks (shown only when a stop is scheduled in the next 7 days)", garage_sales: "Garage sales (shown only when a sale is listed in the next 7 days)",
   seasonal: "Around T County This Season (seasonal picks; hidden unless a seasonal theme is on and there are real items — set up in Seasonal themes)",
 };
 
@@ -69,8 +69,8 @@ export default async function HomepageManager() {
                   <details className="group min-w-0 flex-1">
                     <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 py-1">
                       <span className="min-w-0 flex-1">
-                        <span className={cn("block font-semibold", s.isEnabled ? "text-slate-900" : "text-slate-500")}>{(s.type === "newsletter" ? TYPE_LABEL.newsletter : s.title) || TYPE_LABEL[s.type]}</span>
-                        <span className="block text-xs text-slate-500">{TYPE_LABEL[s.type] ?? s.type}{pick ? ` · shows up to ${s.limit}` : ""}{s.featuredIds.length ? ` · ${s.featuredIds.length} pinned` : ""}</span>
+                        <span className={cn("block font-semibold", s.isEnabled ? "text-slate-900" : "text-slate-500")}>{(s.type === "newsletter" ? TYPE_LABEL.newsletter : sectionTitle(s)) || TYPE_LABEL[s.type]}</span>
+                        <span className="block text-xs text-slate-500">{TYPE_LABEL[s.type] ?? s.type}{pick ? ` · shows up to ${s.type === "weekend" ? upcomingLimit(s.limit) : s.limit}` : ""}{s.featuredIds.length ? ` · ${s.featuredIds.length} pinned` : ""}</span>
                       </span>
                       <span className={s.isEnabled ? "badge-green" : "badge-gray"}>{s.isEnabled ? "Visible" : "Hidden"}</span>
                       <span className="text-sm font-semibold text-brand-700 group-open:hidden">Edit</span>
