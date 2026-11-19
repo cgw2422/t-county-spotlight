@@ -124,6 +124,8 @@ async function main() {
   const originalNl = await getNewsletterSettings();
   const originalNlRow = await db.setting.findUnique({ where: { key: "newsletter" } });
   const originalSync = await db.setting.findUnique({ where: { key: "beehiiv.sync" } });
+  const originalMarker = await db.setting.findUnique({ where: { key: "beehiivNewsletterCategoryBackfill" } });
+  const hadNewsletterCategory = !!(await db.category.findFirst({ where: { OR: [{ slug: "newsletter" }, { name: { equals: "Newsletter", mode: "insensitive" } }] } }));
   const SUB = "bhtest-sub-";
   const cleanup = async () => {
     await db.newsletterIssue.deleteMany({ where: { beehiivPostId: { startsWith: "post_bhtest_" } } });
@@ -132,6 +134,11 @@ async function main() {
     await db.emailSuppression.deleteMany({ where: { email: { startsWith: SUB } } });
     await db.newsletter.deleteMany({ where: { subject: { startsWith: "bhtest " } } });
     await db.setting.deleteMany({ where: { key: "beehiiv.syncLock" } });
+    await db.article.deleteMany({ where: { slug: { startsWith: "bhtest-local-" } } });
+    await db.category.deleteMany({ where: { slug: { startsWith: "bhtest-cat-" } } });
+    if (!hadNewsletterCategory) await db.category.deleteMany({ where: { slug: "newsletter", articles: { none: {} } } });
+    if (originalMarker) await db.setting.upsert({ where: { key: originalMarker.key }, create: { key: originalMarker.key, value: originalMarker.value as never }, update: { value: originalMarker.value as never } });
+    else await db.setting.deleteMany({ where: { key: "beehiivNewsletterCategoryBackfill" } });
     if (originalSync) await db.setting.update({ where: { key: "beehiiv.sync" }, data: { value: originalSync.value as never } });
     else await db.setting.deleteMany({ where: { key: "beehiiv.sync" } });
     await db.auditLog.deleteMany({ where: { createdAt: { gte: started }, action: { startsWith: "beehiiv." } } });
@@ -260,6 +267,51 @@ async function main() {
       const t1 = await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_T1" } });
       assert.equal(t1.title, "Changed title T1");
       assert.equal(t1.slug, "bhtest-t1", "slug stays stable");
+    });
+
+    await test("imports are filed under Newsletter (created once, reused); local articles untouched; later syncs keep manual category changes", async () => {
+      const cats = await db.category.findMany({ where: { OR: [{ slug: "newsletter" }, { name: { equals: "Newsletter", mode: "insensitive" } }] } });
+      assert.equal(cats.length, 1, "exactly one Newsletter category");
+      for (const id of ["T1", "U1", "W1", "L1"]) {
+        const a = await db.article.findUniqueOrThrow({ where: { beehiivPostId: `post_bhtest_${id}` }, include: { categories: true } });
+        assert.deepEqual(a.categories.map((c) => c.name), [cats[0].name], `${id} filed under Newsletter`);
+      }
+      // Manual change on a beehiiv article sticks across syncs (category edits alone, without localEditedAt).
+      const other = await db.category.create({ data: { name: "TEST Other", slug: "bhtest-cat-other" } });
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_U1" }, data: { categories: { set: [{ id: other.id }] } } });
+      posts.get("U1")!.title = "U1 retitled in beehiiv";
+      await syncBeehiiv({ trigger: "test" });
+      const u1 = await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_U1" }, include: { categories: true } });
+      assert.equal(u1.title, "U1 retitled in beehiiv");
+      assert.deepEqual(u1.categories.map((c) => c.slug), ["bhtest-cat-other"], "manual category kept");
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_U1" }, data: { categories: { set: [{ id: cats[0].id }] } } });
+      posts.get("U1")!.title = "Test post U1";
+      await syncBeehiiv({ trigger: "test" });
+      assert.equal((await db.category.findMany({ where: { OR: [{ slug: "newsletter" }, { name: { equals: "Newsletter", mode: "insensitive" } }] } })).length, 1, "re-runs never create a second Newsletter category");
+    });
+
+    await test("one-time backfill: earlier uncategorized imports → Newsletter; categorized and local articles untouched; never re-applied", async () => {
+      const nl = await db.category.findFirstOrThrow({ where: { slug: "newsletter" } });
+      const other = await db.category.findUniqueOrThrow({ where: { slug: "bhtest-cat-other" } });
+      // Simulate articles imported before this change: one with no category, one an admin categorized; plus a local article.
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_W1" }, data: { categories: { set: [] } } });
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_L1" }, data: { categories: { set: [{ id: other.id }] } } });
+      const local = await db.article.create({ data: { title: "TEST local article", slug: "bhtest-local-1", content: "<p>x</p>", status: "PUBLISHED", publishedAt: new Date() } });
+      await db.setting.deleteMany({ where: { key: "beehiivNewsletterCategoryBackfill" } });
+      const { backfillNewsletterCategory } = await import("@/lib/beehiiv/sync");
+      const r1 = await backfillNewsletterCategory();
+      assert.equal(r1.moved, 1);
+      const cat = async (where: object) => (await db.article.findFirstOrThrow({ where, include: { categories: true } })).categories.map((c) => c.id);
+      assert.deepEqual(await cat({ beehiivPostId: "post_bhtest_W1" }), [nl.id]);
+      assert.deepEqual(await cat({ beehiivPostId: "post_bhtest_L1" }), [other.id], "manually categorized import untouched");
+      assert.deepEqual(await cat({ id: local.id }), [], "article created on T County Connect untouched");
+      // Marker: an admin removing the category later is respected.
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_W1" }, data: { categories: { set: [] } } });
+      const r2 = await backfillNewsletterCategory();
+      assert.equal(r2.skipped, true);
+      assert.deepEqual(await cat({ beehiivPostId: "post_bhtest_W1" }), []);
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_W1" }, data: { categories: { set: [{ id: nl.id }] } } });
+      await db.article.update({ where: { beehiivPostId: "post_bhtest_L1" }, data: { categories: { set: [{ id: nl.id }] } } });
     });
 
     await test("locally edited article is never overwritten", async () => {

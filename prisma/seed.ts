@@ -214,6 +214,14 @@ async function main() {
   await runNamingMigration(db);
   await runEntityRepair(db);
   await runDoubleEncodedRepair(db);
+  // One-time: earlier beehiiv imports still without a category → Newsletter (marker-guarded).
+  try {
+    const { backfillNewsletterCategory } = await import("../src/lib/beehiiv/newsletter-category");
+    const r = await backfillNewsletterCategory(db);
+    if (!r.skipped) console.log(`[repair] moved ${r.moved} beehiiv article(s) to the Newsletter category`);
+  } catch (e) {
+    console.error("[repair] newsletter category backfill failed", (e as Error).message);
+  }
   await runMembershipLimitsMigration(db);
   console.log("Seed complete.");
 }

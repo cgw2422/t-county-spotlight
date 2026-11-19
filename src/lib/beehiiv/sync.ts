@@ -6,6 +6,11 @@ import { slugify, stripHtml, truncate } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { BeehiivError, beehiivEnv, listConfirmedPosts, type BeehiivPost } from "./client";
 import { prepareBeehiivContent } from "./html";
+import { backfillNewsletterCategory as backfillCategory, ensureNewsletterCategory as ensureCategory } from "./newsletter-category";
+
+export { NEWSLETTER_CATEGORY } from "./newsletter-category";
+export const ensureNewsletterCategory = () => ensureCategory(db);
+export const backfillNewsletterCategory = () => backfillCategory(db);
 
 /** beehiiv content tags that route posts into the site. */
 export const ARCHIVE_TAG = "newsletter-archive";
@@ -126,6 +131,7 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
   const result = base("ok", "");
   const c = result.counts;
   try {
+    await backfillNewsletterCategory().catch((e) => result.errors.push(`Newsletter category backfill failed: ${(e as Error).message.slice(0, 120)}`));
     const now = (opts.now ?? new Date()).getTime();
     const live = new Map<string, Live>();
     let complete = true;
@@ -249,7 +255,9 @@ async function upsertArticle(p: BeehiivPost, f: Fields, c: SyncCounts) {
     return;
   }
   const slug = await uniqueSlug(p.slug || f.title, async (s) => !!(await db.article.findUnique({ where: { slug: s }, select: { id: true } })));
-  const a = await db.article.create({ data: { ...data, slug, kind: "GENERAL", beehiivPostId: p.id, beehiivSyncedAt: f.syncedAt } });
+  // New imports are filed under Newsletter. Later syncs never change categories, so a manual change sticks.
+  const categoryId = await ensureNewsletterCategory();
+  const a = await db.article.create({ data: { ...data, slug, kind: "GENERAL", beehiivPostId: p.id, beehiivSyncedAt: f.syncedAt, categories: { connect: { id: categoryId } } } });
   await audit(null, "beehiiv.article_imported", "Article", a.id, { title: a.title, beehiivPostId: p.id });
   c.articlesCreated++;
 }
