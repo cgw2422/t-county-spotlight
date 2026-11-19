@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, CalendarPlus, Check, Circle, ExternalLink, Eye, Globe, Heart, ImagePlus, MapPin, PencilLine, Phone, Bookmark, Tag, ThumbsUp } from "lucide-react";
+import { BarChart3, CalendarPlus, Check, ChevronDown, Circle, ExternalLink, Eye, Globe, Heart, ImagePlus, MapPin, PencilLine, Phone, Bookmark, Tag, ThumbsUp } from "lucide-react";
 import { db } from "@/lib/db";
 import { canManageOwnership, requireBusinessAccess } from "@/lib/auth";
 import { getBusinessEntitlements } from "@/lib/entitlements";
@@ -7,6 +7,7 @@ import { businessHref } from "@/lib/links";
 import { PageHeader, Panel, StatusBadge } from "@/components/dashboard/shell";
 import { readHours } from "@/components/dashboard/text";
 import { PlanLimits } from "@/components/dashboard/plan-limits";
+import { setSetupChecklistHidden } from "./actions";
 import { countListingEvents } from "@/lib/listing-limits";
 import { RECOMMENDATION_TRUST_NOTE, recommendationCountText, visibleRecommendationCount } from "@/lib/recommendations-shared";
 
@@ -32,7 +33,7 @@ export default async function OverviewPage({ params, searchParams }: { params: P
   const showAnalytics = canManageOwnership(role);
   const root = `/dashboard/${business.id}/`;
   const since = daysAgo(30);
-  const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement, eventCount, recentRecs] = await Promise.all([
+  const [{ entitlements, plan }, full, followers, saves, pendingEvents, pendingSpecials, pendingUpdates, engagement, eventCount, recentRecs, ownerLink] = await Promise.all([
     getBusinessEntitlements(business.id),
     db.business.findUnique({ where: { id: business.id }, include: { categories: { select: { id: true } }, _count: { select: { photos: true } } } }),
     showAnalytics ? db.businessFollow.count({ where: { businessId: business.id } }) : Promise.resolve(0),
@@ -44,6 +45,8 @@ export default async function OverviewPage({ params, searchParams }: { params: P
     countListingEvents(business.id),
     // Read-only aggregate: no names, emails or identities are ever shown to owners.
     db.businessRecommendation.count({ where: { businessId: business.id, createdAt: { gte: since } } }),
+    // Per user + listing display preference for the setup checklist (staff have no owner link).
+    role === "STAFF" ? Promise.resolve(null) : db.businessOwner.findUnique({ where: { userId_businessId: { userId: user.id, businessId: business.id } }, select: { setupChecklistHiddenAt: true } }),
   ]);
   const b = full!;
   const count = (t: string) => engagement.find((e) => e.type === t)?._count._all ?? 0;
@@ -63,6 +66,11 @@ export default async function OverviewPage({ params, searchParams }: { params: P
   ];
   const doneCount = checklist.filter((c) => c.done).length;
   const pct = Math.round((doneCount / checklist.length) * 100);
+  // Completion is computed from the listing itself; hiding is only a display preference.
+  const profileComplete = doneCount === checklist.length;
+  const canHideChecklist = role !== "STAFF";
+  const checklistHidden = canHideChecklist && !!ownerLink?.setupChecklistHiddenAt;
+  const toggleChecklist = setSetupChecklistHidden.bind(null, business.id);
 
   const actions = [
     { href: `${root}profile/`, label: "Edit my profile", icon: PencilLine, show: true },
@@ -90,6 +98,48 @@ export default async function OverviewPage({ params, searchParams }: { params: P
         <span className="ml-2 text-slate-600">Plan:</span> <span className="badge-blue">{plan?.name ?? "Free listing"}</span>
       </div>
       {b.status === "PENDING" && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">Your listing is waiting for review. You can keep filling it in — we&apos;ll let you know when it&apos;s live.</p>}
+
+      {!profileComplete && (checklistHidden ? (
+        <form action={toggleChecklist} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-4 py-2 text-sm text-slate-600 ring-1 ring-slate-200" data-testid="setup-checklist-hidden">
+          <span>Profile <span className="font-semibold tabular-nums text-navy-900">{pct}%</span> complete</span>
+          <input type="hidden" name="hidden" value="0" />
+          <button type="submit" className="inline-flex min-h-11 items-center gap-1 font-semibold text-brand-700 hover:underline" data-testid="show-setup-checklist">
+            <ChevronDown className="h-4 w-4" aria-hidden /> Show setup checklist
+          </button>
+        </form>
+      ) : (
+        <section id="setup-checklist" aria-labelledby="setup-checklist-title" className="card scroll-mt-24 p-5 sm:p-6" data-testid="setup-checklist">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 id="setup-checklist-title" className="text-lg font-semibold text-navy-900">Complete your profile</h2>
+              <p className="mt-0.5 text-sm text-slate-600">Complete listings get noticed more. Tap any item to finish it.</p>
+            </div>
+            {canHideChecklist && (
+              <form action={toggleChecklist}>
+                <input type="hidden" name="hidden" value="1" />
+                <button type="submit" className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-slate-500 hover:text-navy-900 hover:underline" data-testid="hide-setup-checklist">Hide setup checklist</button>
+              </form>
+            )}
+          </div>
+          <div className="mb-4 mt-4 flex items-center gap-3">
+            <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Profile completeness">
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="text-sm font-semibold tabular-nums text-navy-900" data-testid="setup-checklist-pct">{pct}%</span>
+          </div>
+          <ul className="grid gap-1 sm:grid-cols-2">
+            {checklist.map((c) => (
+              <li key={c.label}>
+                <Link href={c.href} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm hover:bg-slate-50">
+                  {c.done ? <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-4 w-4" aria-hidden /></span> : <Circle className="h-6 w-6 shrink-0 text-slate-300" aria-hidden />}
+                  <span className={c.done ? "text-slate-500 line-through" : "font-medium text-navy-900"}>{c.label}</span>
+                  <span className="sr-only">{c.done ? "(done)" : "(to do)"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {actions.map(({ href, label, icon: Icon }) => (
@@ -150,25 +200,6 @@ export default async function OverviewPage({ params, searchParams }: { params: P
         )}
       </Panel>}
 
-      <Panel title="Complete your profile" description="Complete listings get noticed more. Tap any item to finish it.">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Profile completeness">
-            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
-          </div>
-          <span className="text-sm font-semibold tabular-nums text-navy-900">{pct}%</span>
-        </div>
-        <ul className="grid gap-1 sm:grid-cols-2">
-          {checklist.map((c) => (
-            <li key={c.label}>
-              <Link href={c.href} className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm hover:bg-slate-50">
-                {c.done ? <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-4 w-4" aria-hidden /></span> : <Circle className="h-6 w-6 text-slate-300" aria-hidden />}
-                <span className={c.done ? "text-slate-500 line-through" : "font-medium text-navy-900"}>{c.label}</span>
-                <span className="sr-only">{c.done ? "(done)" : "(to do)"}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </Panel>
     </div>
   );
 }

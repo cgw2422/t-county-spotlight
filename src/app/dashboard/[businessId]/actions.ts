@@ -539,3 +539,24 @@ export async function setCancelAtPeriodEndAction(fd: FormData) {
   revalidatePath(back);
   redirect(`${back}?billing=${ok ? (cancel ? "canceled" : "resumed") : "error"}`);
 }
+
+// ───────────── setup checklist visibility ─────────────
+
+/**
+ * Hide/show the overview's "Complete your profile" checklist for the signed-in
+ * owner/manager of this listing only. It is a display preference — it never
+ * changes the listing or marks anything complete. Staff have no owner link, so
+ * the preference doesn't apply to them (they always see the checklist).
+ */
+export async function setSetupChecklistHidden(businessId: string, formData: FormData) {
+  const { user, business, role } = await requireBusinessAccess(businessId);
+  const hidden = String(formData.get("hidden") ?? "") === "1";
+  if (role !== "STAFF") {
+    await db.businessOwner.update({
+      where: { userId_businessId: { userId: user.id, businessId: business.id } },
+      data: { setupChecklistHiddenAt: hidden ? new Date() : null },
+    });
+  }
+  revalidatePath(`/dashboard/${business.id}/`);
+  redirect(`/dashboard/${business.id}/${hidden ? "" : "#setup-checklist"}`);
+}

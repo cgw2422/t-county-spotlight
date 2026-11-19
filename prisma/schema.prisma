@@ -229,6 +229,8 @@ model BusinessOwner {
   userId     String
   businessId String
   role       OwnerRole @default(OWNER)
+  /// Set when this owner/manager chose "Hide setup checklist" on the dashboard overview (per user + listing). Never marks the profile complete.
+  setupChecklistHiddenAt DateTime?
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { Clock, Globe, Mail, MapPin, Megaphone, MessagesSquare, Navigation, Phone, Star, UtensilsCrossed } from "lucide-react";
+import { Clock, Globe, LayoutDashboard, Mail, MapPin, Megaphone, MessagesSquare, Navigation, PencilLine, Phone, Star, UtensilsCrossed } from "lucide-react";
 import { db } from "@/lib/db";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { PROSE_CLASSES } from "@/lib/prose";
@@ -151,6 +151,9 @@ export default async function BusinessPage({ params }: Props) {
   const description = sanitizeRichText(b.description);
   const story = sanitizeRichText(b.story);
   const spotlight = spotlightFrom(b.articles);
+  // Owner/manager shortcuts: only for an ACTIVE signed-in user linked to THIS listing (BusinessOwner row).
+  // Pending claim applicants and managers of other listings have no link here. The dashboard keeps its own server-side checks.
+  const canEdit = !!viewer && viewer.status === "ACTIVE" && recState.manages;
 
   return (
     <article>
@@ -175,7 +178,19 @@ export default async function BusinessPage({ params }: Props) {
                 {status && <span className={status.open ? "badge-green" : "badge-gray"}><Clock className="h-3 w-3" aria-hidden /> {status.label}</span>}
                 {opening && openingKind && <Link href={openingHref(opening)} className={OPENING_BADGE[openingKind]} data-testid="business-opening-badge">{OPENING_LABELS[openingKind]}</Link>}
               </div>
-              <h1 className="mt-1.5 font-display text-3xl font-bold leading-tight text-navy-900 text-balance sm:text-4xl">{b.name}</h1>
+              <div className="lg:flex lg:items-start lg:justify-between lg:gap-4">
+                <h1 className="mt-1.5 min-w-0 font-display text-3xl font-bold leading-tight text-navy-900 text-balance sm:text-4xl">{b.name}</h1>
+                {canEdit && (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 lg:mt-2 lg:shrink-0" data-testid="owner-listing-controls">
+                    <Link href={`/dashboard/${b.id}/profile/`} className="btn-primary btn-sm min-h-11" data-testid="edit-business-profile">
+                      <PencilLine className="h-4 w-4" aria-hidden /> Edit Business Profile
+                    </Link>
+                    <Link href={`/dashboard/${b.id}/`} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-brand-700 hover:underline" data-testid="business-dashboard-link">
+                      <LayoutDashboard className="h-4 w-4" aria-hidden /> Business Dashboard
+                    </Link>
+                  </div>
+                )}
+              </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-slate-600">
                 {b.categories.map((c, i) => (
                   <span key={c.id}>{i > 0 && <span aria-hidden className="mr-2 text-slate-300">·</span>}<Link href={`/businesses/?category=${c.slug}`} className="hover:text-brand-700 hover:underline">{c.name}</Link></span>
