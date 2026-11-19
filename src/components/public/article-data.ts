@@ -10,7 +10,17 @@ export const articleViewInclude = {
   categories: { select: { id: true, name: true, slug: true } },
   tags: { select: { id: true, name: true, slug: true } },
   author: { select: { name: true } },
-  businesses: { include: { business: { select: { ...businessCardBaseSelect, status: true, deletedAt: true, phone: true, address: true } } } },
+  // Read live on every request, so the Spotlight "About the Business" card reflects listing edits immediately.
+  businesses: {
+    include: {
+      business: {
+        select: {
+          ...businessCardBaseSelect, status: true, deletedAt: true, phone: true, address: true, state: true, zip: true, website: true, hours: true,
+          categories: { select: { name: true }, orderBy: { sortOrder: "asc" } },
+        },
+      },
+    },
+  },
 } satisfies Prisma.ArticleInclude;
 
 export type ArticleForView = Prisma.ArticleGetPayload<{ include: typeof articleViewInclude }>;
