@@ -132,15 +132,14 @@ async function renderSection(s: Section, settings: Awaited<ReturnType<typeof get
       const title = hasSpotlight ? s.title : "Local Stories";
       const subtitle = hasSpotlight || !s.subtitle || !/spotlight|business|owner/i.test(s.subtitle) ? s.subtitle : "Stories from around Tuscarawas County";
       const extras = await getStoryCardExtras(list);
-      // Equal-width editorial cards: 1 → one card at half width (sm+), 2 → two side by side, 3+ → 3 columns on lg.
+      // Compact horizontal story cards: 1 → one card at half width (sm+), 2 → two side by side, 3+ → 3 columns on lg.
       const grid = list.length >= 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2";
-      const sizes = list.length >= 3 ? "(min-width:1024px) 400px, (min-width:640px) 50vw, 100vw" : "(min-width:1280px) 600px, (min-width:640px) 50vw, 100vw";
       return (
-        <section key={s.id} className="container-page py-12" data-testid="home-spotlights">
+        <section key={s.id} className="container-page py-10" data-testid="home-spotlights">
           <SectionHeader title={title} subtitle={subtitle} href={hasSpotlight ? "/spotlights/" : "/articles/"} linkLabel={hasSpotlight ? "View All Spotlights" : "View all"} />
-          <ul className={`grid grid-cols-1 gap-6 ${grid}`} data-count={list.length}>
+          <ul className={`grid grid-cols-1 gap-4 ${grid}`} data-count={list.length}>
             {list.map((a) => (
-              <li key={a.id} className="min-w-0"><StoryCard a={a} fit={extras[a.id]?.fit} excerpt={extras[a.id]?.excerpt} sizes={sizes} /></li>
+              <li key={a.id} className="min-w-0"><StoryCard a={a} fit={extras[a.id]?.fit} excerpt={extras[a.id]?.excerpt} sizes="(min-width:640px) 112px, 80px" /></li>
             ))}
           </ul>
         </section>

@@ -115,15 +115,16 @@ export async function ArticleView({ article: a, related, saved }: { article: Art
         <TrackView type="view_article" targetType="ARTICLE" targetId={a.id} businessId={businesses[0]?.id} />
         {/*
           One DOM copy of the business card(s). Phones: intro → About the Business → featured image → body.
-          lg+: story in columns 1–8, the sidebar spans both rows in columns 9–12 and sticks below the header.
+          lg+: one header row across all 12 columns; below it the story in columns 1–8 and the sidebar in
+          columns 9–12, starting level with the story content (featured image) and sticking below the site header.
         */}
         <div className="container-page pt-6 sm:pt-10">
           <div className="grid grid-cols-1 gap-x-8 lg:grid-cols-12">
-            <header className="min-w-0 lg:col-span-8 lg:col-start-1 lg:row-start-1" data-testid="article-intro">
-              <div className="max-w-[44rem]">{intro}</div>
+            <header className="min-w-0 lg:col-span-12 lg:row-start-1" data-testid="article-intro">
+              <div className="max-w-[48rem]">{intro}</div>
             </header>
 
-            <aside aria-labelledby="about-business-title" data-testid="article-business-sidebar" className="mt-8 min-w-0 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1 lg:mt-0">
+            <aside aria-labelledby="about-business-title" data-testid="article-business-sidebar" className="mt-8 min-w-0 lg:col-span-4 lg:col-start-9 lg:row-start-2">
               <div className="space-y-4 lg:sticky lg:top-24">
                 <h2 id="about-business-title" className="eyebrow">{sidebar.length > 1 ? "About the Businesses" : "About the Business"}</h2>
                 {sidebar.map((b) => <SpotlightBusinessCard key={b.id} b={b} now={now} />)}
