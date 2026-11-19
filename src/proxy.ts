@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 const PRIVATE = /^\/(admin|dashboard|organization)(\/|$)/;
 /** Must match SEASON_PREVIEW_HEADER in src/lib/seasonal-theme.ts. */
 const SEASON_PREVIEW_HEADER = "x-tcc-season-preview";
+/** Must match DASHBOARD_PATH_HEADER in src/lib/auth.ts. */
+const DASHBOARD_PATH_HEADER = "x-tcc-dashboard-path";
 
 /**
  * Lightweight gate only: bounce visitors without a session cookie away from
@@ -23,6 +25,10 @@ export function proxy(req: NextRequest) {
   }
   const requestHeaders = new Headers(req.headers);
   requestHeaders.delete(SEASON_PREVIEW_HEADER); // never trust a client-sent copy
+  // The requested dashboard path, so sign-in (e.g. after an expired session) returns to the same page.
+  // Always overwritten here; only ever used as a ?next= value, which login validates with safeNext.
+  requestHeaders.delete(DASHBOARD_PATH_HEADER);
+  if (/^\/dashboard\//.test(req.nextUrl.pathname)) requestHeaders.set(DASHBOARD_PATH_HEADER, req.nextUrl.pathname + req.nextUrl.search);
   const season = req.nextUrl.searchParams.get("seasonPreview");
   const token = req.nextUrl.searchParams.get("token");
   if (season && token && /^[a-z]{1,10}$/.test(season) && /^[a-f0-9]{32}$/.test(token)) {

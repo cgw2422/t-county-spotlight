@@ -197,7 +197,7 @@ async function renderSection(s: Section, ctx: HomeContext) {
             {s.subtitle && <p className="mt-2 max-w-xl text-white/85">{s.subtitle}</p>}
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/list-your-business/" className="btn bg-white text-navy-900 hover:bg-slate-100">List your business</Link>
-              <Link href="/memberships/" className="btn border border-white/40 text-white hover:bg-white/10">See memberships</Link>
+              <Link href="/memberships/" className="btn border border-white/40 text-white hover:bg-white/10">Learn more</Link>
             </div>
           </div>
         </section>

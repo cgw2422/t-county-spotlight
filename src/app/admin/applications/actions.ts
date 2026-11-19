@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
-import { absoluteUrl, slugify, TUSCARAWAS_CITIES } from "@/lib/utils";
+import { buildApprovalEmail } from "@/lib/approval-email";
+import { slugify, TUSCARAWAS_CITIES } from "@/lib/utils";
 import { applicationClaim } from "@/lib/applications";
 import { isBusinessClaimed } from "@/lib/application-flow";
 import { lockBusinessRow } from "@/lib/listing-limits";
@@ -71,11 +72,11 @@ export async function approveApplication(_: ActionState, fd: FormData): Promise<
   // Only unclaimed listings: re-checked under a row lock on the business, so two claims can't both be approved.
   const claim = applicationClaim(app);
   if (claim) {
-    let r: { business: { id: string; name: string; slug: string }; owner: User; createdUser: boolean };
+    let r: { business: { id: string; name: string; slug: string; status: string }; owner: User; createdUser: boolean };
     try {
       r = await db.$transaction(async (tx) => {
         await lockBusinessRow(tx, claim.businessId);
-        const business = await tx.business.findUnique({ where: { id: claim.businessId }, select: { id: true, name: true, slug: true, deletedAt: true } });
+        const business = await tx.business.findUnique({ where: { id: claim.businessId }, select: { id: true, name: true, slug: true, status: true, deletedAt: true } });
         if (!business || business.deletedAt) throw new Refused("The listing this application claims has been deleted, so it can't be approved as a claim. Reject the application instead.");
         if (await isBusinessClaimed(business.id, tx)) throw new Refused(CLAIM_ALREADY_OWNED);
         const { owner, createdUser } = await applicantAccount(tx, app);
@@ -97,13 +98,12 @@ export async function approveApplication(_: ActionState, fd: FormData): Promise<
     // No password yet (older applications): the usual Listing Access setup invitation.
     const invite = listing ? await sendSetupInvitation(listing, owner, "OWNER", actor) : null;
     if (p.data.notify) {
-      await sendEmail(
-        app.email,
-        `Your claim for ${business.name} was approved`,
-        `Good news! Your claim for ${business.name} on T County Connect has been approved, and you're now an owner of the listing.\n\n` +
-          (invite && !invite.skipped ? `We sent you a separate email with a link to set your password and open your dashboard.\n` : `Sign in with your existing account to manage your listing (your password hasn't changed): ${absoluteUrl(`/dashboard/${business.id}/`)}\n`) +
-          (p.data.note ? `\nNote from our team: ${p.data.note}\n` : ""),
-      );
+      // Approval only links the owner — it never starts a subscription or a charge.
+      const mail = buildApprovalEmail({
+        kind: "claim", businessName: business.name, businessId: business.id, slug: business.slug,
+        live: business.status === "PUBLISHED", owner: true, invited: !!invite && !invite.skipped, note: p.data.note,
+      });
+      await sendEmail(app.email, mail.subject, mail.text, mail.html);
     }
     revalidatePath("/admin/applications");
     revalidatePath("/admin");
@@ -153,14 +153,12 @@ export async function approveApplication(_: ActionState, fd: FormData): Promise<
   const invite = listing && owner ? await sendSetupInvitation(listing, owner, "OWNER", actor) : null;
 
   if (p.data.notify) {
-    await sendEmail(
-      app.email,
-      `Your listing for ${app.businessName} was approved`,
-      `Good news! ${app.businessName} has been approved for T County Connect.\n\n` +
-        (p.data.status === "PUBLISHED" ? `Your listing is live: ${absoluteUrl(`/business/${slug}/`)}\n\n` : "Our team will finish setting up your listing and publish it shortly.\n\n") +
-        (owner ? (invite && !invite.skipped ? `We sent you a separate email with a link to set your password and open your dashboard.\n` : `Sign in with your existing account to manage your listing (your password hasn't changed): ${absoluteUrl(`/dashboard/${business.id}/`)}\n`) : "") +
-        (p.data.note ? `\nNote from our team: ${p.data.note}\n` : ""),
-    );
+    // Approval only links the owner — it never starts a subscription or a charge.
+    const mail = buildApprovalEmail({
+      kind: "new", businessName: app.businessName, businessId: business.id, slug,
+      live: p.data.status === "PUBLISHED", owner: !!owner, invited: !!invite && !invite.skipped, note: p.data.note,
+    });
+    await sendEmail(app.email, mail.subject, mail.text, mail.html);
   }
   revalidatePath("/admin/applications");
   revalidatePath("/admin");

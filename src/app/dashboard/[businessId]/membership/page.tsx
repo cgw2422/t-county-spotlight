@@ -12,6 +12,7 @@ import { PageHeader, Panel } from "@/components/dashboard/shell";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { PlanLimits } from "@/components/dashboard/plan-limits";
 import { countListingEvents } from "@/lib/listing-limits";
+import { isListingUpgradeable } from "@/lib/membership-eligibility";
 import { buySponsorshipAction, setCancelAtPeriodEndAction, startCheckoutAction } from "../actions";
 
 export const metadata: Metadata = { title: "Membership" };
@@ -23,6 +24,7 @@ const FLASH: Record<string, [string, string]> = {
   "checkout:unavailable": ["Online payments are not yet enabled for this plan. Please contact us and we'll get you set up.", "bg-amber-50 text-amber-900"],
   "checkout:already": ["You already have this membership.", "bg-brand-50 text-navy-900"],
   "checkout:canceled": ["Checkout was canceled — you haven't been charged.", "bg-slate-100 text-slate-800"],
+  "checkout:not-approved": ["Membership options become available once your listing is approved and live. Nothing was charged.", "bg-amber-50 text-amber-900"],
   "checkout:error": ["We couldn't start checkout. Please try again in a moment or contact us.", "bg-red-50 text-red-800"],
   "billing:unavailable": ["Billing management isn't available for this membership. Please contact us for help.", "bg-amber-50 text-amber-900"],
   "billing:error": ["Something went wrong talking to our payment provider. Please try again.", "bg-red-50 text-red-800"],
@@ -33,7 +35,10 @@ const FLASH: Record<string, [string, string]> = {
 export default async function MembershipPage({ params, searchParams }: { params: Promise<{ businessId: string }>; searchParams: Promise<{ checkout?: string; billing?: string }> }) {
   const { businessId } = await params;
   const sp = await searchParams;
-  const { business } = await requireBusinessOwner(businessId);
+  // Sign-in returns here (e.g. from the approval email's "membership options" link).
+  const { business } = await requireBusinessOwner(businessId, `/dashboard/${businessId}/membership/`);
+  // Paid plans, prices and checkout are offered only for approved (published) listings.
+  const upgradeable = isListingUpgradeable(business);
   const [{ plan: currentPlan, entitlements }, settings, plans, subs, products, photoCount, eventCount] = await Promise.all([
     getBusinessEntitlements(business.id),
     getSettings(),
@@ -95,8 +100,16 @@ export default async function MembershipPage({ params, searchParams }: { params:
         )}
       </Panel>
 
-      <div className="mb-6"><PlanLimits businessId={business.id} planName={currentPlan?.name ?? "Free Listing"} entitlements={entitlements} photos={photoCount} events={eventCount} /></div>
+      <div className="mb-6"><PlanLimits businessId={business.id} planName={currentPlan?.name ?? "Free Listing"} entitlements={entitlements} photos={photoCount} events={eventCount} upgradeable={upgradeable} /></div>
 
+      {!upgradeable && (
+        <p className="mb-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" data-testid="membership-not-approved">
+          <Info className="h-5 w-5 shrink-0" aria-hidden />
+          <span>Your free listing isn&apos;t live yet. Membership options will appear here once {business.name} is approved and published — there&apos;s nothing to pay in the meantime.</span>
+        </p>
+      )}
+
+      {upgradeable && <>
       {!canPay && (
         <p className="mb-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <Info className="h-5 w-5 shrink-0" aria-hidden />
@@ -104,7 +117,7 @@ export default async function MembershipPage({ params, searchParams }: { params:
         </p>
       )}
 
-      <h2 className="mb-3 text-lg font-semibold text-navy-900">Plans</h2>
+      <h2 className="mb-3 text-lg font-semibold text-navy-900" data-testid="membership-plans">Plans</h2>
       <div className="grid gap-4 md:grid-cols-3">
         {plans.map((p) => {
           const price = formatPlanPrice(p);
@@ -168,6 +181,7 @@ export default async function MembershipPage({ params, searchParams }: { params:
           </ul>
         </>
       )}
+      </>}
 
       <p className="mt-10 text-sm text-slate-500">
         Memberships add tools to your listing. They never buy editorial coverage — our Spotlight stories are chosen independently, and anything

@@ -1,67 +1,93 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, Check, Church, HeartHandshake, Newspaper, Scale } from "lucide-react";
+import { BadgeCheck, Check, ChevronRight, Church, Clock, HeartHandshake, Newspaper, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
-import { formatPlanPrice } from "@/lib/plans";
+import { getUpgradeableListings, membershipTabPath } from "@/lib/membership-eligibility";
+import { decodePlainText } from "@/lib/text";
 
 export const metadata: Metadata = {
-  title: "Business memberships",
-  description: "Optional memberships that add tools to your free T County Connect business listing.",
+  title: "List your business free",
+  description: "Every Tuscarawas County business can have a free T County Connect listing.",
 };
 export const dynamic = "force-dynamic";
 
+const DEFAULT_FREE_FEATURES = ["Business profile and contact details", "Gallery photos", "Business description", "Event listings"];
+
+/**
+ * Public page (URL kept as /memberships/). The public offer is the FREE business listing only:
+ * paid plans, prices and upgrade buttons live in each approved listing's Membership tab.
+ * Signed-in owners of approved listings get a direct link to that tab (or a choice, if they own several).
+ */
 export default async function MembershipsPage() {
-  const [plans, settings, user] = await Promise.all([
-    db.membershipPlan.findMany({ where: { isPublic: true }, orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] }),
+  const [freePlan, settings, user] = await Promise.all([
+    db.membershipPlan.findFirst({ where: { isPublic: true, interval: "FREE" }, orderBy: { sortOrder: "asc" }, select: { name: true, description: true, features: true } }),
     getSettings(),
     getCurrentUser(),
   ]);
-  const cta = user ? { href: "/dashboard/membership/", label: "Choose in my dashboard" } : { href: "/register/?business=1", label: "Create a free account" };
+  const [upgradeable, pending] = user
+    ? await Promise.all([
+        getUpgradeableListings(user.id),
+        db.businessApplication.findMany({ where: { userId: user.id, status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 5, select: { id: true, businessName: true } }),
+      ])
+    : [[], []];
+  const features = freePlan?.features.length ? freePlan.features : DEFAULT_FREE_FEATURES;
   return (
     <>
       <section className="bg-gradient-to-b from-navy-900 to-navy-800 text-white">
         <div className="container-page py-14 text-center sm:py-20">
           <p className="eyebrow text-sunset-400">For local businesses</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Business Memberships</h1>
+          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">List Your Business for Free</h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-200">{settings.membershipIntro}</p>
-          <p className="mx-auto mt-2 max-w-2xl text-slate-300">Every business gets a free listing. Memberships are optional and add extra tools.</p>
+          <p className="mx-auto mt-2 max-w-2xl text-slate-300">Every Tuscarawas County business can have a free listing on T County Connect.</p>
         </div>
       </section>
 
       <section className="container-page -mt-8 pb-4 sm:-mt-10">
-        {plans.length === 0 ? (
-          <p className="card p-8 text-center text-slate-600">Membership options are being finalized. Check back soon!</p>
-        ) : (
-          <div className={`mx-auto grid max-w-5xl gap-5 ${plans.length >= 3 ? "lg:grid-cols-3" : "md:grid-cols-2"}`}>
-            {plans.map((p) => {
-              const price = formatPlanPrice(p);
-              return (
-                <article key={p.id} className="card flex flex-col p-6">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-xl font-semibold text-navy-900">{p.name}</h2>
-                    {!p.isActive && <span className="badge-amber">Coming soon</span>}
-                  </div>
-                  <p className="mt-3"><span className="text-4xl font-bold text-navy-900">{price.amount}</span><span className="text-slate-500">{price.per}</span></p>
-                  {p.description && <p className="mt-3 text-sm text-slate-600">{p.description}</p>}
-                  <ul className="mt-5 flex-1 space-y-2.5 text-sm text-slate-700">
-                    {p.features.map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />{f}</li>)}
-                  </ul>
-                  <div className="mt-6">
-                    {p.interval === "FREE" ? (
-                      <Link href={user ? "/list-your-business/" : "/register/?business=1"} className="btn-secondary w-full">List your business free</Link>
-                    ) : p.isActive ? (
-                      <Link href={cta.href} className="btn-primary w-full">{cta.label}</Link>
-                    ) : (
-                      <span className="btn-secondary w-full cursor-default opacity-70" aria-disabled>Coming soon</span>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+        <div className="mx-auto grid max-w-3xl gap-5">
+          {upgradeable.length > 0 && (
+            <article className="card border-2 border-brand-200 p-6" data-testid="upgrade-your-listing">
+              <p className="flex items-center gap-2 font-semibold text-navy-900"><Sparkles className="h-5 w-5 text-sunset-500" aria-hidden /> {upgradeable.length === 1 ? "Upgrade your listing" : "Upgrade one of your listings"}</p>
+              <p className="mt-1 text-sm text-slate-600">Want to add more photos, list your services, or post more events? See the membership options for {upgradeable.length === 1 ? "your listing" : "the listing you choose"}.</p>
+              {upgradeable.length === 1 ? (
+                <Link href={membershipTabPath(upgradeable[0].id)} className="btn-primary mt-4" data-testid="upgrade-link">View membership options for {decodePlainText(upgradeable[0].name)}</Link>
+              ) : (
+                <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {upgradeable.map((b) => (
+                    <li key={b.id}>
+                      <Link href={membershipTabPath(b.id)} className="flex min-h-12 items-center justify-between gap-2 rounded-xl px-4 py-2 font-semibold text-navy-900 ring-1 ring-slate-200 hover:bg-slate-50" data-testid="upgrade-link">
+                        <span className="min-w-0 truncate">{decodePlainText(b.name)}</span><ChevronRight className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          )}
+
+          {pending.map((a) => (
+            <p key={a.id} className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" data-testid="memberships-approval-pending">
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden />
+              <span><strong>Business approval pending</strong> for {decodePlainText(a.businessName)}. We&apos;ll email you when your free listing is live. <Link href="/my-t-county/" className="font-semibold underline">View in My T County</Link></span>
+            </p>
+          ))}
+
+          <article className="card flex flex-col p-6 sm:p-8" data-testid="free-listing-card">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-2xl font-semibold text-navy-900">Free Business Listing</h2>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">Free</span>
+            </div>
+            {freePlan?.description && <p className="mt-3 text-slate-600">{freePlan.description}</p>}
+            <ul className="mt-5 grid gap-2.5 text-slate-700 sm:grid-cols-2">
+              {features.map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />{f}</li>)}
+            </ul>
+            <div className="mt-6">
+              <Link href="/list-your-business/" className="btn-primary w-full sm:w-auto" data-testid="list-free-button">List Your Business for Free</Link>
+            </div>
+            <p className="mt-3 text-sm text-slate-500">Sign in or create a free account to apply. Our team reviews every listing, usually within a couple of business days.</p>
+          </article>
+        </div>
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-slate-600">
           Eligible churches and nonprofits participate free.{" "}
           <a href="#giving-back" className="font-semibold text-brand-700 hover:underline">See Giving Back to T County</a>
@@ -108,11 +134,10 @@ export default async function MembershipsPage() {
       </section>
 
       <section className="container-page py-12">
-        <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-3">
+        <div className="mx-auto grid max-w-3xl gap-4 md:grid-cols-2">
           {[
-            { icon: Newspaper, title: "Editorial is never for sale", text: "Paid memberships never buy news coverage or a Business Spotlight story. Our editors choose those independently." },
+            { icon: Newspaper, title: "Editorial is never for sale", text: "Listings never buy news coverage or a Business Spotlight story. Our editors choose those independently." },
             { icon: BadgeCheck, title: "Sponsored is always labeled", text: `Any paid placement is clearly marked “${settings.sponsoredLabel}” so readers always know.` },
-            { icon: Scale, title: "Cancel anytime", text: "Memberships renew automatically and can be canceled from your dashboard — you keep features until the period ends." },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title} className="rounded-2xl bg-cream p-5">
               <Icon className="h-6 w-6 text-sunset-600" aria-hidden />

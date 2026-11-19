@@ -150,8 +150,13 @@ export const OWNER_ONLY_MESSAGE = "Only a listing owner can do this.";
  * missing/deleted/unlinked listing goes to /dashboard/ (which only lists
  * non-deleted listings the user is linked to).
  */
-export async function requireBusinessAccess(businessId: string) {
-  const user = await requireUser("/dashboard");
+/** Set by src/proxy.ts for /dashboard/* requests (overwritten there, never client-controlled). */
+const DASHBOARD_PATH_HEADER = "x-tcc-dashboard-path";
+
+/** `next`: where sign-in should return to (defaults to the requested dashboard page, else the dashboard home). */
+export async function requireBusinessAccess(businessId: string, next?: string) {
+  const requested = (await headers()).get(DASHBOARD_PATH_HEADER);
+  const user = await requireUser(next ?? (requested && /^\/dashboard\/[\w/?=&.-]*$/.test(requested) ? requested : "/dashboard/"));
   if (isStaff(user)) {
     const b = await db.business.findUnique({ where: { id: businessId } });
     if (!b) redirect("/dashboard");
@@ -176,8 +181,8 @@ export function canManageOwnership(role: BusinessAccessRole) {
  * Owners and staff pass; managers are redirected to the dashboard overview,
  * which shows a friendly "owner only" notice.
  */
-export async function requireBusinessOwner(businessId: string) {
-  const access = await requireBusinessAccess(businessId);
+export async function requireBusinessOwner(businessId: string, next?: string) {
+  const access = await requireBusinessAccess(businessId, next);
   if (!canManageOwnership(access.role)) redirect(`/dashboard/${access.business.id}/?notice=owner-only`);
   return access;
 }

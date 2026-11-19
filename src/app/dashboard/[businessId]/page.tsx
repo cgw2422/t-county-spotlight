@@ -8,6 +8,7 @@ import { PageHeader, Panel, StatusBadge } from "@/components/dashboard/shell";
 import { readHours } from "@/components/dashboard/text";
 import { PlanLimits } from "@/components/dashboard/plan-limits";
 import { setSetupChecklistHidden } from "./actions";
+import { isListingUpgradeable } from "@/lib/membership-eligibility";
 import { countListingEvents } from "@/lib/listing-limits";
 import { RECOMMENDATION_TRUST_NOTE, recommendationCountText, visibleRecommendationCount } from "@/lib/recommendations-shared";
 
@@ -150,7 +151,7 @@ export default async function OverviewPage({ params, searchParams }: { params: P
         ))}
       </div>
 
-      <PlanLimits compact businessId={business.id} planName={plan?.name ?? "Free Listing"} entitlements={entitlements} photos={b._count.photos} events={eventCount} />
+      <PlanLimits compact businessId={business.id} planName={plan?.name ?? "Free Listing"} entitlements={entitlements} photos={b._count.photos} events={eventCount} upgradeable={isListingUpgradeable(b)} />
 
       {(pendingEvents > 0 || pendingSpecials > 0 || pendingUpdates > 0) && (
         <Panel title="Waiting for review">
@@ -194,7 +195,7 @@ export default async function OverviewPage({ params, searchParams }: { params: P
             <div className="rounded-xl bg-slate-50 p-4">
               <p className="flex items-center gap-2 font-semibold text-navy-900"><BarChart3 className="h-5 w-5 text-brand-600" aria-hidden /> See who&apos;s finding you</p>
               <p className="mt-1 text-sm text-slate-600">Members can see profile views, website clicks, phone taps and direction requests.</p>
-              <Link href={`${root}membership/`} className="btn-primary btn-sm mt-3">See membership options</Link>
+              {isListingUpgradeable(b) && <Link href={`${root}membership/`} className="btn-primary btn-sm mt-3">See membership options</Link>}
             </div>
           </div>
         )}

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireBusinessAccess, requireBusinessOwner } from "@/lib/auth";
+import { isListingUpgradeable } from "@/lib/membership-eligibility";
 import { descriptionLength, getBusinessEntitlements } from "@/lib/entitlements";
 import { addPhotosWithinLimit, createEventWithinLimit, photoLimitMessage } from "@/lib/listing-limits";
 import { VENDOR_INFO_MAX, parseEventTags } from "@/lib/events";
@@ -462,6 +463,8 @@ export async function deleteUpdateAction(fd: FormData) {
 export async function startCheckoutAction(fd: FormData) {
   const { user, business } = await ownerAccess(fd);
   const back = `/dashboard/${business.id}/membership/`;
+  // Paid options exist only for approved (published) listings, and only for users with billing permission (ownerAccess).
+  if (!isListingUpgradeable(business)) redirect(`${back}?checkout=not-approved`);
   const settings = await getSettings();
   const stripe = getStripe();
   const plan = await db.membershipPlan.findUnique({ where: { id: str(fd, "planId") } });
@@ -494,6 +497,8 @@ export async function startCheckoutAction(fd: FormData) {
 export async function buySponsorshipAction(fd: FormData) {
   const { user, business } = await ownerAccess(fd);
   const back = `/dashboard/${business.id}/membership/`;
+  // Paid options exist only for approved (published) listings, and only for users with billing permission (ownerAccess).
+  if (!isListingUpgradeable(business)) redirect(`${back}?checkout=not-approved`);
   const settings = await getSettings();
   const stripe = getStripe();
   const product = await db.sponsorshipProduct.findUnique({ where: { id: str(fd, "productId") } });

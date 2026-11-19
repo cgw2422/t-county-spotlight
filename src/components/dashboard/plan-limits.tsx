@@ -3,8 +3,10 @@ import { Check, Minus } from "lucide-react";
 import type { Entitlements } from "@/lib/entitlements";
 
 /** The listing's current plan and what it includes, with usage. Server component. */
-export function PlanLimits({ businessId, planName, entitlements: e, photos, events, compact }: {
+export function PlanLimits({ businessId, planName, entitlements: e, photos, events, compact, upgradeable = true }: {
   businessId: string; planName: string; entitlements: Entitlements; photos: number; events: number; compact?: boolean;
+  /** False for listings that aren't approved/live yet: no upgrade prompts (paid options only for approved listings). */
+  upgradeable?: boolean;
 }) {
   const root = `/dashboard/${businessId}/`;
   const rows: { label: string; value: React.ReactNode; href: string; warn?: boolean; ok?: boolean }[] = [
@@ -21,7 +23,7 @@ export function PlanLimits({ businessId, planName, entitlements: e, photos, even
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Your plan</p>
           <h2 id="plan-limits-title" className="text-lg font-semibold text-navy-900">{planName}</h2>
         </div>
-        {e.tier === "FREE" && !compact && <Link href={`${root}membership/`} className="btn-secondary btn-sm">Upgrade to Premium</Link>}
+        {e.tier === "FREE" && !compact && upgradeable && <Link href={`${root}membership/`} className="btn-secondary btn-sm">Upgrade to Premium</Link>}
       </div>
       <ul className="mt-4 grid gap-x-6 gap-y-1 sm:grid-cols-2">
         {rows.map((r) => (
@@ -37,7 +39,7 @@ export function PlanLimits({ businessId, planName, entitlements: e, photos, even
           </li>
         ))}
       </ul>
-      {e.tier === "FREE" && compact && (
+      {e.tier === "FREE" && compact && upgradeable && (
         <p className="mt-3 text-sm text-slate-500">Premium adds up to 20 photos, unlimited events, a 2,000-character description, Google reviews and services &amp; menus. <Link href={`${root}membership/`} className="font-medium text-brand-700 hover:underline">Learn more</Link></p>
       )}
     </section>
