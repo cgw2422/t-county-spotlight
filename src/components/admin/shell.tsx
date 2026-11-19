@@ -77,6 +77,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     title: "Newsletter",
     items: [
       { href: "/admin/newsletter/", label: "Newsletter", icon: Mail, adminOnly: true },
+      { href: "/admin/newsletter/events/", label: "Newsletter Events", icon: CalendarDays, adminOnly: true },
     ],
   },
   {
