@@ -27,11 +27,12 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export default async function ApplicationPage({ params }: { params: Promise<{ id: string }> }) {
   await requireStaff();
   const { id } = await params;
-  const app = await db.businessApplication.findUnique({ where: { id }, include: { user: { select: { email: true, name: true } }, business: { select: { id: true, name: true } } } });
+  const app = await db.businessApplication.findUnique({ where: { id }, include: { user: { select: { id: true, email: true, name: true, status: true, passwordHash: true } }, business: { select: { id: true, name: true } } } });
   if (!app) notFound();
   const [categories, existingUser, similar] = await Promise.all([
     db.businessCategory.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], select: { id: true, name: true } }),
-    db.user.findUnique({ where: { email: app.email.toLowerCase() }, select: { id: true, role: true } }),
+    // Linked applications only ever go to the linked account; older ones fall back to the application email.
+    app.userId ? db.user.findUnique({ where: { id: app.userId }, select: { id: true, role: true, status: true } }) : db.user.findUnique({ where: { email: app.email.toLowerCase() }, select: { id: true, role: true, status: true } }),
     db.business.findMany({ where: { name: { contains: app.businessName.split(/\s+/)[0], mode: "insensitive" }, deletedAt: null }, take: 5, select: { id: true, name: true, city: true } }),
   ]);
   // Claim of an existing listing vs. a new business (claims never create a listing).
@@ -44,6 +45,12 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
     : null;
   const claimDeleted = !!claim && (!claimed || !!claimed.deletedAt);
   const claimOwners = claimed?.owners.filter((o) => o.role === "OWNER") ?? [];
+  // Claims are only approved for unclaimed listings (re-checked under a lock when approving).
+  const claimTaken = !!claim && !claimDeleted && claimOwners.length > 0;
+  const applicantBlocked = !!existingUser && existingUser.status !== "ACTIVE";
+  const accountNote = existingUser
+    ? (applicantBlocked ? `The applicant's account is ${existingUser.status === "DELETED" ? "deleted" : "blocked"}.` : `${app.userId ? "The applicant's own" : "Existing"} ${existingUser.role.toLowerCase().replace("_", " ")} account will be linked. Their password isn't changed.`)
+    : "A Business Owner account will be created without a password, and they're emailed an invitation to set one.";
   const guess = categories.find((c) => app.category && c.name.toLowerCase().includes(app.category.toLowerCase().split(/[ &,]/)[0]));
   const extra = app.data && typeof app.data === "object" ? Object.entries(app.data as Record<string, unknown>).filter(([, v]) => v !== null && v !== "" && typeof v !== "object") : [];
 
@@ -74,7 +81,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
               <Row label="Wants spotlight">{app.wantsSpotlight ? "Yes — interested in an editorial spotlight" : "No"}</Row>
               <Row label="Message">{app.message && <p className="whitespace-pre-wrap">{app.message}</p>}</Row>
               {extra.map(([k, v]) => <Row key={k} label={k}>{String(v)}</Row>)}
-              {app.user && <Row label="Submitted by">{app.user.name || app.user.email} (signed in)</Row>}
+              <Row label="Account">{app.user ? <><Link className="text-brand-700 hover:underline" href={`/admin/users/${app.user.id}/`}>{app.user.name || app.user.email}</Link> (linked account{app.user.status !== "ACTIVE" ? `, ${app.user.status === "SUSPENDED" ? "blocked" : "deleted"}` : ""})</> : "Not linked to an account (older application)"}</Row>
             </dl>
           </Card>
           {claimDeleted && (
@@ -82,9 +89,14 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
               {claim?.name || "The listing"} no longer exists, so this can&apos;t be approved as a claim. Reject the application (the applicant is emailed your reason), or ask them to apply as a new business.
             </Notice>
           )}
-          {claimed && !claimDeleted && claimOwners.length > 0 && (
-            <Notice tone="warn" title="This listing already has owners">
-              <p data-testid="claim-owner-warning">This listing already has {claimOwners.length} owner{claimOwners.length === 1 ? "" : "s"}: {claimOwners.map((o) => `${o.user.name ? `${o.user.name} ` : ""}<${o.user.email}>`).join(", ")}. Approving adds {app.email} as another owner — existing owners keep their access. Verify the claim before approving.</p>
+          {claimTaken && (
+            <Notice tone="warn" title="This listing is already managed">
+              <p data-testid="claim-owner-warning">This listing already has {claimOwners.length} owner{claimOwners.length === 1 ? "" : "s"}: {claimOwners.map((o) => `${o.user.name ? `${o.user.name} ` : ""}<${o.user.email}>`).join(", ")}. Claims are only approved for unclaimed listings, so this one can&apos;t be approved. If {app.email} should have access, add them from <Link className="underline" href={`/admin/businesses/${claimed!.id}/`}>Listing Access</Link>; otherwise reject the application.</p>
+            </Notice>
+          )}
+          {applicantBlocked && (
+            <Notice tone="danger" title="Applicant account isn't active">
+              <p data-testid="applicant-blocked">{accountNote} Approval can&apos;t grant ownership to it. {existingUser!.status === "SUSPENDED" ? "Unblock the account first (Admin → Users) or reject the application." : "Reject the application."}</p>
             </Notice>
           )}
           {!claim && similar.length > 0 && (
@@ -100,6 +112,8 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                 <Card title="Approve claim">
                   {claimDeleted ? (
                     <p className="text-sm text-slate-600">Approval is blocked because the claimed listing was deleted. Reject this application instead.</p>
+                  ) : claimTaken || applicantBlocked ? (
+                    <p className="text-sm text-slate-600" data-testid="approve-blocked">{claimTaken ? "Approval is blocked because the listing already has an owner." : "Approval is blocked because the applicant's account isn't active."}</p>
                   ) : (
                     <ActionForm action={approveApplication} className="space-y-3">
                       <input type="hidden" name="id" value={app.id} />
@@ -107,7 +121,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                         Approving adds <strong className="break-all">{app.email}</strong> as an <strong>owner</strong> of the existing listing{" "}
                         <Link className="text-brand-700 underline" href={`/admin/businesses/${claimed!.id}/`}>{claimed!.name}</Link>. No new listing is created and the listing&apos;s content, photos, recommendations and membership stay as they are.
                       </p>
-                      <p className="text-xs text-slate-500">{existingUser ? `Existing ${existingUser.role.toLowerCase().replace("_", " ")} account will be linked.` : "A Business Owner account will be created with no password; they set one via “Forgot password”."}</p>
+                      <p className="text-xs text-slate-500">{accountNote}</p>
                       <Checkbox name="notify" defaultChecked label="Email the applicant" />
                       <TextArea name="note" label="Note to applicant (optional)" rows={2} />
                       <Submit pendingText="Approving…" className="btn-primary w-full"><CheckCircle2 className="h-4 w-4" /> Approve claim & add owner</Submit>
@@ -127,7 +141,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                       ))}
                     </div>
                   </fieldset>
-                  <Checkbox name="linkOwner" defaultChecked label={`Link ${app.email} as owner`} help={existingUser ? `Existing ${existingUser.role.toLowerCase().replace("_", " ")} account will be linked.` : "A Business Owner account will be created with no password; they set one via “Forgot password”."} />
+                  <Checkbox name="linkOwner" defaultChecked label={`Link ${app.email} as owner`} help={accountNote} />
                   <Checkbox name="notify" defaultChecked label="Email the applicant" />
                   <TextArea name="note" label="Note to applicant (optional)" rows={2} />
                   <Submit pendingText="Approving…" className="btn-primary w-full"><CheckCircle2 className="h-4 w-4" /> Approve & create listing</Submit>

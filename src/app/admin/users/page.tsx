@@ -65,6 +65,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Users" description="Everyone with an account: staff, business owners and community members. Resident accounts are free and separate from business memberships." />
+      {spGet(sp, "deleted") === "1" && <p role="status" className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800" data-testid="user-deleted-notice">The account was deleted. Its listings, content and billing records were kept.</p>}
       <section aria-label="Resident accounts" className="mb-6 space-y-3" data-testid="resident-stats">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {[
@@ -111,7 +112,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
           placeholder="Search name or email…"
           filters={[
             { name: "role", label: "Role", options: Object.entries(ROLE_LABEL).map(([value, label]) => ({ value, label })) },
-            { name: "status", label: "Status", options: [{ value: "ACTIVE", label: "Active" }, { value: "SUSPENDED", label: "Suspended" }, { value: "DELETED", label: "Deleted" }] },
+            { name: "status", label: "Status", options: [{ value: "ACTIVE", label: "Active" }, { value: "SUSPENDED", label: "Blocked" }, { value: "DELETED", label: "Deleted" }] },
           ]}
         />
         <DataTable

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Ban, CheckCircle2, KeyRound, LogOut } from "lucide-react";
+import { Ban, CheckCircle2, KeyRound, LogOut, Trash2 } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateTime } from "@/lib/utils";
@@ -59,18 +59,22 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           </dl>
           <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
             {!self && u._count.sessions > 0 && <ActionButton action={revokeSessions} fields={{ id: u.id }}><LogOut className="h-4 w-4" /> Sign out everywhere</ActionButton>}
-            {!self && (u.status === "SUSPENDED" ? (
-              <ActionButton action={setUserStatus} fields={{ id: u.id, status: "ACTIVE" }} className="btn-primary btn-sm"><CheckCircle2 className="h-4 w-4" /> Reactivate</ActionButton>
-            ) : (
-              <ActionButton action={setUserStatus} fields={{ id: u.id, status: "SUSPENDED" }} confirm={{ title: `Suspend ${u.email}?`, body: "They are signed out immediately and can't sign in until reactivated.", confirmLabel: "Suspend", danger: true }} className="btn-sm btn border border-red-200 bg-white text-red-700 hover:bg-red-50"><Ban className="h-4 w-4" /> Suspend</ActionButton>
-            ))}
+            {!self && u.status === "SUSPENDED" && (
+              <ActionButton action={setUserStatus} fields={{ id: u.id, status: "ACTIVE" }} confirm={{ title: `Unblock ${u.email}?`, body: "They can sign in again with their existing password. Nothing is approved or changed automatically.", confirmLabel: "Unblock" }} className="btn-primary btn-sm"><CheckCircle2 className="h-4 w-4" /> Unblock</ActionButton>
+            )}
+            {!self && u.status === "ACTIVE" && (
+              <ActionButton action={setUserStatus} fields={{ id: u.id, status: "SUSPENDED" }} confirm={{ title: `Block ${u.email}?`, body: "They are signed out everywhere immediately and can't sign in, use a dashboard or be given ownership until unblocked. Their account, listings and data are kept.", confirmLabel: "Block", danger: true }} className="btn-sm btn border border-red-200 bg-white text-red-700 hover:bg-red-50"><Ban className="h-4 w-4" /> Block</ActionButton>
+            )}
+            {!self && u.status !== "DELETED" && (
+              <Link href={`/admin/users/${u.id}/delete/`} className="btn-sm btn border border-red-200 bg-white text-red-700 hover:bg-red-50" data-testid="delete-account-link"><Trash2 className="h-4 w-4" aria-hidden /> Delete account</Link>
+            )}
           </div>
         </Card>
         <Card title="Reset password" description="Administrators can never view existing passwords.">
           {self ? (
             <p className="text-sm text-slate-600">To change your own password, use <Link href="/account/password/" className="font-semibold text-brand-700 hover:underline">My account → Change password</Link>.</p>
           ) : u.status !== "ACTIVE" ? (
-            <Notice tone="warn">Reactivate the account before resetting its password.</Notice>
+            <Notice tone="warn">Unblock the account before resetting its password.</Notice>
           ) : (
             <div className="space-y-5">
               <div>
@@ -119,7 +123,8 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           ) : <p className="px-5 py-6 text-sm text-slate-500">No recorded activity.</p>}
         </Card>
       </div>
-      {u.status === "SUSPENDED" && <div className="mt-6"><Notice tone="warn">This account is suspended. The user cannot sign in.</Notice></div>}
+      {u.status === "SUSPENDED" && <div className="mt-6"><Notice tone="warn">This account is blocked. The user cannot sign in, use a dashboard or be given ownership. Their account and listing links are kept.</Notice></div>}
+      {u.status === "DELETED" && <div className="mt-6"><Notice tone="danger">This account was deleted. Personal details were removed; listings, content and billing records were kept.</Notice></div>}
     </>
   );
 }

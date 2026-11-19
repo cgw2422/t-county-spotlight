@@ -19,6 +19,7 @@ import { GuestPrefsMerge } from "@/components/my-t-county/guest-prefs-merge";
 import { PickList } from "@/components/my-t-county/pick-list";
 import { MySavedPanel } from "@/components/my-t-county/my-saved-panel";
 import { MyRecommendations } from "@/components/recommendations/my-recommendations";
+import { MyBusinessRequests } from "@/components/account/my-business-requests";
 import { TrackView } from "@/components/public/track";
 import { EventCard } from "@/components/cards/event-card";
 import { BusinessCard } from "@/components/cards/business-card";
@@ -157,6 +158,7 @@ export default async function MyTCountyPage({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="container-page space-y-12 pt-6">
+        {user && <MyBusinessRequests userId={user.id} />}
         <div>
           <h2 className="section-title" data-testid="mtc-around">Around My Community</h2>
           <p className="mt-1 text-slate-600">{c ? `${c} first, then the rest of Tuscarawas County.` : `Events, specials, food trucks, garage sales and updates across ${ALL_COUNTY_LABEL}.`}</p>

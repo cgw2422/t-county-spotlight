@@ -2,11 +2,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { clientIp, createSession, destroySession, hashPassword, passwordProblem } from "@/lib/auth";
-import { rateLimit } from "@/lib/rate-limit";
-import { safeNext, sendVerificationEmail } from "@/lib/tokens";
-import { audit } from "@/lib/audit";
+import { clientIp, createSession, destroySession } from "@/lib/auth";
+import { safeNext } from "@/lib/tokens";
+import { accountFieldsSchema, createAccount } from "@/lib/accounts";
 import { recordServerSignal } from "@/lib/analytics";
 import { requestSubscription } from "@/lib/newsletter/subscribers";
 import { getNewsletterConfig } from "@/lib/newsletter/settings";
@@ -17,13 +15,7 @@ import { ALL_COUNTY, COMMUNITY_COOKIE, COOKIE_MAX_AGE, SCOPE_COOKIE, communityNa
 import { parseRegisterSource } from "@/lib/resident-accounts";
 import { echoValues, type FormState } from "@/components/dashboard/fields";
 
-const name = (label: string) => z.string().trim().min(1, `Please enter your ${label}.`).max(60, `Please keep your ${label} under 60 characters.`).refine((v) => !/[<>{}\u0000-\u001f]/.test(v), `Please check your ${label}.`);
-
-const schema = z.object({
-  firstName: name("first name"),
-  lastName: name("last name"),
-  email: z.string().trim().toLowerCase().max(254, "Please enter a valid email address.").pipe(z.email("Please enter a valid email address.")),
-  password: z.string().max(200),
+const schema = accountFieldsSchema.extend({
   /** "" = not chosen, "all" = All of Tuscarawas County, or a community slug/name from the My T County list. */
   community: z.string().trim().max(60).refine((v) => v === "" || v === ALL_COUNTY || !!communityName(v), "Please choose a community from the list."),
   newsletter: z.boolean(),
@@ -56,37 +48,18 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   const nl = await getNewsletterConfig();
   const newsletter = newsletterBox && !nl.isBeehiiv;
   const beehiivOptIn = newsletterBox && nl.isBeehiiv;
-  const pwErr = passwordProblem(password);
-  if (pwErr) return { error: pwErr, fieldErrors: { password: pwErr }, values };
-  if (password !== String(fd.get("confirm") ?? "")) return { error: "The two passwords don't match.", fieldErrors: { confirm: "Passwords don't match." }, values };
-
-  const ip = await clientIp();
-  if (!rateLimit(`register:${ip}`, 6, 60 * 60_000).ok || !rateLimit(`register:${ip}:${email}`, 3, 60 * 60_000).ok) {
-    return { error: "Too many attempts. Please wait a while and try again.", values };
-  }
-
-  // Hash first so "already registered" and "created" take about the same time.
-  const passwordHash = await hashPassword(password);
-  // Emails are stored lowercased; also match any older mixed-case row.
-  const exists = await db.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { id: true } });
-  if (exists) return { error: NEUTRAL, values };
-
   const home = community && community !== ALL_COUNTY ? communityName(community) : null;
-  let user;
-  try {
-    user = await db.user.create({
-      data: {
-        firstName, lastName, name: `${firstName} ${lastName}`, email,
-        passwordHash, passwordChangedAt: new Date(), role: "MEMBER",
-        homeCommunity: home, lastLoginAt: new Date(),
-      },
-    });
-  } catch {
-    return { error: NEUTRAL, values };
+  const created = await createAccount({
+    firstName, lastName, email, password, confirm: String(fd.get("confirm") ?? ""), homeCommunity: home,
+    auditDetails: { ownsBusiness, source, newsletterOptIn: newsletterBox, newsletterProvider: newsletterBox ? (nl.isBeehiiv ? "beehiiv" : "builtin") : null, community: home ?? (community === ALL_COUNTY ? "all" : null) },
+  });
+  if (!created.ok) {
+    // Same reply whether or not the address already has an account (matches the sign-in / reset flow).
+    if (created.reason === "exists" || created.reason === "failed") return { error: NEUTRAL, values };
+    return { error: created.error, fieldErrors: created.fieldErrors, values };
   }
-  await audit(user.id, "user.register", "User", user.id, { ownsBusiness, source, newsletterOptIn: newsletterBox, newsletterProvider: newsletterBox ? (nl.isBeehiiv ? "beehiiv" : "builtin") : null, community: home ?? (community === ALL_COUNTY ? "all" : null) });
-  // Account/security email: always sent, whatever the newsletter choice.
-  await sendVerificationEmail({ id: user.id, email: user.email, name: firstName });
+  const user = created.user;
+  const ip = await clientIp();
   // Newsletter only when the box was ticked; unticked leaves newsletter status untouched.
   let nlResult: RegisterNewsletterResult | null = null;
   if (newsletter) {

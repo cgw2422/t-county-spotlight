@@ -1,5 +1,4 @@
 "use server";
-import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -11,6 +10,7 @@ import { homeForRole, sendVerificationEmail } from "@/lib/tokens";
 import { postLoginHome } from "@/lib/gives/access";
 import { audit } from "@/lib/audit";
 import { soleOwnershipBlocks } from "@/lib/sole-ownership";
+import { anonymizeUserRecords, deletedRef } from "@/lib/account-deletion";
 import { NOTIFICATION_KEYS, PLANNED_EMAIL_KEYS, enabledCategories, readNotificationPrefs, type NotificationPrefs } from "@/lib/notification-categories";
 import type { ActionState } from "@/components/ui/form-message";
 
@@ -149,14 +149,13 @@ export async function deleteAccountAction(_p: ActionState, fd: FormData): Promis
   if (user.passwordHash && !(await verifyPassword(String(fd.get("currentPassword") ?? ""), user.passwordHash))) {
     return { error: "Your password is incorrect." };
   }
-  const ref = crypto.createHash("sha256").update(user.id).digest("hex").slice(0, 12);
-  await db.$transaction([
-    // Anonymize records that outlive the account.
-    db.event.updateMany({ where: { submittedById: user.id }, data: { submitterEmail: null } }),
-    db.businessApplication.updateMany({ where: { userId: user.id }, data: { email: `deleted-${ref}@invalid`, contactName: null, phone: null } }),
+  const ref = deletedRef(user.id);
+  await db.$transaction(async (tx) => {
+    // Anonymize records that outlive the account; pending applications are closed so they can't be approved.
+    await anonymizeUserRecords(tx, user.id, { ref });
     // Cascades: sessions, tokens, saved items, follows, push subscriptions, redemptions, business links.
-    db.user.delete({ where: { id: user.id } }),
-  ]);
+    await tx.user.delete({ where: { id: user.id } });
+  });
   await audit(null, "user.self_delete", "User", user.id, { ref });
   await destroySession();
   redirect("/?account=deleted");

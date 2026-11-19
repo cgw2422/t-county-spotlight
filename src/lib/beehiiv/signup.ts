@@ -195,7 +195,7 @@ async function runSubscribe(env: BeehiivEnv, email: string, placement: string, r
 }
 
 /** The single code path every signup uses (public form, registration and admin test). Never throws. */
-async function subscribeEmail(email: string, placement: SignupPlacement | "admin_test" | "register", referringSite: string, timeoutMs?: number): Promise<SubscribeResult> {
+async function subscribeEmail(email: string, placement: SignupPlacement | "admin_test" | "register" | "business_application", referringSite: string, timeoutMs?: number): Promise<SubscribeResult> {
   const env = beehiivEnv();
   if (!env) return { ok: false, kind: "not_configured", httpStatus: 0, message: "BEEHIIV_API_KEY / BEEHIIV_PUBLICATION_ID not set" };
   const running = inFlight.get(email);
@@ -246,24 +246,26 @@ export const REGISTER_SIGNUP_TIMEOUT_MS = 4_000;
 export type RegisterNewsletterOutcome = SignupOutcome | "failed";
 
 /**
- * The newsletter checkbox on /register/ (beehiiv mode), called only after the account exists.
+ * The newsletter checkbox on /register/ and on the business application (beehiiv mode), called only after
+ * the account / application exists (`placement` "register" | "business_application" → utm_campaign).
  * Same validation, per-IP/per-address limits and beehiiv flow (lookup → single opt-in + welcome email)
  * as the public form, with utm_campaign "register". Never throws: failures, rate limits and timeouts
  * are logged (no email) and returned as "failed" so the welcome screen can offer a retry. No local subscriber row.
  */
-export async function subscribeAfterRegistration(rawEmail: unknown, ip: string): Promise<RegisterNewsletterOutcome> {
+export async function subscribeAfterRegistration(rawEmail: unknown, ip: string, opts: { placement?: "register" | "business_application" } = {}): Promise<RegisterNewsletterOutcome> {
+  const placement = opts.placement ?? "register";
   try {
     const email = normalizeSignupEmail(rawEmail);
     if (!email) return "failed";
     if (!rateLimit(`bh-signup-ip:${ip}`, SIGNUP_LIMITS.ip.limit, SIGNUP_LIMITS.ip.windowMs).ok) return "failed";
     if (!rateLimit(`bh-signup-email:${email}`, SIGNUP_LIMITS.email.limit, SIGNUP_LIMITS.email.windowMs).ok) return "failed";
-    const r = await subscribeEmail(email, "register", referringSiteFor("/register/", "account"), REGISTER_SIGNUP_TIMEOUT_MS);
+    const r = await subscribeEmail(email, placement, referringSiteFor(placement === "register" ? "/register/" : "/list-your-business/", "account"), REGISTER_SIGNUP_TIMEOUT_MS);
     if (!r.ok) {
-      console.warn(`[beehiiv] newsletter opt-in at registration failed (${r.kind}): ${r.message}`);
+      console.warn(`[beehiiv] newsletter opt-in (${placement}) failed (${r.kind}): ${r.message}`);
       if (r.kind === "config") await patchConnectionState({ signupProblem: { at: new Date().toISOString(), httpStatus: r.httpStatus } }).catch(() => {});
       return "failed";
     }
-    if (r.created) await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: "register" } }).catch(() => {});
+    if (r.created) await db.engagementEvent.create({ data: { type: "newsletter_signup", targetType: "NEWSLETTER", targetId: placement } }).catch(() => {});
     return r.outcome;
   } catch (e) {
     console.warn("[beehiiv] newsletter opt-in at registration failed (unexpected)", (e as Error)?.name ?? "error");

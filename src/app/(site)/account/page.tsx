@@ -8,6 +8,7 @@ import { GivesAccountCard } from "@/components/gives/account-card";
 import { MyGarageSales } from "@/components/garage-sales/my-garage-sales";
 import { MySuggestions } from "@/components/suggestions/my-suggestions";
 import { MyRecommendations } from "@/components/recommendations/my-recommendations";
+import { MyBusinessRequests } from "@/components/account/my-business-requests";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-8">
+      <MyBusinessRequests userId={user.id} />
       <GivesAccountCard user={user} />
       <MyGarageSales userId={user.id} />
       <MySuggestions userId={user.id} />

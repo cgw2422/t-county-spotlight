@@ -211,6 +211,15 @@ async function issueInvitation(opts: { user: Pick<User, "id" | "email" | "firstN
   return { invitationId: inv.id, delivered: r.delivered };
 }
 
+/**
+ * Setup invitation for an account that has no password yet (e.g. created when staff approved an older
+ * business application that wasn't linked to an account). Same email, token and expiry as Listing Access.
+ */
+export async function sendSetupInvitation(listing: Listing, user: Pick<User, "id" | "email" | "firstName" | "name" | "passwordHash">, role: AccessRole, actor: { id: string; name: string | null }) {
+  if (user.passwordHash) return { invitationId: null, delivered: false, skipped: true as const };
+  return { ...(await issueInvitation({ user, listing, role, actor })), skipped: false as const };
+}
+
 export async function resendInvitation(listing: Listing, userId: string, actor: { id: string; name: string | null }) {
   const inv = await db.accountInvitation.findFirst({ where: { userId, ...listingWhere(listing) }, orderBy: { createdAt: "desc" }, include: { user: true } });
   if (!inv) {
@@ -218,13 +227,13 @@ export async function resendInvitation(listing: Listing, userId: string, actor: 
     const [m, user] = await Promise.all([getMembership(listing, userId), db.user.findUnique({ where: { id: userId } })]);
     if (!m || !user) return { error: "That person doesn't have access to this listing." };
     if (user.passwordHash) return { error: "This person already has a password — they can sign in." };
-    if (user.status !== "ACTIVE") return { error: "That account is suspended." };
+    if (user.status !== "ACTIVE") return { error: "That account is blocked." };
     const r = await issueInvitation({ user, listing, role: fromDbRole(listing.kind, m.role), actor });
     return { message: r.delivered ? `Invitation emailed to ${user.email}.` : `Invitation created for ${user.email} (email isn't configured here, so it was logged on the server).` };
   }
   if (inv.status === "ACCEPTED" || inv.user.passwordHash) return { error: "This invitation was already accepted — they can sign in with their own password." };
   if (inv.status === "REVOKED" && !(await getMembership(listing, userId))) return { error: "This invitation was revoked. Add the person again to send a new one." };
-  if (inv.user.status !== "ACTIVE") return { error: "That account is suspended." };
+  if (inv.user.status !== "ACTIVE") return { error: "That account is blocked." };
   const token = randomToken(32);
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
   // Replacing the hash invalidates the old link.
@@ -308,7 +317,7 @@ export type GrantResult = { ok: true; message: string } | { ok: false; error: st
 
 /** Gives an EXISTING account access. Never changes their password. */
 export async function grantExistingUser(listing: Listing, target: User, role: AccessRole, actor: Actor, opts: { notify: boolean }): Promise<GrantResult> {
-  if (target.status !== "ACTIVE") return { ok: false, error: `${target.email} is suspended. Reactivate the account first.` };
+  if (target.status !== "ACTIVE") return { ok: false, error: `${target.email} is blocked or deleted. Unblock the account first (Admin → Users).` };
   const existing = await getMembership(listing, target.id);
   await upsertMembership(listing, target.id, role);
   await ensureBusinessRole(listing, target, actor.id);

@@ -10,6 +10,7 @@ const VERBS: Record<string, string> = {
   create_invited: "invited new account", create_temp_password: "created account with temporary password for", send: "sent", resend: "re-sent", accept: "accepted",
   add: "granted access to", role_change: "changed access role on", remove: "removed access from", password_reset_link: "sent password reset link to",
   temp_password_set: "set temporary password for", password_change: "changed password for",
+  block: "blocked", unblock: "unblocked", admin_delete: "deleted account of", ownership_transfer: "transferred ownership of", ownership_return: "returned to admin management",
 };
 
 /** Human-readable one-line summary of an audit log entry. */

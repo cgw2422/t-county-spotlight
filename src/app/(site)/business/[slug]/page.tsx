@@ -53,6 +53,8 @@ function load(slug: string) {
       photos: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       // Most recent published Business Spotlight story → "Editorial Spotlight" badge.
       articles: spotlightArticlesSelect(),
+      // "Claim This Business" only while nobody owns the listing (see src/lib/application-flow.ts).
+      _count: { select: { owners: { where: { role: "OWNER" } } } },
     },
   });
 }
@@ -358,11 +360,13 @@ export default async function BusinessPage({ params }: Props) {
               )}
             </section>
 
-            <div className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600 ring-1 ring-slate-200">
-              <p className="font-semibold text-navy-900">Is this your business?</p>
-              <p className="mt-1">Claim your listing to update details, post specials and share announcements.</p>
-              <Link href={`/list-your-business/?claim=${encodeURIComponent(b.slug)}`} className="mt-3 inline-flex font-semibold text-brand-700 hover:underline">Claim this listing →</Link>
-            </div>
+            {b._count.owners === 0 && (
+              <div className="rounded-2xl bg-slate-50 p-5 text-sm text-slate-600 ring-1 ring-slate-200" data-testid="claim-business">
+                <p className="font-semibold text-navy-900">Is this your business?</p>
+                <p className="mt-1">Claim your listing to update details, post specials and share announcements.</p>
+                <Link href={`/list-your-business/?claim=${encodeURIComponent(b.slug)}`} rel="nofollow" className="mt-3 inline-flex min-h-11 items-center font-semibold text-brand-700 hover:underline">Claim This Business →</Link>
+              </div>
+            )}
             {importSource === "OpenStreetMap" && (
               <p className="px-1 text-xs text-slate-500">
                 Basic listing information from{" "}

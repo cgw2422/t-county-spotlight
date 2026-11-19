@@ -33,6 +33,8 @@ export const REGISTER_NEWSLETTER_NOTE = "If you asked for the newsletter, check 
 export const REGISTER_NEWSLETTER_SUBSCRIBED = "You're subscribed to the T County Connect newsletter. Look for a welcome email.";
 /** Shown after registration when the box was ticked but the newsletter signup failed (account still created). Followed by a link to SUBSCRIBE_PATH. */
 export const REGISTER_NEWSLETTER_FAILED = "Your account is ready, but the newsletter signup didn't go through. You can try again at";
+/** Business application confirmation: the box was ticked but the signup failed (the application is still saved). Followed by a link to SUBSCRIBE_PATH. */
+export const APPLICATION_NEWSLETTER_FAILED = "Your application was saved, but the newsletter signup didn't go through. You can try again at";
 
 /** Shareable, public newsletter signup page (no account needed). /newsletter/ stays the archive. */
 export const SUBSCRIBE_PATH = "/subscribe/"; // the former /newsletter/subscribe/ 308s here (next.config.ts)
@@ -114,10 +116,10 @@ export const CONSENT_TEXT = DEFAULT_COPY.consentText;
 export const SIGNUP_NEUTRAL_MESSAGE =
   "Check your inbox! If this address isn't subscribed yet, we've sent a link to confirm your subscription. It expires in 48 hours.";
 
-export const SIGNUP_SOURCES = ["homepage", "footer", "article", "event", "pwa", "newsletter_page", "subscribe_page", "account", "admin_invite", "register"] as const;
+export const SIGNUP_SOURCES = ["homepage", "footer", "article", "event", "pwa", "newsletter_page", "subscribe_page", "account", "admin_invite", "register", "business_application"] as const;
 export type SignupSource = (typeof SIGNUP_SOURCES)[number];
 /** Sources the public signup form accepts ("register" is only set by the account registration form). */
-export const PUBLIC_SIGNUP_SOURCES = SIGNUP_SOURCES.filter((s) => s !== "admin_invite" && s !== "register");
+export const PUBLIC_SIGNUP_SOURCES = SIGNUP_SOURCES.filter((s) => s !== "admin_invite" && s !== "register" && s !== "business_application");
 
 /** Optional, unchecked-by-default checkbox on /register/ (built-in provider only). Its exact wording is stored as consent. */
 export const REGISTER_OPT_IN_LABEL = DEFAULT_COPY.registerOptInLabel;
@@ -134,6 +136,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   account: "Account",
   admin_invite: "Admin invite",
   register: "Account registration",
+  business_application: "Business application",
 };
 
 export const TOPICS = [

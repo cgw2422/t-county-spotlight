@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword, passwordProblem, requireAdmin } from "@/lib/auth";
@@ -10,6 +11,9 @@ import { oneLine } from "@/lib/text";
 import { BRAND } from "@/lib/brand";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
+import { soleOwnershipBlocks } from "@/lib/sole-ownership";
+import { SoleOwnerError, softDeleteAccount } from "@/lib/account-deletion";
+import { getMembership, grantExistingUser, loadListing, removeListingAccess } from "@/lib/listing-access";
 import type { ActionState } from "@/components/ui/form-message";
 import { getAll, parseForm, zOpt } from "../_lib/form";
 
@@ -42,22 +46,97 @@ export async function updateUser(_: ActionState, fd: FormData): Promise<ActionSt
   return { ok: true, message: u.role !== p.data.role ? `Role changed to ${p.data.role.replace("_", " ").toLowerCase()}.` : "User saved." };
 }
 
+/**
+ * Block / Unblock (status SUSPENDED ↔ ACTIVE). Blocking signs the person out everywhere (every session row is
+ * deleted, and session lookups / sign-in / reset links already refuse non-ACTIVE accounts), and approvals can't
+ * grant ownership to a blocked account. Their account, listing links and data stay, so unblocking restores
+ * everything as it was: same password, nothing re-approved. No newsletter (beehiiv) calls.
+ */
 export async function setUserStatus(_: ActionState, fd: FormData): Promise<ActionState> {
   const me = await requireAdmin();
   const p = parseForm(z.object({ id: z.string().min(1), status: z.enum(["ACTIVE", "SUSPENDED"]) }), fd);
   if (p.error) return p.error;
   const u = await db.user.findUnique({ where: { id: p.data.id } });
   if (!u) return { error: "User not found." };
+  if (u.status === "DELETED") return { error: "This account was deleted and can't be blocked or unblocked." };
+  if (u.status === p.data.status) return { ok: true, message: p.data.status === "SUSPENDED" ? "This account is already blocked." : "This account is already active." };
   if (p.data.status === "SUSPENDED") {
-    if (u.id === me.id) return { error: "You can't suspend your own account." };
-    if (u.role === "ADMIN" && (await otherActiveAdmins(u.id)) === 0) return { error: "You can't suspend the last active administrator." };
+    if (u.id === me.id) return { error: "You can't block your own account." };
+    if (u.role === "ADMIN" && (await otherActiveAdmins(u.id)) === 0) return { error: "You can't block the last active administrator." };
   }
-  await db.user.update({ where: { id: u.id }, data: { status: p.data.status } });
-  if (p.data.status === "SUSPENDED") await db.session.deleteMany({ where: { userId: u.id } });
-  await audit(me.id, p.data.status === "SUSPENDED" ? "user.suspend" : "user.reactivate", "User", u.id, { email: u.email });
+  const blocking = p.data.status === "SUSPENDED";
+  const [, sessions] = await db.$transaction([
+    db.user.update({ where: { id: u.id }, data: { status: p.data.status } }),
+    // Blocking: every session ends now (an open browser is signed out on its next request).
+    ...(blocking ? [db.session.deleteMany({ where: { userId: u.id } })] : []),
+  ]);
+  await audit(me.id, blocking ? "user.block" : "user.unblock", "User", u.id, { email: u.email, ...(blocking ? { sessionsRevoked: (sessions as { count: number }).count } : {}) });
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${u.id}`);
-  return { ok: true, message: p.data.status === "SUSPENDED" ? "User suspended and signed out everywhere." : "User reactivated." };
+  return { ok: true, message: p.data.status === "SUSPENDED" ? "User blocked and signed out everywhere." : "User unblocked. They can sign in with their existing password." };
+}
+
+const LISTING_KINDS = ["business", "organization"] as const;
+
+/**
+ * Before deleting an account that is the ONLY owner of a business or organization: either transfer ownership
+ * to another existing account (Listing Access grant, their password unchanged) or return the listing to admin
+ * management (the owner link is removed; the listing stays and becomes unclaimed, so it can be claimed again).
+ */
+export async function resolveSoleOwnership(_: ActionState, fd: FormData): Promise<ActionState> {
+  const me = await requireAdmin();
+  const p = parseForm(z.object({ id: z.string().min(1).max(40), kind: z.enum(LISTING_KINDS), listingId: z.string().min(1).max(40), mode: z.enum(["transfer", "return"]), email: zOpt(254) }), fd);
+  if (p.error) return p.error;
+  const u = await db.user.findUnique({ where: { id: p.data.id } });
+  if (!u || u.status === "DELETED") return { error: "User not found." };
+  const listing = await loadListing({ kind: p.data.kind, id: p.data.listingId });
+  if (!listing) return { error: "Listing not found." };
+  const membership = await getMembership(listing, u.id);
+  if (!membership || membership.role !== "OWNER") return { error: "This person isn't an owner of that listing any more." };
+  const actor = { id: me.id, name: me.name, email: me.email };
+  const entity = listing.kind === "business" ? "Business" : "Organization";
+  if (p.data.mode === "transfer") {
+    const email = z.email().safeParse((p.data.email ?? "").toLowerCase());
+    if (!email.success) return { error: "Enter the email address of the account to transfer to.", fieldErrors: { email: "Enter a valid email" } };
+    const target = await db.user.findUnique({ where: { email: email.data } });
+    if (!target || target.status === "DELETED") return { error: `No account uses ${email.data}. Transfers go to an existing account — ask them to create a free account first, or use Listing Access to invite them.`, fieldErrors: { email: "No account with this email" } };
+    if (target.id === u.id) return { error: "Choose a different account to transfer to.", fieldErrors: { email: "That's the same account" } };
+    if (target.status !== "ACTIVE") return { error: `${target.email} is blocked. Unblock it first or choose another account.`, fieldErrors: { email: "Account is blocked" } };
+    const r = await grantExistingUser(listing, target, "OWNER", actor, { notify: true });
+    if (!r.ok) return { error: r.error };
+    await audit(me.id, "user.ownership_transfer", entity, listing.id, { name: listing.name, from: u.email, to: target.email, kind: listing.kind });
+    revalidatePath(`/admin/users/${u.id}`, "layout");
+    return { ok: true, message: `${target.email} is now an owner of ${listing.name}. ${r.message}` };
+  }
+  const r = await removeListingAccess(listing, u.id, actor);
+  if (!r.ok) return { error: r.error };
+  await audit(me.id, "user.ownership_return", entity, listing.id, { name: listing.name, from: u.email, kind: listing.kind });
+  revalidatePath(`/admin/users/${u.id}`, "layout");
+  return { ok: true, message: `${listing.name} is back under admin management. The listing stays as it is and is now unclaimed, so it can be claimed again.` };
+}
+
+/** Admin → Users → Delete account (ADMIN only). Soft delete + anonymization; see src/lib/account-deletion.ts. */
+export async function deleteUserAccount(_: ActionState, fd: FormData): Promise<ActionState> {
+  const me = await requireAdmin();
+  const id = String(fd.get("id") ?? "").slice(0, 40);
+  const u = await db.user.findUnique({ where: { id } });
+  if (!u) return { error: "User not found." };
+  if (u.status === "DELETED") return { error: "This account was already deleted." };
+  if (u.id === me.id) return { error: "You can't delete your own account from here. Ask another administrator." };
+  if (u.role === "ADMIN" && (await otherActiveAdmins(u.id)) === 0) return { error: "You can't delete the last active administrator." };
+  if (String(fd.get("confirmEmail") ?? "").trim().toLowerCase() !== u.email.toLowerCase()) return { error: "Type the account's email address exactly to confirm.", fieldErrors: { confirmEmail: "Doesn't match" } };
+  const blocks = await soleOwnershipBlocks(u.id);
+  if (blocks.length) return { error: `Resolve ownership first: ${u.email} is the only owner of ${blocks.map((b) => b.name).join(", ")}. Transfer each listing or return it to admin management.` };
+  let r;
+  try {
+    r = await softDeleteAccount(u.id, me.id);
+  } catch (e) {
+    if (e instanceof SoleOwnerError) return { error: `Resolve ownership first: still the only owner of ${e.names.join(", ")}.` };
+    throw e;
+  }
+  await audit(me.id, "user.admin_delete", "User", u.id, { ref: r.ref, role: u.role, businessLinks: r.businessLinks, organizationLinks: r.organizationLinks, sessionsRevoked: r.sessions });
+  revalidatePath("/admin/users");
+  redirect("/admin/users/?deleted=1");
 }
 
 /** A) Email a secure, expiring, single-use reset link (only the token's SHA-256 hash is stored). */
@@ -65,7 +144,7 @@ export async function sendPasswordReset(_: ActionState, fd: FormData): Promise<A
   const me = await requireAdmin();
   const u = await db.user.findUnique({ where: { id: String(fd.get("id") ?? "") } });
   if (!u) return { error: "User not found." };
-  if (u.status !== "ACTIVE") return { error: "Reactivate the account before sending a reset link." };
+  if (u.status !== "ACTIVE") return { error: "Unblock the account before sending a reset link." };
   if (!rateLimit(`admin-reset-link:${me.id}`, 30, 60 * 60_000).ok) return { error: "Too many reset links sent recently. Please wait a while." };
   // createUserToken replaces any earlier unused reset link for this user.
   const token = await createUserToken(u.id, "PASSWORD_RESET", 2 * 3600_000);
@@ -85,7 +164,7 @@ export async function setTemporaryPassword(_: ActionState, fd: FormData): Promis
   const u = await db.user.findUnique({ where: { id: String(fd.get("id") ?? "") } });
   if (!u) return { error: "User not found." };
   if (u.id === me.id) return { error: "You can't set a temporary password on your own account. Change your password from My account instead." };
-  if (u.status !== "ACTIVE") return { error: "Reactivate the account before setting a password." };
+  if (u.status !== "ACTIVE") return { error: "Unblock the account before setting a password." };
   const password = String(fd.get("tempPassword") ?? "");
   const problem = passwordProblem(password);
   if (problem) return { error: problem, fieldErrors: { tempPassword: problem } };
