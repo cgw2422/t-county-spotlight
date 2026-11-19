@@ -23,8 +23,10 @@ export const DEFAULT_SIGNUP_FOOTNOTE = "Free to join. Unsubscribe anytime.";
 export const SIGNUP_FIELD_LABEL = "Email address";
 export const PRIVACY_PATH = "/newsletter/#privacy";
 
-/** Optional newsletter checkbox on /register/ and the homepage My T County signup (both providers). */
-export const REGISTER_NEWSLETTER_LABEL = "Email me the T County Connect newsletter.";
+/** Optional, unchecked-by-default newsletter checkbox on /register/ (both providers). Its wording is part of the stored consent text. */
+export const REGISTER_NEWSLETTER_LABEL = "Send me the T County Connect newsletter";
+/** The same optional box on the homepage My T County signup card (carried to /register/ as newsletter=1). Wording kept as launched. */
+export const HOME_SIGNUP_NEWSLETTER_LABEL = "Email me the T County Connect newsletter.";
 /** Built-in provider: shown after registration when that box was ticked; never claims a subscription. */
 export const REGISTER_NEWSLETTER_NOTE = "If you asked for the newsletter, check your inbox for a confirmation from T County Connect.";
 /** beehiiv provider: shown after registration when the box was ticked and beehiiv made the address active. */
@@ -33,17 +35,17 @@ export const REGISTER_NEWSLETTER_SUBSCRIBED = "You're subscribed to the T County
 export const REGISTER_NEWSLETTER_FAILED = "Your account is ready, but the newsletter signup didn't go through. You can try again at";
 
 /** Shareable, public newsletter signup page (no account needed). /newsletter/ stays the archive. */
-export const SUBSCRIBE_PATH = "/newsletter/subscribe/";
-/** Fixed copy of /newsletter/subscribe/ (also its share preview). */
+export const SUBSCRIBE_PATH = "/subscribe/"; // the former /newsletter/subscribe/ 308s here (next.config.ts)
+/** Fixed copy of /subscribe/ (also its share preview). */
 export const SUBSCRIBE_PAGE = {
-  heading: "Get T County Connect in your inbox",
-  description: "Local stories, weekend plans, and what's new across Tuscarawas County.",
-  button: "Sign me up",
-  footnote: "Free to join. Unsubscribe anytime.",
+  heading: "What's happening in T County, in your inbox.",
+  description: "Get local events, weekend plans, business spotlights, and community stories from across Tuscarawas County.",
+  button: "Subscribe for Free",
+  footnote: "No account needed. Unsubscribe anytime.",
   archiveLink: "Read past issues",
   nextHeading: "Want to make T County Connect yours?",
   nextText: "Create a free account to save places, keep track of favorites, give local businesses a thumbs up, and choose the community you want to follow.",
-  nextButton: "Create a free account",
+  nextButton: "Create a Free My T County Account",
 } as const;
 
 /** Mid-sentence form: "the T County Connect newsletter". */

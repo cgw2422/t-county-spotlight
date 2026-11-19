@@ -35,7 +35,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/submit/", priority: 0.4, changeFrequency: "monthly" },
   { path: "/new/", priority: 0.7, changeFrequency: "daily" },
   { path: "/newsletter/", priority: 0.6, changeFrequency: "weekly" },
-  { path: "/newsletter/subscribe/", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/subscribe/", priority: 0.7, changeFrequency: "monthly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -20,9 +20,9 @@ type Props = {
   button: string;
   /** Heading level/size for the compact variant inside the homepage hero. */
   headingId?: string;
-  /** Card variant: email field only (no first name or community) — /newsletter/subscribe/. */
+  /** Card variant: email field only (no first name or community) — /subscribe/. */
   emailOnly?: boolean;
-  /** h1 when the card is the page's own heading (/newsletter/subscribe/). */
+  /** h1 when the card is the page's own heading (/subscribe/). */
   headingAs?: "h1" | "h2";
   className?: string;
 };

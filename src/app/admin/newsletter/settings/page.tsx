@@ -45,7 +45,7 @@ export default async function NewsletterSettingsPage() {
             <ActionForm action={saveProviderSettingsAction} warnUnsaved className="space-y-5">
               <SelectField name="provider" label="Signup & sending provider" defaultValue={s.provider} data-testid="provider-select"
                 options={[{ value: "builtin", label: "Built-in (current signup form & campaigns)" }, { value: "beehiiv", label: "beehiiv (our signup form, sent to beehiiv; send from beehiiv)" }]}
-                help="beehiiv: every signup placement (including /newsletter/subscribe/ and the registration checkbox) uses our own form, which our server sends to beehiiv as a single opt-in signup with beehiiv's welcome email (no account, no local subscriber), and built-in campaigns can't be created, scheduled or sent. Built-in: the same placements use the built-in double opt-in form. Switching is refused until the beehiiv connection is ready. Unsubscribe/preferences links in past emails keep working either way." />
+                help="beehiiv: every signup placement (including /subscribe/ and the registration checkbox) uses our own form, which our server sends to beehiiv as a single opt-in signup with beehiiv's welcome email (no account, no local subscriber), and built-in campaigns can't be created, scheduled or sent. Built-in: the same placements use the built-in double opt-in form. Switching is refused until the beehiiv connection is ready. Unsubscribe/preferences links in past emails keep working either way." />
               <div className="border-t border-slate-100 pt-4"><Submit pendingText="Saving…">Save provider</Submit></div>
             </ActionForm>
           </Card>
@@ -131,7 +131,7 @@ export default async function NewsletterSettingsPage() {
             <FormGrid>
               <TextField name="name" label="Name in emails & prose" defaultValue={s.name} required maxLength={80} data-testid="nl-name" help={<>Reads as &ldquo;{theName(copy.name)}&rdquo; in emails and on the site.</>} />
               <TextField name="navLabel" label="Navigation label & archive title" defaultValue={s.navLabel} required maxLength={40} data-testid="nl-navlabel" help="Title of /newsletter/ and the small label on signup cards." />
-              <TextField name="heading" label="Signup heading" defaultValue={s.heading} required maxLength={120} data-testid="nl-heading" help="Homepage hero card and every signup card. The shareable /newsletter/subscribe/ page and its Facebook preview keep fixed wording." />
+              <TextField name="heading" label="Signup heading" defaultValue={s.heading} required maxLength={120} data-testid="nl-heading" help="Homepage hero card and every signup card. The shareable /subscribe/ page and its Facebook preview keep fixed wording." />
               <TextField name="button" label="Signup button" defaultValue={s.button} required maxLength={40} data-testid="nl-button" help="Built-in form and the native beehiiv form." />
             </FormGrid>
             <TextField name="tagline" label="Signup description" defaultValue={s.tagline} required maxLength={200} data-testid="nl-tagline" help="Shown under the signup heading on every signup card." />

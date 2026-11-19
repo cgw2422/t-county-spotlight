@@ -40,10 +40,16 @@ const nextConfig: NextConfig = {
     },
   },
   async redirects() {
-    return REDIRECT_HOSTS.flatMap((host) => [
+    return [
+      // The newsletter signup page moved to /subscribe/ (old links may be shared on Facebook). 308; the query
+      // string (utm_*, …) is carried over automatically. Exact path only: /newsletter/subscribe/share-image.png
+      // keeps serving the share image, and /newsletter/ stays the archive.
+      { source: "/newsletter/subscribe", destination: "/subscribe/", permanent: true },
+      ...REDIRECT_HOSTS.flatMap((host) => [
       { source: "/", has: [{ type: "host" as const, value: host }], destination: `https://${CANONICAL_HOST}/`, statusCode: 301 as const },
       { source: "/:path((?!api/).+)", has: [{ type: "host" as const, value: host }], destination: `https://${CANONICAL_HOST}/:path`, statusCode: 301 as const },
-    ]);
+      ]),
+    ];
   },
   async headers() {
     return [

@@ -32,7 +32,7 @@ export default async function NewsletterPage({ searchParams }: { searchParams: S
     <div className="pb-6">
       <div className="bg-gradient-to-b from-brand-50/70 to-white">
         <div className="container-page max-w-5xl pt-8 sm:pt-12">
-          {/* The archive. Signing up happens on /newsletter/subscribe/ (shareable, no account needed). */}
+          {/* The archive. Signing up happens on /subscribe/ (shareable, no account needed). */}
           <section aria-labelledby="newsletter-title" data-testid="newsletter-header" className="overflow-hidden rounded-3xl bg-cream p-6 ring-1 ring-amber-200/70 sm:p-10">
             <p className="eyebrow">{c.navLabel}</p>
             <h1 id="newsletter-title" className="mt-2 font-display text-3xl font-semibold leading-tight text-navy-900 text-balance sm:text-4xl">{c.heading}</h1>

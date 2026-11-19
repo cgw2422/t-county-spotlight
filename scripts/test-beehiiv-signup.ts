@@ -91,13 +91,13 @@ async function main() {
       assert.deepEqual(Object.keys(subscriptionBody({ email: "a@b.co", utmCampaign: "x", referringSite: "y" })).sort(), ["double_opt_override", "email", "reactivate_existing", "referring_site", "send_welcome_email", "utm_campaign", "utm_medium", "utm_source"]);
     });
 
-    await test("subscribe page placement → utm_campaign subscribe_page, referring_site /newsletter/subscribe/", async () => {
+    await test("subscribe page placement → utm_campaign subscribe_page, referring_site /subscribe/", async () => {
       mock.requests.length = 0;
-      const r = await go(`subpage@${D}`, { placement: "subscribe_page", page: "/newsletter/subscribe/" });
+      const r = await go(`subpage@${D}`, { placement: "subscribe_page", page: "/subscribe/" });
       assert.equal(r?.outcome, "subscribed");
       const b = posts()[0].body as Record<string, unknown>;
       assert.equal(b.utm_campaign, "subscribe_page");
-      assert.equal(b.referring_site, "https://tcountyconnect.com/newsletter/subscribe/");
+      assert.equal(b.referring_site, "https://tcountyconnect.com/subscribe/");
       assert.equal(b.send_welcome_email, true);
       assert.equal(b.double_opt_override, "off");
     });

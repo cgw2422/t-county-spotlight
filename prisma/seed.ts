@@ -10,6 +10,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { runBrandMigration, runNamingMigration } from "../src/lib/brand-migration";
 import { runDoubleEncodedRepair, runEntityRepair } from "../src/lib/data-repairs";
+import { NEWSLETTER_MENU_ITEM, runNewsletterMenuMigration } from "../src/lib/menu-migrations";
 import { runMembershipLimitsMigration } from "../src/lib/membership-migration";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
@@ -70,8 +71,10 @@ const MENU = [
 ];
 const FOOTER = [
   ["List Your Business", "/list-your-business/"], ["Memberships", "/memberships/"], ["Submit an Event", "/events/submit/"],
-  ["Business Spotlights", "/spotlights/"], ["Newsletter", "/newsletter/"], ["Search", "/search/"],
+  ["Business Spotlights", "/spotlights/"], [NEWSLETTER_MENU_ITEM.label, NEWSLETTER_MENU_ITEM.href], ["Search", "/search/"],
 ];
+/** Phone menu: the header links plus the newsletter signup (grouped under "Community" in the menu). */
+const MOBILE_MENU = [...MENU, [NEWSLETTER_MENU_ITEM.label, NEWSLETTER_MENU_ITEM.href]];
 
 async function main() {
   for (const [i, [name, slug, icon]] of BUSINESS_CATEGORIES.entries()) {
@@ -99,13 +102,14 @@ async function main() {
         }
       }
     }
-    if (!(await db.menuItem.findFirst({ where: { location: "FOOTER", href: "/newsletter/" } }))) {
-      await db.menuItem.create({ data: { location: "FOOTER", label: "Newsletter", href: "/newsletter/", sortOrder: 99 } });
+    // Footer newsletter link (now the /subscribe/ signup; see runNewsletterMenuMigration below), only if neither exists.
+    if (!(await db.menuItem.findFirst({ where: { location: "FOOTER", href: { in: ["/newsletter/", NEWSLETTER_MENU_ITEM.href] } } }))) {
+      await db.menuItem.create({ data: { location: "FOOTER", ...NEWSLETTER_MENU_ITEM, sortOrder: 99 } });
     }
   }
   if (isNewInstall) {
     await db.menuItem.createMany({ data: MENU.map(([label, href], i) => ({ location: "HEADER" as const, label, href, sortOrder: i })) });
-    await db.menuItem.createMany({ data: MENU.map(([label, href], i) => ({ location: "MOBILE" as const, label, href, sortOrder: i })) });
+    await db.menuItem.createMany({ data: MOBILE_MENU.map(([label, href], i) => ({ location: "MOBILE" as const, label, href, sortOrder: i })) });
     await db.menuItem.createMany({ data: FOOTER.map(([label, href], i) => ({ location: "FOOTER" as const, label, href, sortOrder: i })) });
   }
   // Community Pulse: footer + mobile menus (the desktop header is already full at 1280px).
@@ -130,6 +134,8 @@ async function main() {
       }
     }
   }
+  // One-time (marker "menuNewsletterSubscribe"): "Newsletter" → /subscribe/ in the phone menu and footer.
+  await runNewsletterMenuMigration(db);
   // Proposed plans — inactive until the owner approves pricing in Admin → Memberships.
   const plans = [
     { slug: "free", name: "Free Listing", priceCents: 0, interval: "FREE" as const, sortOrder: 0, isActive: true,

@@ -1,3 +1,4 @@
+import "server-only";
 import { ImageResponse } from "next/og";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -8,15 +9,15 @@ import { BRAND, DEFAULT_BRAND_LOGO_URL } from "@/lib/brand";
 import { SUBSCRIBE_PAGE, SUBSCRIBE_PATH } from "@/lib/newsletter/copy";
 
 /**
- * Facebook / link share preview for /newsletter/subscribe/ (og:image + twitter:image, 1200×630 PNG):
+ * Facebook / link share preview for /subscribe/ (og:image + twitter:image, 1200×630 PNG):
  * the official logo on brand colors with the page heading, drawn with next/og ImageResponse.
- * A route handler at …/share-image.png rather than the opengraph-image file convention: with
+ * Served by route handlers at /subscribe/share-image.png (the page's og:image) and at the former
+ * /newsletter/subscribe/share-image.png (so cached Facebook previews of the old URL keep working).
+ * A route at a path with a file extension rather than the opengraph-image file convention: with
  * trailingSlash: true the convention's extension-less URL answers 308 before the image, while a path
- * with a file extension is served directly (like /brand/logo.png). Wired up in ../page.tsx metadata.
+ * with a file extension is served directly (like /brand/logo.png).
  */
-const SIZE = { width: 1200, height: 630 };
-// The logo can be replaced in Admin → Settings, so render on request (cached for an hour below).
-export const dynamic = "force-dynamic";
+export const SHARE_IMAGE_SIZE = { width: 1200, height: 630 };
 
 async function logoDataUrl() {
   let png: Buffer;
@@ -39,7 +40,8 @@ async function font(file: string) {
   }
 }
 
-export async function GET() {
+/** The share image response. The logo can be replaced in Admin → Settings, so callers render on request (cached for an hour). */
+export async function subscribeShareImageResponse() {
   const [logo, montserrat, openSans] = await Promise.all([
     logoDataUrl(),
     font("montserrat/files/montserrat-latin-700-normal.woff"),
@@ -73,7 +75,7 @@ export async function GET() {
         <div style={{ display: "flex", height: 8, width: "100%", background: green }} />
       </div>
     ),
-    { ...SIZE, fonts: fonts.length ? fonts : undefined },
+    { ...SHARE_IMAGE_SIZE, fonts: fonts.length ? fonts : undefined },
   );
   res.headers.set("Cache-Control", "public, max-age=3600, s-maxage=3600");
   return res;

@@ -92,7 +92,7 @@ export async function registerAction(_prev: FormState, fd: FormData): Promise<Fo
   if (newsletter) {
     // Built-in: marketing is separate and double opt-in: this only sends the newsletter's own confirmation link.
     try {
-      await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: `[x] ${REGISTER_NEWSLETTER_LABEL} ${nl.tagline} ${SIGNUP_DISCLAIMER} We'll email you a link to confirm first. How we use your email: ${PRIVACY_PATH}` });
+      await requestSubscription({ email, firstName, source: "register", ip, communities: home ? [home] : [], consentText: `[x] ${REGISTER_NEWSLETTER_LABEL}. ${nl.tagline} ${SIGNUP_DISCLAIMER} We'll email you a link to confirm first. How we use your email: ${PRIVACY_PATH}` });
       nlResult = "builtin";
     } catch (e) {
       console.error("[register] newsletter signup failed", e);

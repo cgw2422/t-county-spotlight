@@ -22,7 +22,7 @@ type Props = {
   headingId?: string;
   /** Admin preview: renders the real form but never submits. */
   preview?: boolean;
-  /** h1 on /newsletter/subscribe/ (the page's own heading); h2 everywhere else. */
+  /** h1 on /subscribe/ (the page's own heading); h2 everywhere else. */
   headingAs?: "h1" | "h2";
   /** Revealed below the message only after a success state (subscribed / already subscribed), e.g. the account invitation. */
   afterSuccess?: React.ReactNode;

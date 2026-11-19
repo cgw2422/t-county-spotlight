@@ -3,7 +3,7 @@ import { UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getCommunityPreference } from "@/lib/my-t-county";
 import { ALL_COUNTY, ALL_COUNTY_LABEL, COMMUNITIES, communitySlug } from "@/lib/my-t-county-shared";
-import { REGISTER_NEWSLETTER_LABEL } from "@/lib/newsletter/copy";
+import { HOME_SIGNUP_NEWSLETTER_LABEL } from "@/lib/newsletter/copy";
 import { MY_T_COUNTY_NAME, loginHref } from "@/lib/resident-accounts";
 import { MyTCountyLinkCard } from "./my-t-county-link";
 
@@ -49,7 +49,7 @@ export async function AccountSignupSection({ joinShowsLink }: { joinShowsLink: b
               </div>
               <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 hover:border-brand-200">
                 <input type="checkbox" name="newsletter" value="1" className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-brand-600" data-testid="home-account-signup-newsletter" />
-                <span className="text-sm text-navy-900">{REGISTER_NEWSLETTER_LABEL} <span className="text-slate-500">(optional)</span></span>
+                <span className="text-sm text-navy-900">{HOME_SIGNUP_NEWSLETTER_LABEL} <span className="text-slate-500">(optional)</span></span>
               </label>
               <button type="submit" className="btn-primary w-full sm:w-auto">
                 <UserPlus className="h-4 w-4" aria-hidden />

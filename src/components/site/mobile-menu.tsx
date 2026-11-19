@@ -14,7 +14,7 @@ const noopSubscribe = () => () => {};
 const GROUPS: { title: string; order: string[] }[] = [
   { title: "Happening now", order: ["events", "specials", "things-to-do", "food-trucks", "garage-sales"] },
   { title: "Local", order: ["businesses", "jobs", "new", "communities", "explore"] },
-  { title: "Community", order: ["articles", "gives", "churches", "community-pulse", "organizations", "announcements", "spotlights"] },
+  { title: "Community", order: ["articles", "gives", "churches", "community-pulse", "organizations", "announcements", "spotlights", "subscribe", "newsletter"] },
 ];
 const segment = (href: string) => href.replace(/^\/+/, "").split(/[/?#]/)[0];
 

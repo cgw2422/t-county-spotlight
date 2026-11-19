@@ -32,7 +32,7 @@ export const SIGNUP_LIMITS = {
 
 /** Default page per placement (referring_site when the form's page path is missing or unusable). */
 const PLACEMENT_PATH: Record<SignupPlacement | "admin_test", string> = {
-  subscribe_page: "/newsletter/subscribe/", homepage_hero: "/", homepage: "/", newsletter_page: "/newsletter/", newsletter_issue: "/newsletter/", footer: "/", article: "/articles/",
+  subscribe_page: "/subscribe/", homepage_hero: "/", homepage: "/", newsletter_page: "/newsletter/", newsletter_issue: "/newsletter/", footer: "/", article: "/articles/",
   event: "/events/", explore: "/explore/", account: "/account/", admin_test: "/admin/newsletter/settings/",
 };
 
