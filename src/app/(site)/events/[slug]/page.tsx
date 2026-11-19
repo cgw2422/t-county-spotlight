@@ -10,7 +10,8 @@ import { eventHref } from "@/lib/links";
 import { getUpcomingOccurrences } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { absoluteUrl, formatDate, formatTime, stripHtml } from "@/lib/utils";
-import { SmartImage } from "@/components/ui/smart-image";
+import { EventFlyer } from "@/components/events/event-flyer";
+import { getImageDimensions } from "@/lib/media-dims";
 import { ImagePlaceholder } from "@/components/ui/placeholder";
 import { BusinessCard } from "@/components/cards/business-card";
 import { OrgCard } from "@/components/gives/cards";
@@ -74,11 +75,12 @@ export default async function EventPage({ params }: Props) {
   const tagLabels = e.tags.map(eventTagLabel).filter((t): t is string => !!t);
   const vendorInfo = e.vendorInfo?.trim() || null;
   const description = sanitizeRichText(e.description);
-  const [saved, settings, more, viewer] = await Promise.all([
+  const [saved, settings, more, viewer, imageDims] = await Promise.all([
     isSaved("EVENT", e.id),
     getSettings(),
     getUpcomingOccurrences({ limit: 4, where: { id: { not: e.id }, ...(e.categoryId ? { categoryId: e.categoryId } : {}) } }),
     getCurrentUser(),
+    getImageDimensions(e.imageUrl),
   ]);
   const track = (type: string) => ({ type, businessId: business?.id, targetType: "EVENT", targetId: e.id });
 
@@ -91,22 +93,30 @@ export default async function EventPage({ params }: Props) {
 
       <div className="container-page mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-10">
         <div className="min-w-0">
-          <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100">
-            {e.imageUrl ? <SmartImage src={e.imageUrl} alt="" fill priority sizes="(min-width:1024px) 800px, 100vw" className="object-cover" /> : <ImagePlaceholder label={e.title} />}
-            <div className="absolute left-3 top-3 flex gap-1.5">
-              {e.isSponsored && <span className="badge-sponsored">{settings.sponsoredLabel}</span>}
-              {e.category && <span className="badge bg-white/95 text-navy-900 shadow-sm">{e.category.name}</span>}
-            </div>
-          </div>
+          {/* The whole flyer in its own proportions (no crop, no overlays); title, date, place and category stay page text. */}
+          {e.imageUrl ? (
+            <EventFlyer src={e.imageUrl} title={e.title} dims={imageDims} />
+          ) : (
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-slate-100"><ImagePlaceholder label={e.title} /></div>
+          )}
 
           <header className="mt-6 flex gap-4">
             <div className="hidden sm:block"><DateBadge date={next.occurrenceStart} /></div>
             <div className="min-w-0">
+              {(e.isSponsored || e.category) && (
+                <p className="mb-2 flex flex-wrap gap-1.5">
+                  {e.isSponsored && <span className="badge-sponsored">{settings.sponsoredLabel}</span>}
+                  {e.category && <Link href={`/events/?category=${e.category.slug}`} className="badge-blue hover:underline" data-testid="event-category">{e.category.name}</Link>}
+                </p>
+              )}
               <h1 className="font-display text-3xl font-bold leading-tight text-navy-900 text-balance sm:text-4xl">{e.title}</h1>
               <p className="mt-2 text-lg text-slate-700">
                 {formatDate(next.occurrenceStart, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 <span className="text-slate-400"> · </span>{timeRange(next.occurrenceStart, next.occurrenceEnd, e.allDay)}
               </p>
+              {(e.locationName || e.city) && (
+                <p className="mt-1 flex items-start gap-1.5 text-slate-600" data-testid="event-where"><MapPin className="mt-1 h-4 w-4 shrink-0 text-slate-400" aria-hidden />{[e.locationName, e.city].filter(Boolean).join(", ")}</p>
+              )}
               {tagLabels.length > 0 && (
                 <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Event details">
                   {tagLabels.map((t) => <li key={t} className="badge-gray">{t}</li>)}

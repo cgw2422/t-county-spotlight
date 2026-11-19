@@ -21,6 +21,20 @@ export function DateBadge({ date }: { date: Date }) {
   );
 }
 
+/**
+ * Event image inside a fixed card thumbnail: the whole image (object-contain) so flyers keep the text at
+ * their edges, over a blurred, dimmed copy of the same image (same URL, so no extra download) instead of
+ * empty bars. The parent sets the box size.
+ */
+function EventThumb({ src, sizes }: { src: string; sizes: string }) {
+  return (
+    <>
+      <SmartImage src={src} alt="" fill sizes={sizes} aria-hidden="true" className="scale-110 object-cover opacity-80 blur-xl brightness-75" />
+      <SmartImage src={src} alt="" fill sizes={sizes} className="object-contain" data-testid="event-thumb" />
+    </>
+  );
+}
+
 export function EventCard({ e, layout = "card" }: { e: EventCardData; layout?: "card" | "row" }) {
   const time = e.allDay ? "All day" : `${formatTime(e.occurrenceStart)}${e.occurrenceEnd ? ` – ${formatTime(e.occurrenceEnd)}` : ""}`;
   const href = eventHref(e);
@@ -32,7 +46,7 @@ export function EventCard({ e, layout = "card" }: { e: EventCardData; layout?: "
       <div className="card card-hover group relative flex items-center gap-4 p-3">
         <DateBadge date={e.occurrenceStart} />
         <div className="relative hidden h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:block">
-          {e.imageUrl ? <SmartImage src={e.imageUrl} alt="" fill sizes="96px" className="object-cover" /> : <ImagePlaceholder />}
+          {e.imageUrl ? <EventThumb src={e.imageUrl} sizes="96px" /> : <ImagePlaceholder />}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-semibold text-navy-900 group-hover:text-brand-700">
@@ -59,7 +73,7 @@ export function EventCard({ e, layout = "card" }: { e: EventCardData; layout?: "
   return (
     <Link href={href} className="card card-hover group flex flex-col overflow-hidden">
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-        {e.imageUrl ? <SmartImage src={e.imageUrl} alt="" fill sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw" className="object-cover transition duration-500 group-hover:scale-105" /> : <ImagePlaceholder label={e.title} />}
+        {e.imageUrl ? <EventThumb src={e.imageUrl} sizes="(min-width:1024px) 33vw, (min-width:640px) 50vw, 100vw" /> : <ImagePlaceholder label={e.title} />}
         {e.isSponsored && <span className="badge-sponsored absolute right-3 top-3">Sponsored</span>}
       </div>
       <div className="flex gap-3 p-4">
