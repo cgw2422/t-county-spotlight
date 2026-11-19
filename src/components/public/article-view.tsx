@@ -94,7 +94,7 @@ export async function ArticleView({ article: a, related, saved }: { article: Art
 
   const body = (
     <>
-      <div className={`${PROSE_CLASSES} prose-lg text-slate-800`} dangerouslySetInnerHTML={{ __html: html }} />
+      <div className={`${PROSE_CLASSES} prose-lg text-slate-800 [&_a]:[overflow-wrap:anywhere]`} dangerouslySetInnerHTML={{ __html: html }} />
 
       {a.tags.length > 0 && (
         <div className="mt-10 flex flex-wrap items-center gap-2">
