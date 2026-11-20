@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckCircle2, LogIn, Mail, UserPlus } from "lucide-react";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { PrivacyPolicyLink } from "@/components/ui/privacy-link";
 import { NewPasswordFields } from "@/components/account/password-fields";
 import { echoed, echoedChecked } from "@/components/dashboard/fields";
 import { PRIVACY_PATH, REGISTER_NEWSLETTER_LABEL, SIGNUP_DISCLAIMER } from "@/lib/newsletter/copy";
@@ -127,6 +128,9 @@ export function ApplicationForm({ categories, cities, defaults, claimSlug, signe
           </div>
         </div>
       )}
+      <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200" data-testid="lyb-public-fields">
+        Once approved, your business name, phone, website, address, town, category and description appear on your public listing. Your name and email stay private unless you later choose to show an email on your listing.
+      </p>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="phone" className="label">Phone</label>
@@ -180,6 +184,7 @@ export function ApplicationForm({ categories, cities, defaults, claimSlug, signe
         </span>
       </label>
       <SubmitButton className="btn-primary w-full sm:w-auto sm:min-w-56" pendingText="Sending…">{claimSlug ? (signedIn ? "Request to claim listing" : "Create account & request claim") : (signedIn ? "Submit application" : "Create account & submit application")}</SubmitButton>
+      <p className="text-xs text-slate-500">How we use your information: <PrivacyPolicyLink className="hover:text-brand-700" /></p>
     </form>
   );
 }

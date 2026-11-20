@@ -920,7 +920,7 @@ model Organization {
   serviceArea      String?
   donationUrl      String?
   wishlistUrl      String?
-  ein              String?   // never shown publicly unless verified
+  ein              String?   // used only to verify the organization — never shown publicly
   // Church-specific (kind = CHURCH)
   denomination     String?
   leadership       Json?     // [{ name, role }]

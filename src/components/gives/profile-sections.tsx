@@ -131,7 +131,8 @@ export function ContactCard({ o }: { o: Org }) {
           ))}
         </ul>
       )}
-      {o.verifiedAt && o.ein && <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">Verified organization · EIN {o.ein}</p>}
+      {/* The EIN is collected for verification only and is never shown publicly (as the forms promise). */}
+      {o.verifiedAt && <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500">Verified organization</p>}
     </section>
   );
 }

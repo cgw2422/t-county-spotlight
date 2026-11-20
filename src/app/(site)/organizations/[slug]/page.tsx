@@ -118,7 +118,6 @@ export default async function OrganizationPage({ params }: Props) {
           email: o.emailPublic && o.email ? o.email : undefined,
           address: o.address || o.city ? { "@type": "PostalAddress", streetAddress: o.address || undefined, addressLocality: o.city || undefined, addressRegion: o.state || "OH", postalCode: o.zip || undefined, addressCountry: "US" } : undefined,
           areaServed: o.serviceArea || undefined,
-          taxID: o.verifiedAt && o.ein ? o.ein : undefined,
           sameAs: [...(site ? [site.toString()] : []), ...socials.map((s) => s.url)],
         }}
       />

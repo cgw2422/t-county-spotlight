@@ -4,6 +4,7 @@ import { useActionState, useRef } from "react";
 import { Mail, Store } from "lucide-react";
 import { FormMessage } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { PrivacyPolicyLink } from "@/components/ui/privacy-link";
 import { Field } from "@/components/account/auth-shell";
 import { NewPasswordFields } from "@/components/account/password-fields";
 import { sendTrack } from "@/components/public/track";
@@ -72,7 +73,7 @@ export function RegisterForm({ next, business, source, community, newsletter }: 
         </span>
       </label>
       <SubmitButton className="btn-primary w-full" pendingText="Creating your account…">Create free account</SubmitButton>
-      <p className="text-center text-xs text-slate-500">We&apos;ll email you a link to confirm your address. We never sell your information.</p>
+      <p className="text-center text-xs text-slate-500">We&apos;ll email you a link to confirm your address. We never sell your information. <PrivacyPolicyLink className="hover:text-brand-700" /></p>
     </form>
   );
 }

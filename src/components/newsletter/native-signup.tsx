@@ -3,6 +3,7 @@ import { useActionState, useId, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CheckCircle2, Loader2, MailCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PrivacyPolicyLink } from "@/components/ui/privacy-link";
 import { SIGNUP_FIELD_LABEL, SUCCESS_OUTCOMES, type SignupPlacement } from "@/lib/newsletter/copy";
 import type { SignupState } from "@/lib/beehiiv/signup";
 import { beehiivSignupAction } from "./actions";
@@ -115,7 +116,7 @@ export function NativeSignupForm({ placement, heading, description, button, foot
               </div>
             </form>
           )}
-          <p className="mt-3 text-xs text-navy-900">{footnote}</p>
+          <p className="mt-3 text-xs text-navy-900">{footnote} <PrivacyPolicyLink hash="newsletter" /></p>
           {succeeded && afterSuccess}
         </div>
       </div>

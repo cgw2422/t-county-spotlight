@@ -50,7 +50,7 @@ export async function SiteFooter() {
       </div>
       <div className="border-t border-white/10">
         <div className="container-page flex flex-col gap-2 py-6 text-xs text-white sm:flex-row sm:justify-between">
-          <p>© {new Date().getFullYear()} {s.siteName}. Proudly serving Tuscarawas County, Ohio.</p>
+          <p>© {new Date().getFullYear()} {s.siteName}. Proudly serving Tuscarawas County, Ohio. <Link href="/privacy/" className="ml-1 underline underline-offset-2 hover:text-sunset-400" data-testid="footer-privacy-link">Privacy Policy</Link></p>
           <p>Sponsored content is always labeled. Editorial spotlights are never for sale.</p>
         </div>
       </div>

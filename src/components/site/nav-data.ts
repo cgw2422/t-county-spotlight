@@ -19,7 +19,6 @@ export const DEFAULT_FOOTER_NAV: NavItem[] = [
   { label: "Submit an Event", href: "/events/submit" },
   { label: "Newsletter", href: "/subscribe" },
   { label: "Contact", href: "/contact" },
-  { label: "Privacy", href: "/privacy" },
 ];
 
 /** Phone menu fallback: the header links plus the newsletter signup (grouped under "Community"). */

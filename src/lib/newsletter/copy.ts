@@ -21,7 +21,7 @@ export const SIGNUP_DISCLAIMER = "Free to join. Unsubscribe anytime.";
 export const DEFAULT_SIGNUP_FOOTNOTE = "Free to join. Unsubscribe anytime.";
 /** Visible label of the email field. */
 export const SIGNUP_FIELD_LABEL = "Email address";
-export const PRIVACY_PATH = "/newsletter/#privacy";
+export const PRIVACY_PATH = "/privacy/#newsletter";
 
 /** Optional, unchecked-by-default newsletter checkbox on /register/ (both providers). Its wording is part of the stored consent text. */
 export const REGISTER_NEWSLETTER_LABEL = "Send me the T County Connect newsletter";

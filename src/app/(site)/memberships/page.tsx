@@ -13,6 +13,13 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
+/** Nonprofits and churches share one registration form; ?kind= preselects the type. */
+const CARDS = [
+  { key: "business", icon: Store, title: "Business", text: "Share your hours, contact information, photos, and what makes your business worth visiting.", href: "/list-your-business/", cta: "List Your Business for Free" },
+  { key: "nonprofit", icon: HeartHandshake, title: "Nonprofit", text: "Help residents discover your mission, find volunteer opportunities, and see how they can support your work.", href: "/gives/register/?kind=nonprofit", cta: "List Your Nonprofit for Free" },
+  { key: "church", icon: Church, title: "Church", text: "Share your service times, location, ministries, and community outreach.", href: "/gives/register/?kind=church", cta: "List Your Church for Free" },
+] as const;
+
 /**
  * "Get Listed" (URL kept as /memberships/ so existing links work). Not a pricing page: the public offer is a free
  * listing for businesses, nonprofits and churches. Paid plans and prices are never shown here — optional upgrades
@@ -30,35 +37,34 @@ export default async function GetListedPage() {
   return (
     <>
       <section className="bg-gradient-to-b from-navy-900 to-navy-800 text-white">
-        <div className="container-page py-14 text-center sm:py-20">
+        <div className="container-page pb-20 pt-14 text-center sm:pb-24 sm:pt-20">
           <h1 className="font-display text-4xl font-semibold text-balance sm:text-5xl">Get Listed on T County Connect</h1>
           <p className="mt-4 text-xl font-semibold text-sunset-400 sm:text-2xl" data-testid="get-listed-tagline">Free to list. Free to stay listed.</p>
-          <p className="mx-auto mt-3 max-w-2xl text-lg text-slate-200">Help people across Tuscarawas County find your business, nonprofit, or church.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-lg text-slate-200" data-testid="get-listed-intro">Help people across Tuscarawas County find your business, nonprofit, or church. No credit card or paid membership is required.</p>
         </div>
       </section>
 
-      <div className="container-page -mt-8 pb-12 sm:-mt-10">
-        <div className="mx-auto max-w-3xl space-y-6">
-          {/* Main action: the business application (existing Sign In / Create a Free Account flow). */}
-          <section aria-labelledby="list-business" className="rounded-3xl bg-white p-6 shadow-lg ring-1 ring-slate-200 sm:p-8" data-testid="get-listed-business">
-            <span className="grid h-12 w-12 place-items-center rounded-xl bg-navy-800 text-white"><Store className="h-6 w-6" aria-hidden /></span>
-            <h2 id="list-business" className="mt-4 font-display text-2xl font-semibold text-navy-900 sm:text-3xl">List Your Business</h2>
-            <p className="mt-3 text-lg text-slate-700">
-              Create a free business profile with your contact details, hours, photos, and more. Your standard listing stays free after approval. No credit card or paid membership is required.
-            </p>
-            <Link href="/list-your-business/" className="btn-primary mt-6 min-h-12 w-full px-6 text-base sm:w-auto" data-testid="list-free-button">List Your Business for Free</Link>
-            <p className="mt-6 flex gap-3 border-t border-slate-100 pt-5 text-slate-700" data-testid="get-listed-claim">
-              <Search className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden />
-              <span>
-                <strong className="text-navy-900">Already listed?</strong>{" "}
-                <Link href="/businesses/" className="font-semibold text-brand-700 underline-offset-2 hover:underline">Find your business in the directory</Link>{" "}
-                and claim it if it hasn&apos;t been claimed yet.
-              </span>
-            </p>
-          </section>
+      <div className="container-page -mt-12 pb-12 sm:-mt-14">
+        {/* Three equal cards in one row on desktop; stacked on narrow screens. Buttons are pinned to the bottom of each card. */}
+        <ul className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3" data-testid="get-listed-cards">
+          {CARDS.map(({ key, icon: Icon, title, text, href, cta }) => (
+            <li key={key} className="flex flex-col rounded-3xl bg-white p-6 shadow-lg ring-1 ring-slate-200 sm:p-7" data-testid={`get-listed-${key}`}>
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-navy-800 text-white"><Icon className="h-6 w-6" aria-hidden /></span>
+              <h2 className="mt-4 font-display text-2xl font-semibold text-navy-900">{title}</h2>
+              <p className="mt-2 flex-1 text-slate-700">{text}</p>
+              <Link href={href} className="btn-primary mt-6 min-h-12 w-full text-base" data-testid={`get-listed-${key}-button`}>{cta}</Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mx-auto mt-6 max-w-6xl space-y-4">
+          <p className="flex items-center justify-center gap-2 text-center text-sm text-slate-600" data-testid="get-listed-claim">
+            <Search className="h-4 w-4 shrink-0 text-brand-600" aria-hidden />
+            <span>Already listed? <Link href="/businesses/" className="font-semibold text-brand-700 underline-offset-2 hover:underline">Find your listing in the directory.</Link></span>
+          </p>
 
           {pending.map((a) => (
-            <p key={a.id} className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" data-testid="memberships-approval-pending">
+            <p key={a.id} className="mx-auto flex max-w-3xl items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950" data-testid="memberships-approval-pending">
               <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" aria-hidden />
               <span><strong>Business approval pending</strong> for {decodePlainText(a.businessName)}. We&apos;ll email you when your free listing is live. <Link href="/my-t-county/" className="font-semibold underline">View in My T County</Link></span>
             </p>
@@ -66,7 +72,7 @@ export default async function GetListedPage() {
 
           {/* Approved owners only: a quiet link to their listing's Membership tab — no plans or prices here. */}
           {upgradeable.length > 0 && (
-            <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700 ring-1 ring-slate-200" data-testid="upgrade-your-listing">
+            <div className="mx-auto max-w-3xl rounded-xl bg-slate-50 p-4 text-sm text-slate-700 ring-1 ring-slate-200" data-testid="upgrade-your-listing">
               <p className="flex items-center gap-2"><Sparkles className="h-4 w-4 shrink-0 text-sunset-500" aria-hidden /> Want to add more photos, list your services, or post more events? Optional upgrades are in your business dashboard.</p>
               <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
                 {upgradeable.map((b) => (
@@ -79,17 +85,6 @@ export default async function GetListedPage() {
               </ul>
             </div>
           )}
-
-          {/* Nonprofits and churches share one registration form (the type is chosen in the form). */}
-          <section aria-labelledby="list-org" className="rounded-3xl bg-white p-6 ring-1 ring-slate-200 sm:p-8" data-testid="get-listed-org">
-            <span className="flex gap-2" aria-hidden>
-              <span className="grid h-12 w-12 place-items-center rounded-xl bg-hillside-600 text-white"><HeartHandshake className="h-6 w-6" /></span>
-              <span className="grid h-12 w-12 place-items-center rounded-xl bg-hillside-600 text-white"><Church className="h-6 w-6" /></span>
-            </span>
-            <h2 id="list-org" className="mt-4 font-display text-2xl font-semibold text-navy-900">List Your Nonprofit or Church</h2>
-            <p className="mt-3 text-slate-700">Help residents find your organization, learn what you do, and get involved. Nonprofit and church listings are free too.</p>
-            <Link href="/gives/register/" className="btn-secondary mt-6 min-h-12 w-full px-6 text-base sm:w-auto" data-testid="list-org-button">List Your Nonprofit or Church</Link>
-          </section>
         </div>
       </div>
 

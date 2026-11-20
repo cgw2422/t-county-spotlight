@@ -138,6 +138,15 @@ async function main() {
   await runNewsletterMenuMigration(db);
   // One-time (marker "menuGetListed"): the seeded "Memberships" link (/memberships/, URL unchanged) → "Get Listed".
   await runGetListedMenuMigration(db);
+  // One-time (marker "contactEmailDefault"): the monitored contact address (used by the Privacy Policy, footer and
+  // "Email us" links) — only when no contact email has been set. Later changes in Admin → Settings always win.
+  if (!(await db.setting.findUnique({ where: { key: "contactEmailDefault" } }))) {
+    const current = await db.setting.findUnique({ where: { key: "contactEmail" } });
+    const empty = !current || typeof current.value !== "string" || !current.value.trim();
+    if (empty) await db.setting.upsert({ where: { key: "contactEmail" }, create: { key: "contactEmail", value: "info@tcountyconnect.com" }, update: { value: "info@tcountyconnect.com" } });
+    await db.setting.create({ data: { key: "contactEmailDefault", value: { at: new Date().toISOString(), set: empty } } });
+    console.log(`[settings] contact email ${empty ? "set to info@tcountyconnect.com" : "already set — unchanged"}`);
+  }
   // Proposed plans — inactive until the owner approves pricing in Admin → Memberships.
   const plans = [
     { slug: "free", name: "Free Listing", priceCents: 0, interval: "FREE" as const, sortOrder: 0, isActive: true,

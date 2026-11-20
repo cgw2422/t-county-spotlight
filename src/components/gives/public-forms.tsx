@@ -3,6 +3,7 @@ import { useActionState, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { FormMessage, type ActionState } from "@/components/ui/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { PrivacyPolicyLink } from "@/components/ui/privacy-link";
 import { CitySelect } from "@/components/admin/city-select";
 import { cn } from "@/lib/utils";
 import { KIND_LABEL, ORG_KINDS } from "@/lib/gives/constants";
@@ -139,7 +140,7 @@ export function RegisterOrgForm({ defaultKind, email }: { defaultKind: string; e
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field id="r-email" label="Organization email" error={fe.email}>
+        <Field id="r-email" label="Organization email" error={fe.email} hint="Shown on your public page so people can reach you. You can hide it later in your organization settings.">
           <input id="r-email" {...bind("email")} type="email" required maxLength={254} className={cn("input", fe.email && "border-red-400")} />
         </Field>
         <Field id="r-phone" label="Phone" optional error={fe.phone}>
@@ -161,6 +162,7 @@ export function RegisterOrgForm({ defaultKind, email }: { defaultKind: string; e
       </Field>
       <FormMessage state={state} />
       <SubmitButton className="btn-primary min-h-12 w-full text-base sm:w-auto" pendingText="Registering…">Register for free</SubmitButton>
+      <p className="text-xs text-slate-500">How we use your information: <PrivacyPolicyLink className="hover:text-brand-700" /></p>
     </form>
   );
 }
