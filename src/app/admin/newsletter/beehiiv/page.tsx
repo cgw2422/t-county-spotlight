@@ -30,7 +30,7 @@ export default async function BeehiivAdminPage() {
   const c = last?.counts;
   return (
     <>
-      <PageHeader title="beehiiv content sync" description={<>Imports live beehiiv posts: every public web post (Web only or Email and web) → Articles, no tag needed; posts tagged <code className={code}>{ARCHIVE_TAG}</code> → newsletter archive at /newsletter/ instead. Email-only, draft, scheduled and premium-only posts are skipped. Posts tagged <code className={code}>{ARTICLE_TAG}</code> before this change keep working. Runs hourly from the cron job and on demand.</>} />
+      <PageHeader title="beehiiv content sync" description={<>Imports live beehiiv posts: every public web post (Web only or Email and web) → Articles, no tag needed; posts tagged <code className={code}>{ARCHIVE_TAG}</code> → newsletter archive at /newsletter/ instead. Scheduled web posts are imported ahead of time and stay hidden until their send time. Email-only, draft and premium-only posts are skipped. To get an article&apos;s URL before sending, use <Link href="/admin/newsletter/article-link/" className="font-semibold text-brand-700 hover:underline">Article link</Link>. Posts tagged <code className={code}>{ARTICLE_TAG}</code> before this change keep working. Runs hourly from the cron job and on demand.</>} />
       {!configured && (
         <div className="mb-6"><Notice tone="warn" title="Sync is not configured">Set <code className={code}>BEEHIIV_API_KEY</code> ({env.apiKey ? "present" : "missing"}) and <code className={code}>BEEHIIV_PUBLICATION_ID</code> ({env.publicationId ? "present" : "missing"}) on the server. Until then the sync does nothing.</Notice></div>
       )}
@@ -54,6 +54,7 @@ export default async function BeehiivAdminPage() {
                   <div><dt className="text-xs text-slate-500">Articles updated</dt><dd className="font-semibold">{c.articlesUpdated}</dd></div>
                   <div><dt className="text-xs text-slate-500">Articles unpublished</dt><dd className="font-semibold">{c.articlesUnpublished}</dd></div>
                   <div><dt className="text-xs text-slate-500">Kept (edited here)</dt><dd className="font-semibold">{c.preservedLocalEdits}</dd></div>
+                  <div><dt className="text-xs text-slate-500">Scheduled ahead</dt><dd className="font-semibold">{c.articlesScheduled ?? 0}</dd></div>
                   <div><dt className="text-xs text-slate-500">Skipped</dt><dd className="font-semibold">{c.skipped}</dd></div>
                   <div><dt className="text-xs text-slate-500">Unchanged</dt><dd className="font-semibold">{c.issuesUnchanged + c.articlesUnchanged}</dd></div>
                 </dl>

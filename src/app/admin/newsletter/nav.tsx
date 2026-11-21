@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/admin/newsletter/suppressions/", label: "Suppression list" },
   { href: "/admin/newsletter/events/", label: "Newsletter Events" },
   { href: "/admin/newsletter/beehiiv/", label: "beehiiv" },
+  { href: "/admin/newsletter/article-link/", label: "Article link" },
   { href: "/admin/newsletter/settings/", label: "Settings" },
 ];
 

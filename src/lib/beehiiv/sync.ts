@@ -30,7 +30,9 @@ export type SyncCounts = {
   issuesCreated: number; issuesUpdated: number; issuesUnchanged: number; issuesHidden: number;
   articlesCreated: number; articlesUpdated: number; articlesUnchanged: number; articlesUnpublished: number;
   preservedLocalEdits: number;
-  /** confirmed but publish_date in the future, or not confirmed, or no content */
+  /** Scheduled posts imported (or refreshed) ahead of their send time — hidden on the site until then. */
+  articlesScheduled: number;
+  /** not confirmed, email-only, premium, a scheduled archive issue, or no content */
   skipped: number;
 };
 export type SyncResult = {
@@ -45,7 +47,7 @@ export type SyncResult = {
   errors: string[];
 };
 
-const zero = (): SyncCounts => ({ fetched: 0, issuesCreated: 0, issuesUpdated: 0, issuesUnchanged: 0, issuesHidden: 0, articlesCreated: 0, articlesUpdated: 0, articlesUnchanged: 0, articlesUnpublished: 0, preservedLocalEdits: 0, skipped: 0 });
+const zero = (): SyncCounts => ({ fetched: 0, issuesCreated: 0, issuesUpdated: 0, issuesUnchanged: 0, issuesHidden: 0, articlesCreated: 0, articlesUpdated: 0, articlesUnchanged: 0, articlesUnpublished: 0, preservedLocalEdits: 0, articlesScheduled: 0, skipped: 0 });
 
 export async function getLastSyncResult(): Promise<SyncResult | null> {
   const row = await db.setting.findUnique({ where: { key: RESULT_KEY } }).catch(() => null);
@@ -75,7 +77,12 @@ export function isLive(p: BeehiivPost, now = Date.now()) {
   return p.status === "confirmed" && typeof p.publish_date === "number" && p.publish_date > 0 && p.publish_date * 1000 <= now;
 }
 
-function hasTag(p: BeehiivPost, tag: string) {
+/** Confirmed (scheduled) in beehiiv with a send time still in the future. */
+export function isScheduled(p: BeehiivPost, now = Date.now()) {
+  return p.status === "confirmed" && typeof p.publish_date === "number" && p.publish_date * 1000 > now;
+}
+
+export function hasTag(p: BeehiivPost, tag: string) {
   return Array.isArray(p.content_tags) && p.content_tags.some((t) => String(t).trim().toLowerCase() === tag);
 }
 
@@ -98,8 +105,21 @@ function httpsUrl(u: string | null | undefined) {
   }
 }
 
+/** The slug an import starts from (before any -2, -3 suffix). Shared with the Article link tool. */
+export function importSlugRoot(base: string) {
+  return (slugify(base) || "issue").slice(0, 70);
+}
+
+/** Where the sync files a post (archive issue, article, or not imported) — the same rules the loop below applies. */
+export type PostRoute = "issue" | "article" | "email_only" | "premium";
+export function postRoute(p: BeehiivPost): PostRoute {
+  if (hasTag(p, ARCHIVE_TAG)) return "issue";
+  if (isPublicWebPost(p) || hasTag(p, ARTICLE_TAG)) return "article";
+  return String(p.audience ?? "").toLowerCase() === "premium" ? "premium" : "email_only";
+}
+
 async function uniqueSlug(base: string, taken: (slug: string) => Promise<boolean>, reserved = new Set<string>()) {
-  const root = (slugify(base) || "issue").slice(0, 70);
+  const root = importSlugRoot(base);
   for (let i = 1; i < 500; i++) {
     const s = i === 1 ? root : `${root}-${i}`;
     if (!reserved.has(s) && !(await taken(s))) return s;
@@ -145,11 +165,16 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
     }
     for (const p of posts) {
       c.fetched++;
-      if (!isLive(p, now)) { c.skipped++; continue; } // drafts, archived, scheduled-but-not-yet-live
+      const scheduled = isScheduled(p, now);
+      if (!isLive(p, now) && !scheduled) { c.skipped++; continue; } // drafts and archived posts
       const tags = new Set<string>();
-      if (hasTag(p, ARCHIVE_TAG)) tags.add(ARCHIVE_TAG); // newsletter issue → /newsletter/ only
-      else if (isPublicWebPost(p) || hasTag(p, ARTICLE_TAG)) tags.add(ARTICLE_TAG); // public web post (or legacy tag) → Articles
-      if (!tags.size) { c.skipped++; continue; } // email-only send or premium-gated → not imported
+      const route = postRoute(p);
+      // Archive issues are only imported once live. Scheduled ARTICLES are imported ahead of time with their
+      // send time as publishedAt: every public query hides them until then, so they go live exactly when the email sends.
+      if (route === "issue" && !scheduled) tags.add(ARCHIVE_TAG); // newsletter issue → /newsletter/ only
+      else if (route === "article") tags.add(ARTICLE_TAG); // public web post (or legacy tag) → Articles
+      if (!tags.size) { c.skipped++; continue; } // email-only send, premium-gated, or a not-yet-live archive issue
+      if (scheduled) c.articlesScheduled++;
       live.set(p.id, { post: p, tags });
     }
 
@@ -197,7 +222,7 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
     }
     result.status = result.errors.length && !complete ? "error" : "ok";
     result.message = complete
-      ? `Synced ${live.size} live post(s) from beehiiv.`
+      ? `Synced ${live.size} post(s) from beehiiv${c.articlesScheduled ? ` (${c.articlesScheduled} scheduled — hidden on the site until their send time)` : ""}.`
       : "The beehiiv sync didn't finish: see the errors below. Nothing was hidden or unpublished.";
   } catch (e) {
     result.status = "error";
@@ -232,10 +257,20 @@ async function upsertIssue(p: BeehiivPost, f: Fields & { webUrl: string | null }
   c.issuesCreated++;
 }
 
-async function upsertArticle(p: BeehiivPost, f: Fields, c: SyncCounts) {
+/** An article URL is taken when another article has that slug OR an imported legacy path equal to /articles/<slug>/ (any status, deleted too). */
+export async function articleSlugTaken(slug: string) {
+  return !!(await db.article.findFirst({ where: { OR: [{ slug }, { legacyPath: `/articles/${slug}/` }] }, select: { id: true } }));
+}
+
+export type ArticleUpsert = { outcome: "created" | "updated" | "unchanged" | "preserved"; articleId: string };
+/** Thrown when an exact-slug import (Article link tool) finds the slug taken: never fall back to a -2 URL there. */
+export class SlugTakenError extends Error {}
+
+async function upsertArticle(p: BeehiivPost, f: Fields, c: SyncCounts, opts: { exactSlug?: string } = {}): Promise<ArticleUpsert> {
+  // Dedupe strictly by beehiiv post id: a held URL (placeholder) or an earlier import is updated in place — never duplicated.
   const existing = await db.article.findUnique({ where: { beehiivPostId: p.id } });
   // Local edits win (same rule as the WordPress importer); deleted articles stay deleted.
-  if (existing && (existing.localEditedAt || existing.deletedAt)) { c.preservedLocalEdits++; return; }
+  if (existing && (existing.localEditedAt || existing.deletedAt)) { c.preservedLocalEdits++; return { outcome: "preserved", articleId: existing.id }; }
   const excerpt = f.subtitle || sanitizePlain(p.meta_default_description, 500) || sanitizePlain(p.preview_text, 500) || truncate(stripHtml(f.html), 280) || null;
   const data = {
     title: f.title.slice(0, 500), excerpt, content: f.html, status: "PUBLISHED" as const, publishedAt: f.publishedAt,
@@ -247,22 +282,65 @@ async function upsertArticle(p: BeehiivPost, f: Fields, c: SyncCounts) {
   if (existing) {
     const changed = existing.title !== data.title || existing.excerpt !== data.excerpt || existing.content !== data.content || existing.status !== "PUBLISHED"
       || existing.publishedAt?.getTime() !== data.publishedAt.getTime() || existing.featuredImageUrl !== data.featuredImageUrl || existing.beehiivContentSource !== data.beehiivContentSource;
-    if (!changed) { await db.article.update({ where: { id: existing.id }, data: { beehiivSyncedAt: f.syncedAt } }); c.articlesUnchanged++; return; }
+    if (!changed) { await db.article.update({ where: { id: existing.id }, data: { beehiivSyncedAt: f.syncedAt } }); c.articlesUnchanged++; return { outcome: "unchanged", articleId: existing.id }; }
     // Guarded: if someone saved the article while this ran, their edit wins.
     const n = await db.article.updateMany({ where: { id: existing.id, localEditedAt: null }, data: { ...data, beehiivSyncedAt: f.syncedAt } });
     if (n.count) c.articlesUpdated++;
     else c.preservedLocalEdits++;
-    return;
+    return { outcome: n.count ? "updated" : "preserved", articleId: existing.id };
   }
-  const slug = await uniqueSlug(p.slug || f.title, async (s) => !!(await db.article.findUnique({ where: { slug: s }, select: { id: true } })));
+  let slug: string;
+  if (opts.exactSlug) {
+    if (await articleSlugTaken(opts.exactSlug)) throw new SlugTakenError(opts.exactSlug);
+    slug = opts.exactSlug;
+  } else {
+    slug = await uniqueSlug(p.slug || f.title, articleSlugTaken);
+  }
   // New imports are filed under Newsletter. Later syncs never change categories, so a manual change sticks.
   const categoryId = await ensureNewsletterCategory();
   const a = await db.article.create({ data: { ...data, slug, kind: "GENERAL", beehiivPostId: p.id, beehiivSyncedAt: f.syncedAt, categories: { connect: { id: categoryId } } } });
   await audit(null, "beehiiv.article_imported", "Article", a.id, { title: a.title, beehiivPostId: p.id });
   c.articlesCreated++;
+  return { outcome: "created", articleId: a.id };
 }
 
 /** Cron entry: runs the sync at most once per CRON_INTERVAL_MS; silent no-op without env. Never throws. */
+/** Article fields for one post — the same preparation the sync loop uses. Null when there's no usable content. */
+export function articleFieldsFor(p: BeehiivPost, syncedAt = new Date()): Fields | null {
+  const content = prepareBeehiivContent(p.content?.free?.web, p.content?.free?.email);
+  if (!content) return null;
+  // Auto-imported articles use the public web version only; the email fallback is kept just for legacy-tagged posts.
+  if (content.source !== "web" && !hasTag(p, ARTICLE_TAG)) return null;
+  return {
+    title: sanitizePlain(p.title, 300) || "(untitled)", subtitle: sanitizePlain(p.subtitle, 500) || null,
+    publishedAt: new Date((p.publish_date as number) * 1000), thumbnailUrl: httpsUrl(p.thumbnail_url),
+    html: content.html, source: content.source, syncedAt,
+  };
+}
+
+/**
+ * Import ONE confirmed (live or scheduled) beehiiv post as an article now — the same upsert the sync runs.
+ * `exactSlug`: create only at that slug (refuse with SlugTakenError instead of a -2 URL).
+ */
+export async function importPostAsArticle(p: BeehiivPost, opts: { exactSlug?: string; now?: Date } = {}): Promise<ArticleUpsert> {
+  const now = (opts.now ?? new Date()).getTime();
+  if (!isLive(p, now) && !isScheduled(p, now)) throw new Error("This post isn't scheduled or published in beehiiv yet.");
+  if (postRoute(p) !== "article") throw new Error("This post isn't a public web post, so it doesn't become an article.");
+  const f = articleFieldsFor(p);
+  if (!f) throw new Error("This post has no web content in beehiiv yet.");
+  const c = zero();
+  try {
+    return await upsertArticle(p, f, c, { exactSlug: opts.exactSlug });
+  } catch (e) {
+    // A sync created the same post's article at the same moment (beehiivPostId is unique): update that one instead.
+    if ((e as { code?: string }).code === "P2002" && !(e instanceof SlugTakenError)) {
+      if (await db.article.findUnique({ where: { beehiivPostId: p.id }, select: { id: true } })) return upsertArticle(p, f, c);
+      if (opts.exactSlug) throw new SlugTakenError(opts.exactSlug);
+    }
+    throw e;
+  }
+}
+
 export async function maybeSyncBeehiivFromCron(now = new Date()) {
   try {
     if (!beehiivEnv()) return { skipped: "not configured" };

@@ -97,7 +97,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
                 </div>
               ),
             },
-            { header: "Status", cell: (r) => <StatusBadge status={r.status} /> },
+            { header: "Status", cell: (r) => r.status === "PUBLISHED" && r.publishedAt && new Date(r.publishedAt) > new Date() ? <StatusBadge status="SCHEDULED" label="Goes live later" /> : <StatusBadge status={r.status} /> },
             { header: "Categories", cell: (r) => <span className="text-slate-600">{r.categories.map((c) => c.name).join(", ") || "—"}</span>, hideOnMobile: true },
             { header: "Author", cell: (r) => <span className="text-slate-600">{r.authorName || "—"}</span>, hideOnMobile: true },
             {

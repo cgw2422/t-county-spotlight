@@ -95,6 +95,55 @@ export async function listConfirmedPosts(env: BeehiivEnv, tag: string | null, fe
   return out;
 }
 
+// ───────── Single-post lookups (Admin → Newsletter → Article link) ─────────
+//   GET /publications/{pub}/posts?slugs[]=<slug>&status=all   any status (draft, confirmed incl. scheduled, archived)
+//   GET /publications/{pub}/posts/{postId}                    one post, with free web/email content
+
+async function getJson<T>(env: BeehiivEnv, path: string, q: URLSearchParams, fetchImpl: typeof fetch): Promise<{ status: number; json: T | null }> {
+  const url = `${env.apiBase}/publications/${encodeURIComponent(env.publicationId)}${path}?${q.toString()}`;
+  let res: Response;
+  try {
+    res = await fetchImpl(url, { headers: { Authorization: `Bearer ${env.apiKey}`, Accept: "application/json", "User-Agent": "TCountyConnect-Sync/1.0" }, cache: "no-store", signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    throw new BeehiivError(`Network error contacting beehiiv (${(e as Error).name})`, 0);
+  }
+  if (res.status === 404) return { status: 404, json: null };
+  if (!res.ok) {
+    const hint = res.status === 401 || res.status === 403 ? " — check BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID" : res.status === 429 ? " — rate limited, try again later" : "";
+    throw new BeehiivError(`beehiiv API returned HTTP ${res.status}${hint}`, res.status);
+  }
+  return { status: res.status, json: (await res.json().catch(() => null)) as T | null };
+}
+
+const withContent = (q: URLSearchParams) => {
+  q.append("expand[]", "free_web_content");
+  q.append("expand[]", "free_email_content");
+  return q;
+};
+
+/**
+ * Posts that have `slug` (beehiiv also matches a post's earlier slugs), in any status. Current-slug matches first.
+ * Throws BeehiivError on HTTP/network failure.
+ */
+export async function findPostsBySlug(env: BeehiivEnv, slug: string, fetchImpl: typeof fetch = fetch): Promise<BeehiivPost[]> {
+  const q = withContent(new URLSearchParams());
+  q.append("slugs[]", slug);
+  q.set("status", "all");
+  q.set("limit", "10");
+  const { json } = await getJson<ListResponse>(env, "/posts", q, fetchImpl);
+  if (json === null) return [];
+  if (!Array.isArray(json.data)) throw new BeehiivError("beehiiv API returned an unexpected response", 200);
+  const posts = json.data.filter((p) => p && typeof p.id === "string" && p.id);
+  return [...posts.filter((p) => p.slug === slug), ...posts.filter((p) => p.slug !== slug)];
+}
+
+/** One post by id with its free content, or null when beehiiv says it doesn't exist. */
+export async function getPost(env: BeehiivEnv, postId: string, fetchImpl: typeof fetch = fetch): Promise<BeehiivPost | null> {
+  const { json } = await getJson<{ data?: BeehiivPost }>(env, `/posts/${encodeURIComponent(postId)}`, withContent(new URLSearchParams()), fetchImpl);
+  const p = json?.data;
+  return p && typeof p.id === "string" && p.id ? p : null;
+}
+
 // ───────── Subscriptions & publication (native signup form) ─────────
 //   POST /publications/{publicationId}/subscriptions                    create a subscription
 //   GET  /publications/{publicationId}                                  publication name (admin connection check)
