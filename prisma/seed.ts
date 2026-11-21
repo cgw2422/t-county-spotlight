@@ -10,7 +10,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { runBrandMigration, runNamingMigration } from "../src/lib/brand-migration";
 import { runDoubleEncodedRepair, runEntityRepair } from "../src/lib/data-repairs";
-import { GET_LISTED_LABEL, NEWSLETTER_MENU_ITEM, runGetListedMenuMigration, runNewsletterMenuMigration } from "../src/lib/menu-migrations";
+import { GET_LISTED_LABEL, NEWSLETTER_MENU_ITEM, runAddYourBusinessMenuMigration, runGetListedMenuMigration, runNewsletterMenuMigration } from "../src/lib/menu-migrations";
 import { runMembershipLimitsMigration } from "../src/lib/membership-migration";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
@@ -70,7 +70,7 @@ const MENU = [
   ["Things to Do", "/things-to-do/"], ["T County Gives", "/gives/"], ["Churches", "/churches/"], ["Jobs", "/jobs/"], ["Articles", "/articles/"],
 ];
 const FOOTER = [
-  ["List Your Business", "/list-your-business/"], [GET_LISTED_LABEL, "/memberships/"], ["Submit an Event", "/events/submit/"],
+  ["List Your Business", "/list-your-business/"], [GET_LISTED_LABEL, "/add-your-business/"], ["Recommend a Business", "/recommend-a-business/"], ["Submit an Event", "/events/submit/"],
   ["Business Spotlights", "/spotlights/"], [NEWSLETTER_MENU_ITEM.label, NEWSLETTER_MENU_ITEM.href], ["Search", "/search/"],
 ];
 /** Phone menu: the header links plus the newsletter signup (grouped under "Community" in the menu). */
@@ -138,6 +138,8 @@ async function main() {
   await runNewsletterMenuMigration(db);
   // One-time (marker "menuGetListed"): the seeded "Memberships" link (/memberships/, URL unchanged) → "Get Listed".
   await runGetListedMenuMigration(db);
+  // One-time (marker "menuAddYourBusiness"): /memberships/ links → /add-your-business/; footer "Recommend a Business".
+  await runAddYourBusinessMenuMigration(db);
   // One-time (marker "contactEmailDefault"): the monitored contact address (used by the Privacy Policy, footer and
   // "Email us" links) — only when no contact email has been set. Later changes in Admin → Settings always win.
   if (!(await db.setting.findUnique({ where: { key: "contactEmailDefault" } }))) {

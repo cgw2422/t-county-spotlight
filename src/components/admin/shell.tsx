@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { signOutAction } from "@/app/admin/_actions/common";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; adminOnly?: boolean; badge?: keyof Counts };
-type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number; submissions?: number; garageSales?: number; suggestions?: number };
+type Counts = { applications: number; events: number; specials: number; updates: number; articles: number; jobs: number; organizations: number; submissions?: number; garageSales?: number; suggestions?: number; businessLeads?: number };
 
 const NAV: { title: string; items: NavItem[] }[] = [
   { title: "Overview", items: [{ href: "/admin/", label: "Dashboard", icon: LayoutDashboard }, { href: "/admin/analytics/", label: "Community analytics", icon: BarChart3 }] },
@@ -43,9 +43,10 @@ const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/businesses/", label: "Businesses", icon: Store },
       { href: "/admin/applications/", label: "Applications", icon: ClipboardList, badge: "applications" },
+      { href: "/admin/business-recommendations/", label: "Business recommendations", icon: Lightbulb, badge: "businessLeads" },
       { href: "/admin/businesses/categories/", label: "Business categories", icon: Tags },
       { href: "/admin/updates/", label: "Business updates", icon: Megaphone, badge: "updates" },
-      { href: "/admin/recommendations/", label: "Recommendations", icon: ThumbsUp },
+      { href: "/admin/recommendations/", label: "Community recommendations", icon: ThumbsUp },
       { href: "/admin/jobs/", label: "Jobs", icon: Briefcase, badge: "jobs" },
     ],
   },

@@ -188,6 +188,8 @@ model Business {
   promotions    Promotion[]
   updates       BusinessUpdate[]
   recommendations BusinessRecommendation[]
+  /// "Recommend a Business" leads linked to this listing (resident suggestions of businesses to list).
+  businessLeads   BusinessLead[]
   followers     BusinessFollow[]
   subscriptions Subscription[]
   payments      Payment[]
@@ -1748,4 +1750,69 @@ model NewsletterIssue {
   updatedAt     DateTime  @updatedAt
 
   @@index([hidden, publishedAt])
+}
+
+
+/// "Recommend a Business" (/recommend-a-business/): residents suggest businesses that should be listed.
+/// Not the thumbs-up BusinessRecommendation (that's for listings that already exist).
+enum BusinessLeadStatus {
+  NEW
+  REVIEWING
+  CONTACTED
+  ADDED
+  DECLINED
+}
+
+/// One row per recommended business. Submissions for the same business (same normalized name + town, or the
+/// same website/Facebook page) are grouped here; every individual submission is kept in BusinessLeadSubmission.
+/// Never creates a public listing by itself — staff review it and link or create a listing.
+model BusinessLead {
+  id              String             @id @default(cuid())
+  /// normalized business name + "|" + normalized town (see src/lib/business-leads-shared.ts)
+  matchKey        String             @unique
+  /// normalized website host (or facebook.com/<page>) for grouping, when known
+  websiteKey      String?
+  name            String
+  city            String
+  website         String?
+  category        String?
+  status          BusinessLeadStatus @default(NEW)
+  /// Private staff notes — never shown publicly or to submitters
+  adminNotes      String?
+  businessId      String?
+  business        Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  /// true when the linked listing was created from this recommendation (vs linked to one that already existed)
+  createdFromLead Boolean            @default(false)
+  contactedAt     DateTime?
+  /// set while status is ADDED (the recommendation resulted in a listing in the directory)
+  addedAt         DateTime?
+  submissionCount Int                @default(0)
+  lastSubmittedAt DateTime           @default(now())
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  submissions     BusinessLeadSubmission[]
+
+  @@index([status, lastSubmittedAt])
+  @@index([websiteKey])
+  @@index([businessId])
+}
+
+/// One resident submission, exactly as entered (plain text). Contact details are optional and staff-only.
+model BusinessLeadSubmission {
+  id                 String       @id @default(cuid())
+  leadId             String
+  lead               BusinessLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  businessName       String
+  city               String
+  website            String?
+  category           String?
+  reason             String?
+  submitterFirstName String?
+  submitterEmail     String?
+  /// sha256(ip + server secret) — spam clustering only; the raw IP is never stored
+  ipHash             String?
+  createdAt          DateTime     @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([ipHash, createdAt])
 }

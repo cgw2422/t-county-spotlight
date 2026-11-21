@@ -1,4 +1,5 @@
 "use server";
+import { attachNewBusinessToLead } from "@/lib/business-leads";
 import { focusFromForm } from "@/lib/cover";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -110,7 +111,12 @@ export async function saveBusiness(_: ActionState, fd: FormData): Promise<Action
   revalidatePath("/admin/businesses");
   revalidatePath("/", "layout");
   if (!google.skip && google.changes) await audit(user.id, "business.google_listing", "Business", id, google.changes as Prisma.InputJsonValue);
-  if (!existing) redirect(`/admin/businesses/${id}/?created=1`);
+  if (!existing) {
+    // Created from a resident recommendation: link the recommendation (no owner account is created).
+    const fromLead = String(fd.get("fromLead") ?? "").slice(0, 60);
+    if (fromLead && id) await attachNewBusinessToLead(fromLead, { id, status: d.status }, user.id);
+    redirect(`/admin/businesses/${id}/?created=1${fromLead ? `&lead=${encodeURIComponent(fromLead)}` : ""}`);
+  }
   return { ok: true, message: !google.skip && google.note ? `Business saved. ${google.note}` : "Business saved." };
 }
 

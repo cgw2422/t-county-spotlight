@@ -15,7 +15,8 @@ export const DEFAULT_HEADER_NAV: NavItem[] = [
 export const DEFAULT_FOOTER_NAV: NavItem[] = [
   { label: "About", href: "/about" },
   { label: "List Your Business", href: "/list-your-business" },
-  { label: "Get Listed", href: "/memberships" },
+  { label: "Get Listed", href: "/add-your-business" },
+  { label: "Recommend a Business", href: "/recommend-a-business" },
   { label: "Submit an Event", href: "/events/submit" },
   { label: "Newsletter", href: "/subscribe" },
   { label: "Contact", href: "/contact" },

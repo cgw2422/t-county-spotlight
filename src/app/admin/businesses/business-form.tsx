@@ -51,19 +51,22 @@ function SpotlightPanel({ articles }: { articles: BusinessSpotlightArticle[] }) 
   );
 }
 
-export function BusinessForm({ b, categories, selectedCategoryIds = [], spotlightArticles = [] }: {
+export function BusinessForm({ b, categories, selectedCategoryIds = [], spotlightArticles = [], initial }: {
   b: (Business & { categoryIds?: string[] }) | null; categories: { id: string; name: string }[]; selectedCategoryIds?: string[];
   spotlightArticles?: BusinessSpotlightArticle[];
+  /** New listing prefilled from a resident recommendation (Admin → Business recommendations). Starts as a draft. */
+  initial?: { leadId: string; name: string; city: string | null; website: string | null };
 }) {
   const socials = (b?.socials ?? {}) as Record<string, string>;
   const imported = !!b?.wpId;
   return (
     <ActionForm action={saveBusiness} warnUnsaved className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       {b && <input type="hidden" name="id" value={b.id} />}
+      {!b && initial && <input type="hidden" name="fromLead" value={initial.leadId} />}
       <div className="min-w-0 space-y-6">
         <Card title="Basics">
           <div className="space-y-4">
-            <TextField name="name" label="Business name" required defaultValue={b?.name} maxLength={200} />
+            <TextField name="name" label="Business name" required defaultValue={b?.name ?? initial?.name} maxLength={200} />
             <FormGrid>
               <TextField name="slug" label="Slug" defaultValue={b?.slug} help={b ? `Public URL: /business/${b.slug}/` : "Leave blank to generate from the name."} pattern="[a-z0-9]+(-[a-z0-9]+)*" />
               <TextField name="tagline" label="Tagline" defaultValue={b?.tagline ?? ""} maxLength={200} placeholder="Family-owned bakery since 1952" />
@@ -86,10 +89,10 @@ export function BusinessForm({ b, categories, selectedCategoryIds = [], spotligh
           <div className="space-y-4">
             <TextField name="address" label="Street address" defaultValue={b?.address ?? ""} maxLength={300} />
             <FormGrid>
-              <CitySelect defaultValue={b?.city} />
+              <CitySelect defaultValue={b?.city ?? initial?.city} />
               <TextField name="zip" label="ZIP" defaultValue={b?.zip ?? ""} inputMode="numeric" maxLength={10} />
               <TextField name="phone" label="Phone" type="tel" defaultValue={b?.phone ?? ""} maxLength={40} />
-              <TextField name="website" label="Website" type="url" defaultValue={b?.website ?? ""} placeholder="https://" />
+              <TextField name="website" label="Website" type="url" defaultValue={b?.website ?? initial?.website ?? ""} placeholder="https://" />
               <TextField name="email" label="Email" type="email" defaultValue={b?.email ?? ""} />
               <div className="sm:pt-7"><Checkbox name="emailPublic" label="Show email publicly" defaultChecked={b?.emailPublic} help="Otherwise it's only used for admin contact." /></div>
             </FormGrid>
@@ -114,7 +117,7 @@ export function BusinessForm({ b, categories, selectedCategoryIds = [], spotligh
       <aside className="min-w-0 space-y-6 lg:sticky lg:top-20 lg:self-start">
         <Card title="Visibility">
           <div className="space-y-2">
-            <SelectField name="status" label="Status" defaultValue={b?.status ?? "PUBLISHED"} options={BUSINESS_STATUS_OPTIONS} />
+            <SelectField name="status" label="Status" defaultValue={b?.status ?? (initial ? "DRAFT" : "PUBLISHED")} options={BUSINESS_STATUS_OPTIONS} />
             <Checkbox name="isFeatured" label="Featured business" defaultChecked={b?.isFeatured} help="Eligible for featured directory spots." />
           </div>
           <div className="mt-3"><SpotlightPanel articles={spotlightArticles} /></div>

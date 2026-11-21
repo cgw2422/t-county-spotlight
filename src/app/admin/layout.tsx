@@ -24,6 +24,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ]);
   const garageSales = await db.garageSale.count({ where: { status: "PENDING" } });
   const suggestions = await db.communitySuggestion.count({ where: { status: "PENDING" } });
+  // New "Recommend a Business" submissions awaiting review (own badge; not part of the submissions queue).
+  const businessLeads = await db.businessLead.count({ where: { status: "NEW" } });
   // Community submissions queue badge: everything awaiting review (see /admin/submissions/).
   const submissions = applications + events + specials + updates + articles + jobs + organizations + garageSales + suggestions;
   return (
@@ -33,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       siteName={settings.siteName}
       logoUrl={brand.logoWhiteSmall}
       logoOnDark
-      counts={{ applications, events, specials, updates, articles, jobs, organizations, submissions, garageSales, suggestions }}
+      counts={{ applications, events, specials, updates, articles, jobs, organizations, submissions, garageSales, suggestions, businessLeads }}
     >
       {children}
       <Toaster />

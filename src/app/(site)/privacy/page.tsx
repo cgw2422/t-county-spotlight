@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /** Publication date of this version of the policy. Update it whenever the wording below changes. */
-const LAST_UPDATED = "November 20, 2026";
+const LAST_UPDATED = "November 21, 2026";
 /** Monitored privacy contact; Admin → Settings → Contact email overrides it when set. */
 const PRIVACY_CONTACT_FALLBACK = "info@tcountyconnect.com";
 
@@ -51,7 +51,8 @@ export default async function PrivacyPage() {
             <li><strong>Create an account:</strong> your name, email address and password (stored only in scrambled, hashed form). If you use My T County, we also keep your chosen communities and interests, and the things you save or follow.</li>
             <li><strong>Apply for or claim a listing:</strong> your name and email, and the business or organization details you enter. If you need to sign in partway through an application, we hold what you&apos;ve typed (never your password) for up to 2 hours so you don&apos;t lose it.</li>
             <li><strong>Submit something:</strong> an event, a garage sale, a suggestion, a pledge or a volunteer sign-up, including any photos you upload.</li>
-            <li><strong>Recommend a business</strong> or <strong>subscribe to the newsletter</strong>.</li>
+            <li><strong>Recommend a business we should list:</strong> the business details you enter, and your first name and email only if you choose to give them.</li>
+            <li><strong>Give a listed business a thumbs-up</strong> or <strong>subscribe to the newsletter</strong>.</li>
           </ul>
           <p>We use this information to run the site, review submissions, manage accounts and listings, send the emails you ask for, and respond to you.</p>
 
@@ -64,7 +65,8 @@ export default async function PrivacyPage() {
             <li><strong>Garage sales:</strong> the sale details, with either the exact address or only the general area, whichever you choose. Your name and email stay private.</li>
             <li><strong>Suggestions (&ldquo;Share something&rdquo;):</strong> these aren&apos;t published as submitted. Our team may use the details to create a listing or post. Your name and email stay private.</li>
             <li><strong>Pledges and volunteer sign-ups:</strong> not shown publicly. Your name, email, phone and message are sent to the organization you&apos;re helping.</li>
-            <li><strong>Business recommendations:</strong> only the total number of recommendations is shown. Business owners see the count, not who recommended them. Our staff can see who made a recommendation, to keep recommendations genuine.</li>
+            <li><strong>&ldquo;Recommend a Business&rdquo; submissions:</strong> not published. Our team uses them to look into the business and invite it to join. Your first name and email are optional, private, and used only to follow up with you about that recommendation. Submitting one doesn&apos;t sign you up for the newsletter.</li>
+            <li><strong>Thumbs-up recommendations of listed businesses:</strong> only the total number of recommendations is shown. Business owners see the count, not who recommended them. Our staff can see who made a recommendation, to keep recommendations genuine.</li>
           </ul>
 
           <h2 id="newsletter">Newsletter</h2>
@@ -96,7 +98,7 @@ export default async function PrivacyPage() {
               day, we store a one-way code made from your IP address, browser and the date, not your IP address itself. If your browser sends Global Privacy
               Control or Do Not Track, we don&apos;t record these counts.
             </li>
-            <li><strong>Preventing abuse:</strong> we use IP addresses briefly to limit repeated sign-in attempts and form submissions, and we keep a one-way code of the IP address with each business recommendation.</li>
+            <li><strong>Preventing abuse:</strong> we use IP addresses briefly to limit repeated sign-in attempts and form submissions, and we keep a one-way code of the IP address with each recommendation.</li>
           </ul>
 
           <h2 id="service-providers">Service providers and other services</h2>

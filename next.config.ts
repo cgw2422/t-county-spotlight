@@ -47,6 +47,8 @@ const nextConfig: NextConfig = {
       { source: "/newsletter/subscribe", destination: "/subscribe/", permanent: true },
       // The imported WordPress privacy page (and its old-domain redirect) now point at the current policy.
       { source: "/privacy-policy", destination: "/privacy/", permanent: true },
+      // The Get Listed page moved; a true 301 (not 308) as requested. Query strings are kept.
+      { source: "/memberships", destination: "/add-your-business/", statusCode: 301 as const },
       ...REDIRECT_HOSTS.flatMap((host) => [
       { source: "/", has: [{ type: "host" as const, value: host }], destination: `https://${CANONICAL_HOST}/`, statusCode: 301 as const },
       { source: "/:path((?!api/).+)", has: [{ type: "host" as const, value: host }], destination: `https://${CANONICAL_HOST}/:path`, statusCode: 301 as const },

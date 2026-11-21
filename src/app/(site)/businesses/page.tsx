@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Store, X } from "lucide-react";
+import { Lightbulb, Plus, Store, X } from "lucide-react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { businessCardSelect, getActivePlacements, getBusinessesByRecommendations, publicBusinessWhere } from "@/lib/queries";
@@ -201,6 +201,17 @@ export default async function BusinessesPage({ searchParams }: { searchParams: S
             )}
 
             <Pagination page={page} totalPages={totalPages} hrefFor={(p) => href({ page: p })} />
+
+            <section aria-labelledby="recommend-cta" className="mt-10 flex flex-col items-start gap-4 rounded-2xl bg-hillside-50 p-5 ring-1 ring-hillside-200 sm:flex-row sm:items-center sm:justify-between sm:p-6" data-testid="directory-recommend">
+              <div className="flex gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-hillside-600 text-white"><Lightbulb className="h-5 w-5" aria-hidden /></span>
+                <div>
+                  <h2 id="recommend-cta" className="font-display text-lg font-bold text-navy-900">Don&apos;t See Your Favorite Local Business?</h2>
+                  <p className="mt-0.5 text-sm text-slate-700">Help us make T County Connect better! Recommend a business you&apos;d love to see listed.</p>
+                </div>
+              </div>
+              <Link href="/recommend-a-business/" className="btn-primary min-h-11 w-full shrink-0 sm:w-auto">Recommend a Business</Link>
+            </section>
           </div>
         </div>
       </div>

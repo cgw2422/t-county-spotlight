@@ -42,7 +42,7 @@ export type ImportOptions = {
 /** App routes that exist besides imported content (for the broken-link check). */
 const APP_ROUTES = new Set([
   "/articles/", "/businesses/", "/events/", "/specials/", "/jobs/", "/spotlights/", "/things-to-do/", "/search/",
-  "/login/", "/register/", "/signup/", "/account/", "/dashboard/", "/memberships/", "/list-your-business/",
+  "/login/", "/register/", "/signup/", "/account/", "/dashboard/", "/memberships/", "/add-your-business/", "/recommend-a-business/", "/list-your-business/",
   "/privacy/", "/terms/", "/admin/", "/events/submit/",
 ]);
 const APP_ROUTE_PREFIXES = ["/articles/", "/businesses/", "/events/", "/specials/", "/jobs/", "/media/", "/admin/", "/dashboard/", "/account/"];

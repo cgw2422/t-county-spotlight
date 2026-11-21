@@ -11,13 +11,13 @@ export const metadata: Metadata = { title: "Choose a listing to upgrade" };
 export const dynamic = "force-dynamic";
 
 /**
- * Stable "upgrade" link (used by /memberships/): goes to the Membership tab of the owner's approved listing.
+ * Stable "upgrade" link (used by /add-your-business/): goes to the Membership tab of the owner's approved listing.
  * Several approved listings → the owner chooses (we never guess). None → back to the public page (free listing).
  */
 export default async function MembershipShortcut() {
   const user = await requireUser("/dashboard/membership/");
   const listings = await getUpgradeableListings(user.id);
-  if (listings.length === 0) redirect("/memberships/");
+  if (listings.length === 0) redirect("/add-your-business/");
   if (listings.length === 1) redirect(membershipTabPath(listings[0].id));
   return (
     <PlainShell>

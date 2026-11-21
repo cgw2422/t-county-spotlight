@@ -1,8 +1,9 @@
 import Link from "next/link";
 import {
   Store, FileText, FilePen, ClipboardList, CalendarDays, CalendarClock, BadgePercent, Hourglass, Users, CreditCard,
-  Plus, Activity, BarChart3,
+  Plus, Activity, BarChart3, Inbox, Lightbulb, PhoneCall, CheckCircle2,
 } from "lucide-react";
+import { leadStats } from "@/lib/business-leads";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { upcomingEventWhere } from "@/lib/events";
@@ -37,7 +38,7 @@ export default async function AdminDashboard() {
   const activeSub = { status: { in: ["ACTIVE", "TRIALING"] as ("ACTIVE" | "TRIALING")[] }, OR: [{ currentPeriodEnd: null }, { currentPeriodEnd: { gte: now } }] };
   const [
     businesses, published, drafts, scheduled, pendingArticles, applications, upcomingEvents, pendingEvents, activePromos, pendingPromos, users,
-    paidSubs, compSubs, engagement, activity,
+    paidSubs, compSubs, engagement, activity, leads,
   ] = await Promise.all([
     db.business.count({ where: { deletedAt: null } }),
     db.article.count({ where: { status: "PUBLISHED", deletedAt: null } }),
@@ -54,6 +55,7 @@ export default async function AdminDashboard() {
     db.subscription.count({ where: { ...activeSub, source: "manual" } }),
     db.engagementEvent.groupBy({ by: ["type"], where: { createdAt: { gte: since } }, _count: { _all: true } }),
     db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 12, include: { user: { select: { name: true, email: true } } } }),
+    leadStats(),
   ]);
   const engagementTotal = engagement.reduce((n, e) => n + e._count._all, 0);
   const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/New_York" }).format(now));
@@ -74,8 +76,9 @@ export default async function AdminDashboard() {
         }
       />
 
-      {(applications > 0 || pendingEvents > 0 || pendingPromos > 0 || pendingArticles > 0) && (
+      {(applications > 0 || pendingEvents > 0 || pendingPromos > 0 || pendingArticles > 0 || leads.awaiting > 0) && (
         <div className="mb-6 flex flex-wrap gap-2">
+          {leads.awaiting > 0 && <Link href="/admin/business-recommendations/?status=new" className="badge-amber min-h-9 px-3 text-sm" data-testid="dashboard-new-leads">{leads.awaiting} new business recommendation{leads.awaiting === 1 ? "" : "s"} →</Link>}
           {applications > 0 && <Link href="/admin/applications/" className="badge-amber min-h-9 px-3 text-sm">{applications} business application{applications === 1 ? "" : "s"} to review →</Link>}
           {pendingEvents > 0 && <Link href="/admin/events/?tab=pending" className="badge-amber min-h-9 px-3 text-sm">{pendingEvents} event submission{pendingEvents === 1 ? "" : "s"} to review →</Link>}
           {pendingPromos > 0 && <Link href="/admin/specials/?status=PENDING" className="badge-amber min-h-9 px-3 text-sm">{pendingPromos} special{pendingPromos === 1 ? "" : "s"} awaiting approval →</Link>}
@@ -96,6 +99,19 @@ export default async function AdminDashboard() {
         <StatCard label="Active paid memberships" value={paidSubs} icon={CreditCard} href={user.role === "ADMIN" ? "/admin/memberships/?tab=subscriptions" : undefined} tone="green" hint={compSubs ? `+ ${compSubs} complimentary` : undefined} />
       </div>
       <GivesAdminStats />
+
+      <section aria-labelledby="lead-stats-title" className="mt-6">
+        <h2 id="lead-stats-title" className="mb-3 flex items-center justify-between text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Businesses residents recommended <Link href="/admin/business-recommendations/" className="text-xs normal-case tracking-normal text-brand-700 hover:underline">View all →</Link>
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5" data-testid="dashboard-lead-stats">
+          <StatCard label="Recommendations received" value={leads.total} icon={Inbox} href="/admin/business-recommendations/" />
+          <StatCard label="Unique businesses" value={leads.unique} icon={Store} tone="navy" />
+          <StatCard label="New — awaiting review" value={leads.awaiting} icon={Lightbulb} tone="amber" href="/admin/business-recommendations/?status=new" />
+          <StatCard label="Businesses contacted" value={leads.contacted} icon={PhoneCall} tone="orange" />
+          <StatCard label="Added to the directory" value={leads.added} icon={CheckCircle2} tone="green" href="/admin/business-recommendations/?status=added" />
+        </div>
+      </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3" title="Recent activity" description="Latest changes recorded in the audit log" actions={user.role === "ADMIN" ? <Link href="/admin/audit/" className="text-sm font-semibold text-brand-700 hover:underline">View all</Link> : undefined} bodyClassName="p-0">

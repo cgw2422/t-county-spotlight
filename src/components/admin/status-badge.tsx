@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 
 const TONES: Record<string, string> = {
+  // Business recommendations (Recommend a Business)
+  NEW: "badge-amber", REVIEWING: "badge-blue", CONTACTED: "badge-blue", ADDED: "badge-green", DECLINED: "badge-gray",
   PUBLISHED: "badge-green", ACTIVE: "badge-green", APPROVED: "badge-green", Active: "badge-green", TRIALING: "badge-green", paid: "badge-green", succeeded: "badge-green",
   DRAFT: "badge-gray", UNPUBLISHED: "badge-gray", ARCHIVED: "badge-gray", Draft: "badge-gray", Unpublished: "badge-gray", Expired: "badge-gray", CANCELED: "badge-gray", INCOMPLETE: "badge-gray", Hidden: "badge-gray",
   PENDING: "badge-amber", "Pending approval": "badge-amber", PAST_DUE: "badge-amber", open: "badge-amber",

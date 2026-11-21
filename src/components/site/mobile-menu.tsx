@@ -13,7 +13,7 @@ const noopSubscribe = () => () => {};
 // `order` sets the display order within a section (first path segment); others follow in menu order.
 const GROUPS: { title: string; order: string[] }[] = [
   { title: "Happening now", order: ["events", "specials", "things-to-do", "food-trucks", "garage-sales"] },
-  { title: "Local", order: ["businesses", "jobs", "new", "communities", "explore", "memberships"] },
+  { title: "Local", order: ["businesses", "jobs", "new", "communities", "explore", "add-your-business", "recommend-a-business"] },
   { title: "Community", order: ["articles", "gives", "churches", "community-pulse", "organizations", "announcements", "spotlights", "subscribe", "newsletter"] },
 ];
 const segment = (href: string) => href.replace(/^\/+/, "").split(/[/?#]/)[0];
