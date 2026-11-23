@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { href: "/admin/newsletter/", label: "Overview", exact: true },
+  { href: "/admin/newsletter/designer/", label: "Designer" },
   { href: "/admin/newsletter/subscribers/", label: "Subscribers" },
   { href: "/admin/newsletter/campaigns/", label: "Campaigns" },
   { href: "/admin/newsletter/suppressions/", label: "Suppression list" },

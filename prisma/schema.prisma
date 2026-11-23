@@ -1834,3 +1834,29 @@ model WeatherForecast {
 
   @@index([createdAt])
 }
+
+/// Newsletter designer (Admin → Newsletter → Designer): one issue built in T County Connect and sent to beehiiv as
+/// a DRAFT. beehiiv stays the sender (subscribers, ads, analytics). Not shown on the public site.
+model NewsletterDesign {
+  id               String    @id @default(cuid())
+  /// beehiiv post title (email subject)
+  title            String
+  /// beehiiv subtitle (preview text)
+  previewText      String?
+  issueNumber      Int?
+  issueDate        DateTime
+  /// Sections and their settings (see src/lib/newsletter-designer/types.ts)
+  content          Json
+  createdById      String?
+  updatedById      String?
+  duplicatedFromId String?
+  /// none | pending | created | unknown | failed — the last "Send to beehiiv" attempt
+  beehiivStatus    String    @default("none")
+  beehiivPostId    String?
+  beehiivMessage   String?
+  beehiivSentAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([updatedAt])
+}
