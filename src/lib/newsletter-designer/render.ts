@@ -242,9 +242,21 @@ function featuredHtml(s: Extract<Section, { type: "featured" }>, ctx: RenderCont
   );
 }
 
+/** Formatted text from older drafts → plain text with paragraph breaks kept. */
+export function toPlainText(s: string | null | undefined): string {
+  const v = String(s ?? "");
+  if (!/<[a-z!/]/i.test(v)) return v.replace(/\r\n/g, "\n");
+  return decode(v.replace(/<(script|style|iframe|noscript)\b[\s\S]*?<\/\1\s*>/gi, "").replace(/<\/(p|li|h[1-6]|div)>/gi, "\n\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, ""))
+    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/**
+ * A story's text in the email: exactly what you wrote, in full, with your paragraph breaks (blank line = new
+ * paragraph). Picking an article fills this in with a 2–3 sentence excerpt that you can keep, edit or extend.
+ */
 const excerptHtml = (d: string, size: number, color: string) => {
-  const e = excerpt(d);
-  return e ? `<p style="margin:10px 0 0;${BODY}font-size:${size}px;line-height:1.6;color:${color};">${esc(e)}</p>` : "";
+  const paras = toPlainText(d).trim().split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  return paras.map((p, i) => `<p style="margin:${i === 0 ? "10px" : "12px"} 0 0;${BODY}font-size:${size}px;line-height:1.6;color:${color};">${text(p)}</p>`).join("");
 };
 
 /** One story: full-width image, headline, short excerpt, Read more — a single column that reads well on phones. */

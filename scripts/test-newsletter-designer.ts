@@ -52,7 +52,7 @@ async function main() {
     assert.match(doc, /Issue #004/); assert.match(doc, /Monday, November 23, 2026/);
     assert.ok(doc.includes("Main &lt;Story&gt; &amp; More") && !doc.includes("<Story>"));
     assert.ok(doc.includes('src="https://tcountyconnect.com/media/hero.jpg"') && doc.includes('href="https://tcountyconnect.com/articles/main/"'));
-    assert.ok(doc.includes("Line one Line two"), "article description shown as a clean excerpt");
+    assert.ok(doc.includes("Line one<br>Line two"), "story text shown in full as written, line breaks kept");
     assert.ok(!/<style|<link|<script|javascript:/i.test(doc));
     assert.ok(!doc.includes("Preview <text>"), "preview text escaped");
   });
@@ -126,8 +126,8 @@ async function main() {
     const f = c.sections.find((x) => x.type === "featured") as { story: unknown };
     f.story = { id: "x1", articleId: null, title: "Rich", description: "<h2>Sub head</h2><p>Para <a href=\"https://x.org\" onclick=\"y()\">link</a></p><ul><li>One</li><li>Two</li></ul><script>bad()</script>", imageUrl: "", url: "https://tcountyconnect.com/a/" };
     const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
-    // Article cards show a clean excerpt (no formatting, never the full text)…
-    assert.ok(d.includes("Para link One Two") && !d.includes("Sub head"), "excerpt: text only, headings left out");
+    // Story text is shown in full as plain paragraphs (formatting from older drafts removed, text kept)…
+    assert.ok(d.includes("Sub head") && d.includes("Para link") && !d.includes("<strong style=\"font-weight:700;\">Sub head"));
     assert.ok(!/onclick|<script|bad\(\)/.test(d));
     // …while events, spotlight and custom text keep their formatting.
     const ev = c.sections.find((x) => x.type === "events") as { items: unknown[] };
@@ -153,7 +153,15 @@ async function main() {
     const saved = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: c });
     assert.ok(saved.success, saved.success ? "" : JSON.stringify(saved.error.issues[0]));
   });
-  test("excerpts: 2–3 clean sentences, generated from long text, never the full article", () => {
+  test("your story text appears in full with paragraphs (no shortening)", () => {
+    const c = structuredClone(content);
+    const long = "As the winter light fades, a quiet glow will fill one of Ohio's most storied historic sites. New Philadelphia residents are invited to a free candlelight service at 2 p.m. Bring a friend. Dress warmly.\n\nMark your calendars for 2 p.m. and join neighbors at Schoenbrunn Village for this special free event. It's a lovely way to spend an afternoon and connect with the community.";
+    (c.sections.find((x) => x.type === "articles") as { items: { description: string }[] }).items[0].description = long;
+    const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
+    assert.ok(d.includes("Dress warmly.") && d.includes("connect with the community."), "every sentence kept");
+    assert.ok(/Dress warmly\.<\/p><p style="margin:12px 0 0;[^"]*">Mark your calendars/.test(d), "blank line → new paragraph");
+  });
+  test("auto excerpts for picked articles: 2–3 clean sentences, generated from long text", () => {
     assert.equal(r.excerpt("One. Two! Three? Four. Five."), "One. Two! Three?");
     assert.equal(r.excerpt("<h2>The story</h2><p>A new bakery opened. It sells bread. Owners are local. More later.</p>"), "A new bakery opened. It sells bread. Owners are local.", "headings never leak into excerpts");
     assert.equal(r.excerpt("<p>Hello <b>there</b>.</p><p>Second &amp; last.</p>"), "Hello there. Second & last.");

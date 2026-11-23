@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { MediaField } from "@/components/admin/media-picker";
 import { cn } from "@/lib/utils";
-import { designWarnings, excerpt, renderEmailDocument, tocOutline, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
+import { designWarnings, renderEmailDocument, tocOutline, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
 const toPlain = (s: string) => (/<[a-z]/i.test(s) ? s.replace(/<\/(p|li)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim() : s);
@@ -141,6 +141,18 @@ function PollPicker({ onPick }: { onPick: (p: PickedPoll) => void }) {
   );
 }
 
+/** A textarea that grows with its content (no scrollbar inside the box). */
+function AutoTextarea({ value, onChange, testId, minRows = 3 }: { value: string; onChange: (v: string) => void; testId?: string; minRows?: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }, [value]);
+  return <textarea ref={ref} className={cn(input, "resize-none overflow-hidden")} rows={minRows} value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId} />;
+}
+
 // ───────────── item editors ─────────────
 
 
@@ -148,12 +160,9 @@ function StoryFields({ item, onChange, field }: { item: StoryItem; onChange: (s:
   return (
     <div className="space-y-3">
       <F label="Headline"><input className={input} value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} data-testid={`${field}-title`} /></F>
-      <F label="Short excerpt (2–3 sentences)" hint="Articles never appear in full: readers get this excerpt and a Read More link to TCountyConnect.com.">
-        <textarea className={input} rows={3} value={toPlain(item.description)} onChange={(e) => onChange({ ...item, description: e.target.value })} data-testid={`${field}-excerpt`} />
+      <F label="Story text" hint={item.articleId ? "Starts with a 2–3 sentence excerpt from the article. Everything you write here appears in the email, followed by a Read More link." : "Everything you write here appears in the email, followed by a Read More link. Leave a blank line between paragraphs."}>
+        <AutoTextarea value={toPlain(item.description)} onChange={(v) => onChange({ ...item, description: v })} testId={`${field}-excerpt`} />
       </F>
-      {excerpt(item.description) && excerpt(item.description) !== toPlain(item.description).replace(/\s+/g, " ").trim() && (
-        <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600" data-testid={`${field}-excerpt-preview`}>In the email: “{excerpt(item.description)}”</p>
-      )}
       <F label="Link (Read More)" hint={item.articleId ? "Linked to the T County Connect article. Edits here only change the newsletter." : undefined}><input className={input} value={item.url} placeholder="https://" onChange={(e) => onChange({ ...item, url: e.target.value })} data-testid={`${field}-url`} /></F>
       <MediaField key={`${item.id}:${item.imageUrl}`} name={`img-${item.id}`} label="Image" defaultValue={item.imageUrl} onChange={(u) => onChange({ ...item, imageUrl: u })} />
     </div>
@@ -224,8 +233,8 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
         <div className="space-y-3">
           <F label="Section label"><input className={input} value={s.heading} onChange={(e) => update({ ...s, heading: e.target.value })} /></F>
           <F label="Short intro (optional)" hint="For example: “This one’s from a reader in Dover.”"><input className={input} value={s.intro} onChange={(e) => update({ ...s, intro: e.target.value })} data-testid="joke-intro" /></F>
-          <F label="Setup"><textarea className={input} rows={2} value={s.setup} onChange={(e) => update({ ...s, setup: e.target.value })} data-testid="joke-setup" /></F>
-          <F label="Punchline"><textarea className={input} rows={2} value={s.punchline} onChange={(e) => update({ ...s, punchline: e.target.value })} data-testid="joke-punchline" /></F>
+          <F label="Setup"><AutoTextarea minRows={2} value={s.setup} onChange={(v) => update({ ...s, setup: v })} testId="joke-setup" /></F>
+          <F label="Punchline"><AutoTextarea minRows={2} value={s.punchline} onChange={(v) => update({ ...s, punchline: v })} testId="joke-punchline" /></F>
         </div>
       );
     case "poll":
