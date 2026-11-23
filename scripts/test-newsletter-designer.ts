@@ -110,6 +110,52 @@ async function main() {
     assert.equal(st.imageUrl, ""); assert.equal(st.url, ""); assert.ok(!st.title.includes("<"));
     assert.ok(!designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "not-a-date", content: t.defaultContent() }).success);
   });
+  test("no content limits: long text and many items are kept in full", () => {
+    const long = "Word ".repeat(4000).trim(); // ~20,000 characters
+    const c = t.defaultContent();
+    const arts = c.sections.find((x) => x.type === "articles") as { items: unknown[] };
+    arts.items = Array.from({ length: 150 }, (_, i) => ({ id: `a${i}`, articleId: null, title: `Story ${i} ${"long title ".repeat(30)}`, description: long, imageUrl: "", url: "https://tcountyconnect.com/" }));
+    const r3 = designInput.safeParse({ title: "T".repeat(500), previewText: "P".repeat(900), issueNumber: 1, issueDate: "2026-11-23", content: c });
+    assert.ok(r3.success, r3.success ? "" : JSON.stringify(r3.error.issues[0]));
+    const items = (r3.data.content.sections.find((x) => x.type === "articles") as { items: { description: string; title: string }[] }).items;
+    assert.equal(items.length, 150); assert.equal(items[0].description, long); assert.ok(items[0].title.length > 300);
+    assert.equal(r3.data.title.length, 500); assert.equal(r3.data.previewText.length, 900);
+  });
+  test("rich text in stories, events, spotlight, promo: lists and headings kept safely; plain text still works", () => {
+    const c = t.defaultContent();
+    const f = c.sections.find((x) => x.type === "featured") as { story: unknown };
+    f.story = { id: "x1", articleId: null, title: "Rich", description: "<h2>Sub head</h2><p>Para <a href=\"https://x.org\" onclick=\"y()\">link</a></p><ul><li>One</li><li>Two</li></ul><script>bad()</script>", imageUrl: "", url: "https://tcountyconnect.com/a/" };
+    const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
+    assert.ok(d.includes("<strong style=\"font-weight:700;\">Sub head</strong>"));
+    assert.ok(/<ul style="[^"]*"><li style="[^"]*">One<\/li>/.test(d));
+    assert.ok(!/onclick|<script|bad\(\)/.test(d));
+    assert.equal(r.toEditorHtml("Line A\nLine B\n\nPara 2"), "<p>Line A<br>Line B</p><p>Para 2</p>");
+    assert.equal(r.toEditorHtml("<p>x</p>"), "<p>x</p>");
+  });
+  test("custom sections: any number, heading/title/text/image/button, in editor order", () => {
+    const c = t.defaultContent();
+    const a = t.newSection("custom") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "custom" }>;
+    Object.assign(a, { heading: "Community News", title: "Library Hours Change", html: "<p>New <strong>winter</strong> hours.</p>", imageUrl: "https://tcountyconnect.com/media/lib.jpg", ctaLabel: "See hours", ctaUrl: "https://example.org/hours" });
+    const b2 = t.newSection("custom") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "custom" }>;
+    Object.assign(b2, { title: "Second custom", html: "Plain text\nwith a break" });
+    c.sections.unshift(a); c.sections.push(b2, t.newSection("featured"), t.newSection("sponsor"));
+    const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
+    assert.ok(d.includes("Community News") && d.includes("Library Hours Change") && d.includes("<strong style=\"font-weight:700;\">winter</strong>"));
+    assert.ok(d.includes("https://example.org/hours") && d.includes("See hours &rarr;"));
+    assert.ok(d.indexOf("Issue #004") < d.indexOf("Library Hours Change") && d.indexOf("Library Hours Change") < d.indexOf("Hi neighbors"), "masthead, then the custom section moved to the top, then the intro");
+    assert.ok(d.includes("Plain text<br>with a break"));
+    const blocks = beehiivBlocks({ ...meta, content: c }, ctx, "rss") as Record<string, unknown>[];
+    assert.equal(blocks.filter((x) => x.type === "paragraph").length, 2, "two sponsor slots");
+    const saved = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: c });
+    assert.ok(saved.success, saved.success ? "" : JSON.stringify(saved.error.issues[0]));
+  });
+  test("Gmail clipping warning for very large issues (nothing is cut)", () => {
+    const c = t.defaultContent();
+    (c.sections.find((x) => x.type === "intro") as { html: string }).html = `<p>${"Long letter. ".repeat(9000)}</p>`;
+    const w = r.designWarnings({ ...meta, content: c }, ctx);
+    assert.ok(w.some((x) => /Gmail clips emails over about 102 KB/.test(x)));
+    assert.ok(r.renderEmailDocument({ ...meta, content: c }, ctx).length > 100_000, "content not truncated");
+  });
   console.log(results.join("\n"));
   console.log(failed ? `${failed} FAILED` : `ALL ${results.length} PASS`);
   process.exit(failed ? 1 : 0);

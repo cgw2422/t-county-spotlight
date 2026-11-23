@@ -14,7 +14,7 @@ import { beehiivEditUrl, buildDraftPostBody, createDraftPost, getPostState, list
 import { getTemplateId } from "@/lib/newsletter-events";
 import { getCurrentForecast } from "@/lib/weather/forecast";
 import { dayLine, forecastImagePath, forecastTitle, NWS_FORECAST_PAGE, WEATHER_FEED_PATH } from "@/lib/weather/shared";
-import { renderSegments, sanitizeIntroHtml, type DesignMeta, type RenderContext } from "./render";
+import { isRich, renderSegments, sanitizeIntroHtml, type DesignMeta, type RenderContext } from "./render";
 import { defaultContent, type DesignContent } from "./types";
 
 // ───────────── render context ─────────────
@@ -41,9 +41,15 @@ export async function designRenderContext(opts: { preview?: boolean } = {}): Pro
 }
 
 // ───────────── validation (everything saved is plain text, sanitized rich text or http(s) URLs) ─────────────
+// No editorial limits on length or number of items: the ceilings below only stop runaway/abusive payloads
+// (a single issue would be far past Gmail's ~102 KB clipping point long before reaching them).
 
-const str = (max: number) => z.string().max(max * 4).transform((v) => sanitizePlain(v, max));
-const multiline = (max: number) => z.string().max(max * 4).transform((v) => v.replace(/<[^>]*>/g, "").replace(/\r\n/g, "\n").slice(0, max).trim());
+const LINE = 2_000;      // headings, titles, names, labels
+const TEXT = 100_000;    // any text body
+const ITEMS = 500;       // stories / events per section
+const str = (max = LINE) => z.string().max(max * 4).transform((v) => sanitizePlain(v, max));
+/** Rich (editor HTML → allowlist-sanitized) or plain text (newlines kept). */
+const rich = (max = TEXT) => z.string().max(max * 2).transform((v) => (isRich(v) ? sanitizeIntroHtml(v).slice(0, max) : v.replace(/<[^>]*>/g, "").replace(/\r\n/g, "\n").slice(0, max).trim()));
 const url = z.string().max(2000).transform((v) => {
   const t = v.trim();
   if (!t) return "";
@@ -51,25 +57,26 @@ const url = z.string().max(2000).transform((v) => {
   try { const u = new URL(t); return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : ""; } catch { return ""; }
 });
 const id = z.string().max(40).regex(/^[a-z0-9]+$/i);
-const story = z.object({ id, articleId: z.string().max(40).nullish(), title: str(200), description: multiline(600), imageUrl: url, url });
-const event = z.object({ id, title: str(160), date: z.string().max(10).regex(/^(\d{4}-\d{2}-\d{2})?$/), time: str(60), location: str(160), description: multiline(500), imageUrl: url, url });
-const business = z.object({ businessId: z.string().max(40).nullish(), name: str(160), imageUrl: url, text: multiline(700), url });
+const story = z.object({ id, articleId: z.string().max(40).nullish(), title: str(), description: rich(), imageUrl: url, url });
+const event = z.object({ id, title: str(), date: z.string().max(10).regex(/^(\d{4}-\d{2}-\d{2})?$/), time: str(), location: str(), description: rich(), imageUrl: url, url });
+const business = z.object({ businessId: z.string().max(40).nullish(), name: str(), imageUrl: url, text: rich(), url });
 const base = { id, enabled: z.boolean() };
 const section = z.discriminatedUnion("type", [
-  z.object({ ...base, type: z.literal("intro"), heading: str(140), html: z.string().max(20000), signature: str(120) }),
-  z.object({ ...base, type: z.literal("featured"), heading: str(80), story: story.nullable(), ctaLabel: str(40) }),
+  z.object({ ...base, type: z.literal("intro"), heading: str(), html: z.string().max(TEXT * 2), signature: str() }),
+  z.object({ ...base, type: z.literal("featured"), heading: str(), story: story.nullable(), ctaLabel: str() }),
   z.object({ ...base, type: z.literal("sponsor") }),
-  z.object({ ...base, type: z.literal("weather"), heading: str(80) }),
-  z.object({ ...base, type: z.literal("events"), heading: str(80), items: z.array(event).max(30) }),
-  z.object({ ...base, type: z.literal("articles"), heading: str(80), items: z.array(story).max(20) }),
-  z.object({ ...base, type: z.literal("spotlight"), heading: str(80), business: business.nullable() }),
-  z.object({ ...base, type: z.literal("promo"), heading: str(140), text: multiline(600), ctaLabel: str(60), ctaUrl: url }),
+  z.object({ ...base, type: z.literal("weather"), heading: str() }),
+  z.object({ ...base, type: z.literal("events"), heading: str(), items: z.array(event).max(ITEMS) }),
+  z.object({ ...base, type: z.literal("articles"), heading: str(), items: z.array(story).max(ITEMS) }),
+  z.object({ ...base, type: z.literal("spotlight"), heading: str(), business: business.nullable() }),
+  z.object({ ...base, type: z.literal("promo"), heading: str(), text: rich(), ctaLabel: str(), ctaUrl: url }),
+  z.object({ ...base, type: z.literal("custom"), heading: str(), title: str(), html: rich(), imageUrl: url, imageLink: url, ctaLabel: str(), ctaUrl: url }),
 ]);
-const contentSchema = z.object({ version: z.literal(1), sections: z.array(section).max(20) });
+const contentSchema = z.object({ version: z.literal(1), sections: z.array(section).max(200) });
 
 export const designInput = z.object({
-  title: str(150),
-  previewText: z.string().max(800).nullish().transform((v) => sanitizePlain(v ?? "", 200)),
+  title: str(),
+  previewText: z.string().max(LINE * 4).nullish().transform((v) => sanitizePlain(v ?? "", LINE)),
   issueNumber: z.union([z.number().int().min(1).max(99999), z.null()]),
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   content: contentSchema,
@@ -111,10 +118,18 @@ export async function searchArticles(q: string): Promise<PickedStory[]> {
   });
   return rows.map((a) => ({
     articleId: a.id, title: sanitizePlain(a.title, 200),
-    description: truncate(sanitizePlain(a.excerpt, 600) || stripHtml(a.content ?? ""), 240),
+    // The full excerpt (no cut-off); articles without one start with the opening of the story — "Use full
+    // article text" in the editor brings in the whole thing.
+    description: sanitizePlain(a.excerpt, TEXT) || truncate(stripHtml(a.content ?? ""), 600),
     imageUrl: a.featuredImageUrl ? absoluteUrl(a.featuredImageUrl) : "",
     url: absoluteUrl(articleHref(a)), publishedAt: a.publishedAt?.toISOString() ?? null,
   }));
+}
+
+/** The whole article body as editor-ready rich text (paragraphs, bold, links, lists; headings become bold lines). */
+export async function articleFullText(articleId: string): Promise<string | null> {
+  const a = await db.article.findFirst({ where: publishedArticleWhere({ id: articleId.slice(0, 40) }), select: { content: true } });
+  return a ? sanitizeIntroHtml(a.content ?? "", absoluteUrl("/").replace(/\/$/, "")) : null;
 }
 
 export type PickedBusiness = { businessId: string; name: string; imageUrl: string; text: string; url: string; city: string | null };
@@ -129,7 +144,7 @@ export async function searchBusinesses(q: string): Promise<PickedBusiness[]> {
   return rows.map((b) => ({
     businessId: b.id, name: sanitizePlain(b.name, 160), city: b.city,
     imageUrl: b.coverUrl ? absoluteUrl(b.coverUrl) : b.logoUrl ? absoluteUrl(b.logoUrl) : "",
-    text: truncate(sanitizePlain(b.tagline, 300) || stripHtml(b.description ?? ""), 400),
+    text: sanitizePlain(b.tagline, TEXT) || stripHtml(b.description ?? "").slice(0, TEXT),
     url: absoluteUrl(businessHref(b)),
   }));
 }

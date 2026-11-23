@@ -52,14 +52,16 @@ export function safeUrl(u: string | null | undefined, siteUrl: string): string {
 
 // ───────────── rich text (personal introduction) ─────────────
 
-const ALLOWED = new Set(["p", "br", "strong", "b", "em", "i", "a", "u"]);
+const ALLOWED = new Set(["p", "br", "strong", "b", "em", "i", "a", "u", "ul", "ol", "li"]);
+const HEADINGS = /^h[1-6]$/;
 
 /**
- * Allowlist sanitizer for the introduction editor: <p>, <br>, bold, italic, underline and http(s)/mailto links.
+ * Allowlist sanitizer for rich text: <p>, <br>, bold, italic, underline, lists and http(s)/mailto links (headings
+ * become bold paragraphs).
  * Scripts, styles, comments, attributes and every other tag are removed; stray "<"/">" in text are escaped.
  */
 export function sanitizeIntroHtml(html: string | null | undefined, siteUrl = "https://tcountyconnect.com"): string {
-  let s = String(html ?? "").slice(0, 20000);
+  let s = String(html ?? "").slice(0, 200_000);
   s = s.replace(/<!--[\s\S]*?-->/g, "").replace(/<(script|style|iframe|object|embed|template|svg|math)\b[\s\S]*?<\/\1\s*>/gi, "");
   const out: string[] = [];
   const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b([^<>]*)>/g;
@@ -74,6 +76,7 @@ export function sanitizeIntroHtml(html: string | null | undefined, siteUrl = "ht
     if (tag === "div") tag = "p";
     if (tag === "b") tag = "strong";
     if (tag === "i") tag = "em";
+    if (HEADINGS.test(tag)) { out.push(closing ? "</strong></p>" : "<p><strong>"); continue; }
     if (!ALLOWED.has(tag)) continue;
     if (tag === "br") { if (!closing) out.push("<br>"); continue; }
     if (closing) { out.push(`</${tag}>`); continue; }
@@ -93,14 +96,42 @@ export function sanitizeIntroHtml(html: string | null | undefined, siteUrl = "ht
     .trim();
 }
 
-/** Adds email-safe inline styles to sanitized intro HTML. */
-function styleIntro(html: string) {
-  const body = html.trim().startsWith("<p>") ? html : `<p>${html}</p>`;
+/** True when a stored text field holds editor formatting (HTML) rather than plain text. */
+export const isRich = (s: string | null | undefined) => /<(p|br|strong|em|u|a|ul|ol|li)\b/i.test(String(s ?? ""));
+
+/** Plain text → editor HTML (blank lines become paragraphs, single newlines <br>), so old values open nicely. */
+export function toEditorHtml(s: string | null | undefined): string {
+  const v = String(s ?? "");
+  if (!v.trim() || isRich(v)) return v;
+  return v.trim().split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
+}
+
+type Tone = { size: number; color: string; link: string; gap?: number };
+
+/** Adds email-safe inline styles to sanitized rich HTML. */
+function styleRich(html: string, t: Tone) {
+  const gap = t.gap ?? 14;
+  const body = /^\s*<(p|ul|ol)>/.test(html) ? html : `<p>${html}</p>`;
+  const p = `margin:0 0 ${gap}px;${BODY}font-size:${t.size}px;line-height:1.65;color:${t.color};`;
   return body
-    .replace(/<p>/g, `<p style="margin:0 0 14px;${BODY}font-size:16px;line-height:1.65;color:${C.text};">`)
-    .replace(/<a href=/g, `<a style="color:${C.green};text-decoration:underline;font-weight:600;" href=`)
+    .replace(/<p>/g, `<p style="${p}">`)
+    .replace(/<(ul|ol)>/g, `<$1 style="margin:0 0 ${gap}px;padding:0 0 0 22px;${BODY}font-size:${t.size}px;line-height:1.65;color:${t.color};">`)
+    .replace(/<li>/g, '<li style="margin:0 0 6px;">')
+    .replace(/<a href=/g, `<a style="color:${t.link};text-decoration:underline;font-weight:600;" href=`)
     .replace(/<strong>/g, '<strong style="font-weight:700;">');
 }
+
+/** A text field as email HTML: rich (sanitized + styled) or plain (escaped, line breaks kept). */
+function body(s: string | null | undefined, t: Tone, siteUrl: string, margin = "10px 0 0") {
+  const v = String(s ?? "");
+  if (!v.trim()) return "";
+  if (isRich(v)) {
+    const clean = sanitizeIntroHtml(v, siteUrl);
+    return clean ? `<div style="margin:${margin};">${styleRich(clean, { ...t, gap: t.gap ?? 12 })}</div>` : "";
+  }
+  return `<p style="margin:${margin};${BODY}font-size:${t.size}px;line-height:1.6;color:${t.color};">${text(v)}</p>`;
+}
+const styleIntro = (html: string) => styleRich(html, { size: 16, color: C.text, link: C.green });
 
 // ───────────── building blocks ─────────────
 
@@ -175,7 +206,7 @@ function featuredHtml(s: Extract<Section, { type: "featured" }>, ctx: RenderCont
   return sectionLabel(s.heading) + wrap(
     (image ? `<div style="margin:0 0 16px;">${image}</div>` : "") +
     `<div>${headline(st.title, href, 26)}</div>` +
-    (st.description.trim() ? `<p style="margin:10px 0 0;${BODY}font-size:16px;line-height:1.6;color:${C.text};">${text(st.description)}</p>` : "") +
+    body(st.description, { size: 16, color: C.text, link: C.green }, ctx.siteUrl) +
     button(s.ctaLabel, href),
   );
 }
@@ -187,7 +218,7 @@ function storyRow(st: StoryItem, ctx: RenderContext, first: boolean) {
   return `<table ${TABLE}><tr><td style="padding:${first ? "0" : "16px"} 0 16px;${first ? "" : `border-top:1px solid ${C.line};`}">` +
     `<table ${TABLE}><tr>${thumb}<td valign="top">` +
     `<div>${headline(st.title, href, 17)}</div>` +
-    (st.description.trim() ? `<p style="margin:6px 0 0;${BODY}font-size:14px;line-height:1.55;color:${C.muted};">${text(st.description)}</p>` : "") +
+    body(st.description, { size: 14, color: C.muted, link: C.green, gap: 8 }, ctx.siteUrl, "6px 0 0") +
     (href ? `<p style="margin:8px 0 0;${BODY}font-size:14px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Read more &rarr;</a></p>` : "") +
     `</td></tr></table></td></tr></table>`;
 }
@@ -213,7 +244,7 @@ function eventRow(e: EventItem, ctx: RenderContext, first: boolean) {
     `<div>${headline(e.title, href, 17)}</div>` +
     (meta ? `<p style="margin:5px 0 0;${BODY}font-size:13px;line-height:1.5;color:${C.muted};font-weight:600;">${meta}</p>` : "") +
     (src ? `<div style="margin:10px 0 0;">${img(src, e.title, href, 420, 6)}</div>` : "") +
-    (e.description.trim() ? `<p style="margin:8px 0 0;${BODY}font-size:14px;line-height:1.55;color:${C.text};">${text(e.description)}</p>` : "") +
+    body(e.description, { size: 14, color: C.text, link: C.green, gap: 8 }, ctx.siteUrl, "8px 0 0") +
     (href ? `<p style="margin:8px 0 0;${BODY}font-size:14px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">More info &rarr;</a></p>` : "") +
     `</td></tr></table></td></tr></table>`;
 }
@@ -232,7 +263,7 @@ function spotlightHtml(s: Extract<Section, { type: "spotlight" }>, ctx: RenderCo
   return sectionLabel(s.heading) + `<table ${TABLE}><tr><td style="background:${C.offWhite};border-radius:10px;padding:20px;">` +
     (src ? `<div style="margin:0 0 14px;">${img(src, b.name, href, 560, 8)}</div>` : "") +
     `<div>${headline(b.name, href, 21)}</div>` +
-    (b.text.trim() ? `<p style="margin:8px 0 0;${BODY}font-size:15px;line-height:1.6;color:${C.text};">${text(b.text)}</p>` : "") +
+    body(b.text, { size: 15, color: C.text, link: C.green }, ctx.siteUrl, "8px 0 0") +
     (href ? `<p style="margin:12px 0 0;${BODY}font-size:15px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Visit ${esc(b.name)} &rarr;</a></p>` : "") +
     `</td></tr></table>`;
 }
@@ -242,9 +273,22 @@ function promoHtml(s: Extract<Section, { type: "promo" }>, ctx: RenderContext) {
   const href = safeUrl(s.ctaUrl, ctx.siteUrl);
   return `<table ${TABLE}><tr><td style="padding:30px 0 0;"><table ${TABLE}><tr><td align="center" style="background:${C.navy};border-radius:10px;padding:28px 24px;">` +
     (s.heading.trim() ? `<div style="${HEAD}font-size:22px;line-height:1.3;color:#FFFFFF;">${esc(s.heading)}</div>` : "") +
-    (s.text.trim() ? `<p style="margin:10px 0 0;${BODY}font-size:15px;line-height:1.6;color:#D5DCE6;">${text(s.text)}</p>` : "") +
+    body(s.text, { size: 15, color: "#D5DCE6", link: "#FFFFFF" }, ctx.siteUrl) +
     (href ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:separate;margin:18px auto 0;"><tr><td style="background:${C.orange};border-radius:6px;"><a href="${esc(href)}" style="display:inline-block;padding:12px 22px;${HEAD}font-size:15px;line-height:18px;color:${C.navy};text-decoration:none;">${esc(s.ctaLabel || "Visit TCountyConnect.com")}</a></td></tr></table>` : "") +
     `</td></tr></table></td></tr></table>`;
+}
+
+function customHtml(s: Extract<Section, { type: "custom" }>, ctx: RenderContext) {
+  const src = safeUrl(s.imageUrl, ctx.siteUrl);
+  const imgHref = safeUrl(s.imageLink, ctx.siteUrl);
+  const cta = safeUrl(s.ctaUrl, ctx.siteUrl);
+  const inner =
+    (src ? `<div style="margin:0 0 16px;">${img(src, s.title || s.heading, imgHref, 600)}</div>` : "") +
+    (s.title.trim() ? `<div>${headline(s.title, imgHref || cta, 22)}</div>` : "") +
+    body(s.html, { size: 16, color: C.text, link: C.green }, ctx.siteUrl, s.title.trim() ? "10px 0 0" : "0") +
+    (cta ? button(s.ctaLabel || "Learn more", cta) : "");
+  if (!inner) return "";
+  return sectionLabel(s.heading) + wrap(inner, s.heading.trim() ? "0" : "26px 0 0");
 }
 
 function weatherSnapshot(ctx: RenderContext) {
@@ -281,6 +325,7 @@ export function renderSegments(m: DesignMeta, ctx: RenderContext): Segment[] {
       case "events": buf += eventsHtml(s, ctx); break;
       case "spotlight": buf += spotlightHtml(s, ctx); break;
       case "promo": buf += promoHtml(s, ctx); break;
+      case "custom": buf += customHtml(s, ctx); break;
       case "sponsor": flush(); segs.push({ kind: "sponsor" }); break;
       case "weather": flush(); segs.push({ kind: "weather", headingHtml: sectionLabel(s.heading), snapshotHtml: weatherSnapshot(ctx) }); break;
     }
@@ -311,8 +356,13 @@ export function renderEmailDocument(m: DesignMeta, ctx: RenderContext): string {
 }
 
 /** Things to check before sending (shown in the editor). */
+/** Gmail shows "[Message clipped]" for emails over ~102 KB; beehiiv's own template adds some markup too. */
+export const GMAIL_CLIP_WARN_BYTES = 85_000;
+
 export function designWarnings(m: DesignMeta, ctx: RenderContext): string[] {
   const w: string[] = [];
+  const bytes = new TextEncoder().encode(renderEmailDocument(m, { ...ctx, preview: false })).length;
+  if (bytes > GMAIL_CLIP_WARN_BYTES) w.push(`This issue is about ${Math.round(bytes / 1024)} KB. Gmail clips emails over about 102 KB (readers then tap “View entire message”). Nothing is cut here — consider linking long stories to the website.`);
   if (!m.title.trim()) w.push("Add an email subject (the beehiiv title).");
   for (const s of m.content.sections) {
     if (!s.enabled) continue;

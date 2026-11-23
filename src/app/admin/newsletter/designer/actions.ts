@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { defaultContent, uid } from "@/lib/newsletter-designer/types";
 import {
-  checkDesignInBeehiiv, cleanContent, designInput, nextIssueNumber, readContent, searchArticles, searchBusinesses, sendDesignToBeehiiv,
+  articleFullText, checkDesignInBeehiiv, cleanContent, designInput, nextIssueNumber, readContent, searchArticles, searchBusinesses, sendDesignToBeehiiv,
   type PickedBusiness, type PickedStory, type SendResult, type WeatherMode,
 } from "@/lib/newsletter-designer/server";
 import type { Prisma } from "@/generated/prisma/client";
@@ -82,6 +82,11 @@ export async function saveDesignAction(id: string, payload: unknown): Promise<Sa
 export async function searchArticlesAction(q: string): Promise<PickedStory[]> {
   await requireAdmin();
   return searchArticles(String(q ?? ""));
+}
+
+export async function articleFullTextAction(articleId: string): Promise<string | null> {
+  await requireAdmin();
+  return articleFullText(String(articleId ?? ""));
 }
 
 export async function searchBusinessesAction(q: string): Promise<PickedBusiness[]> {
