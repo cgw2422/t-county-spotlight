@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { Bold, Italic, Link2, Link2Off, List, ListOrdered } from "lucide-react";
-import { toEditorHtml } from "@/lib/newsletter-designer/render";
+import { plainToHtml, sanitizeIntroHtml, toEditorHtml } from "@/lib/newsletter-designer/render";
 
 /**
  * Minimal rich-text editor for the personal introduction: paragraphs, bold, italic and links. Pasted content is
  * inserted as plain text; the saved HTML is sanitized again on the server (allowlist) before it's used.
  */
-export function RichText({ value, onChange, label, minHeight = "min-h-40" }: { value: string; onChange: (html: string) => void; label: string; minHeight?: string }) {
+export function RichText({ value, onChange, label, minHeight = "min-h-40", testId = "rich-editor" }: { value: string; onChange: (html: string) => void; label: string; minHeight?: string; testId?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const last = useRef(value);
   useEffect(() => {
@@ -49,12 +49,20 @@ export function RichText({ value, onChange, label, minHeight = "min-h-40" }: { v
         aria-label={label}
         contentEditable
         suppressContentEditableWarning
-        data-testid="rich-editor"
+        data-testid={testId}
         className={`${minHeight} px-4 py-3 text-[15px] leading-relaxed text-slate-800 outline-none [&_a]:text-brand-700 [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6`}
         onFocus={() => document.execCommand("defaultParagraphSeparator", false, "p")}
         onInput={emit}
         onBlur={emit}
-        onPaste={(e) => { e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain")); emit(); }}
+        onPaste={(e) => {
+          // Keep links, bold, italic and lists from pasted web content (cleaned to the same allowlist); plain text
+          // becomes paragraphs, "* " lines become a list and web addresses become links.
+          e.preventDefault();
+          const html = e.clipboardData.getData("text/html");
+          const cleaned = html ? sanitizeIntroHtml(html) : "";
+          document.execCommand("insertHTML", false, cleaned.replace(/<[^>]+>/g, "").trim() ? cleaned : plainToHtml(e.clipboardData.getData("text/plain")));
+          emit();
+        }}
       />
     </div>
   );

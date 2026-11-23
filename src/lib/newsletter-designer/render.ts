@@ -47,6 +47,46 @@ export const esc = (s: string | null | undefined) =>
 /** Plain text with line breaks kept. */
 const text = (s: string | null | undefined) => esc(s).replace(/\r?\n/g, "<br>");
 
+/** Turns bare web addresses in already-escaped text into links (trailing punctuation stays outside the link). */
+export function linkify(escaped: string): string {
+  return escaped.replace(/\bhttps?:\/\/[^\s<>"]+/g, (m) => {
+    const trail = /[.,;:!?)\]'’”]+$/.exec(m)?.[0] ?? "";
+    const url = trail ? m.slice(0, -trail.length) : m;
+    return `<a href="${url}">${url}</a>${trail}`;
+  });
+}
+
+/** Links bare URLs in sanitized HTML, leaving existing links and tags alone. */
+const linkifyHtml = (html: string) => html.split(/(<a\b[\s\S]*?<\/a>|<[^>]+>)/).map((part) => (part.startsWith("<") ? part : linkify(part))).join("");
+
+const BULLET = /^\s*(?:[*•\-–]|\d+[.)])\s+/;
+
+/**
+ * Plain text → editor HTML: each line becomes a paragraph, lines starting with "*", "-", "•" (or "1.") become
+ * a bulleted (or numbered) list, and web addresses become links. Used for pasting and for older plain drafts.
+ */
+export function plainToHtml(input: string): string {
+  const lines = String(input ?? "").replace(/\r\n?/g, "\n").split("\n");
+  const out: string[] = [];
+  let list: { tag: "ul" | "ol"; items: string[] } | null = null;
+  const flush = () => { if (list) out.push(`<${list.tag}>${list.items.map((i) => `<li>${i}</li>`).join("")}</${list.tag}>`); list = null; };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flush(); continue; }
+    const b = BULLET.exec(line);
+    if (b) {
+      const tag = /\d/.test(b[0]) ? "ol" : "ul";
+      if (!list || list.tag !== tag) { flush(); list = { tag, items: [] }; }
+      list.items.push(linkify(esc(line.slice(b[0].length))));
+      continue;
+    }
+    flush();
+    out.push(`<p>${linkify(esc(line))}</p>`);
+  }
+  flush();
+  return out.join("");
+}
+
 /** http(s) or mailto only; site-relative paths become absolute. Anything else → "". */
 export function safeUrl(u: string | null | undefined, siteUrl: string): string {
   const v = String(u ?? "").trim();
@@ -114,7 +154,7 @@ export const isRich = (s: string | null | undefined) => /<(p|br|strong|em|u|a|ul
 export function toEditorHtml(s: string | null | undefined): string {
   const v = String(s ?? "");
   if (!v.trim() || isRich(v)) return v;
-  return v.trim().split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
+  return plainToHtml(v);
 }
 
 const decode = (s: string) => s.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
@@ -158,9 +198,9 @@ function body(s: string | null | undefined, t: Tone, siteUrl: string, margin = "
   if (!v.trim()) return "";
   if (isRich(v)) {
     const clean = sanitizeIntroHtml(v, siteUrl);
-    return clean ? `<div style="margin:${margin};">${styleRich(clean, { ...t, gap: t.gap ?? 12 })}</div>` : "";
+    return clean ? `<div style="margin:${margin};">${styleRich(linkifyHtml(clean), { ...t, gap: t.gap ?? 12 })}</div>` : "";
   }
-  return `<p style="margin:${margin};${BODY}font-size:${t.size}px;line-height:1.6;color:${t.color};">${text(v)}</p>`;
+  return `<p style="margin:${margin};${BODY}font-size:${t.size}px;line-height:1.6;color:${t.color};">${linkify(text(v))}</p>`;
 }
 const styleIntro = (html: string) => styleRich(html, { size: 16, color: C.text, link: C.green });
 
@@ -237,7 +277,7 @@ function featuredHtml(s: Extract<Section, { type: "featured" }>, ctx: RenderCont
   return sectionLabel(s.heading) + wrap(
     (image ? `<div style="margin:0 0 16px;">${image}</div>` : "") +
     `<div>${headline(st.title, href, 26)}</div>` +
-    excerptHtml(st.description, 16, C.text) +
+    excerptHtml(st.description, 16, C.text, ctx.siteUrl) +
     button(s.ctaLabel, href),
   );
 }
@@ -254,9 +294,10 @@ export function toPlainText(s: string | null | undefined): string {
  * A story's text in the email: exactly what you wrote, in full, with your paragraph breaks (blank line = new
  * paragraph). Picking an article fills this in with a 2–3 sentence excerpt that you can keep, edit or extend.
  */
-const excerptHtml = (d: string, size: number, color: string) => {
+const excerptHtml = (d: string, size: number, color: string, siteUrl = "https://tcountyconnect.com") => {
+  if (isRich(d)) return body(d, { size, color, link: C.green, gap: 12 }, siteUrl, "10px 0 0");
   const paras = toPlainText(d).trim().split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
-  return paras.map((p, i) => `<p style="margin:${i === 0 ? "10px" : "12px"} 0 0;${BODY}font-size:${size}px;line-height:1.6;color:${color};">${text(p)}</p>`).join("");
+  return paras.map((p, i) => `<p style="margin:${i === 0 ? "10px" : "12px"} 0 0;${BODY}font-size:${size}px;line-height:1.6;color:${color};">${linkify(text(p))}</p>`).join("");
 };
 
 /** One story: full-width image, headline, short excerpt, Read more — a single column that reads well on phones. */
@@ -266,7 +307,7 @@ function storyRow(st: StoryItem, ctx: RenderContext, first: boolean) {
   return `<table ${TABLE}><tr><td style="padding:${first ? "0" : "22px"} 0 22px;${first ? "" : `border-top:1px solid ${C.line};`}">` +
     (src ? `<div style="margin:0 0 14px;">${img(src, st.title, href, 600, 8)}</div>` : "") +
     `<div>${headline(st.title, href, 19)}</div>` +
-    excerptHtml(st.description, 15, C.muted) +
+    excerptHtml(st.description, 15, C.text, ctx.siteUrl) +
     (href ? `<p style="margin:10px 0 0;${BODY}font-size:15px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Read more &rarr;</a></p>` : "") +
     `</td></tr></table>`;
 }

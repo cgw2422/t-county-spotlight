@@ -126,14 +126,14 @@ async function main() {
     const f = c.sections.find((x) => x.type === "featured") as { story: unknown };
     f.story = { id: "x1", articleId: null, title: "Rich", description: "<h2>Sub head</h2><p>Para <a href=\"https://x.org\" onclick=\"y()\">link</a></p><ul><li>One</li><li>Two</li></ul><script>bad()</script>", imageUrl: "", url: "https://tcountyconnect.com/a/" };
     const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
-    // Story text is shown in full as plain paragraphs (formatting from older drafts removed, text kept)…
-    assert.ok(d.includes("Sub head") && d.includes("Para link") && !d.includes("<strong style=\"font-weight:700;\">Sub head"));
+    // Story text keeps its formatting (headings become bold lines, links kept, unsafe parts removed)…
+    assert.ok(d.includes("<strong style=\"font-weight:700;\">Sub head") && /href="https:\/\/x\.org\/?"[^>]*>link<\/a>/.test(d));
     assert.ok(!/onclick|<script|bad\(\)/.test(d));
-    // …while events, spotlight and custom text keep their formatting.
+    // …and so do events, spotlight and custom text.
     const ev = c.sections.find((x) => x.type === "events") as { items: unknown[] };
     ev.items = [{ id: "e9", title: "Fair", date: "2026-12-05", time: "", location: "", description: "<ul><li>One</li><li>Two</li></ul>", imageUrl: "", url: "" }];
     assert.ok(/<ul style="[^"]*"><li style="[^"]*">One<\/li>/.test(r.renderEmailDocument({ ...meta, content: c }, ctx)));
-    assert.equal(r.toEditorHtml("Line A\nLine B\n\nPara 2"), "<p>Line A<br>Line B</p><p>Para 2</p>");
+    assert.equal(r.toEditorHtml("Line A\nLine B\n\nPara 2"), "<p>Line A</p><p>Line B</p><p>Para 2</p>");
     assert.equal(r.toEditorHtml("<p>x</p>"), "<p>x</p>");
   });
   test("custom sections: any number, heading/title/text/image/button, in editor order", () => {
@@ -274,6 +274,25 @@ async function main() {
     const w = r.designWarnings({ ...meta, content: c }, ctx);
     assert.ok(w.some((x) => /Gmail clips emails over about 102 KB/.test(x)));
     assert.ok(r.renderEmailDocument({ ...meta, content: c }, ctx).length > 100_000, "content not truncated");
+  });
+  test("story text formatting: links, bold and lists render in the email; pasted plain text becomes paragraphs, lists and links", () => {
+    const pasted = "Dover firefighters responded early Sunday.\nDonations can be sent here: https://venmo.com/u/Dover-Fire.\nSizes needed:\n* Youth medium\n* Adult large\n\nThank you!";
+    const html = r.plainToHtml(pasted);
+    assert.equal(html, '<p>Dover firefighters responded early Sunday.</p><p>Donations can be sent here: <a href="https://venmo.com/u/Dover-Fire">https://venmo.com/u/Dover-Fire</a>.</p><p>Sizes needed:</p><ul><li>Youth medium</li><li>Adult large</li></ul><p>Thank you!</p>');
+    assert.equal(r.toEditorHtml(pasted), html, "older plain stories open formatted");
+    assert.ok(r.plainToHtml("1. One\n2. Two").startsWith("<ol><li>One</li>"));
+    assert.ok(r.plainToHtml("<script>x</script> & https://a.com/?q=1&b=2").includes("&lt;script&gt;"), "escaped");
+    const c = t.defaultContent();
+    const f = c.sections.find((x) => x.type === "featured") as { story: unknown };
+    f.story = { id: "s1", articleId: null, title: "Fire in Dover", description: '<p>Help <strong>today</strong> via <a href="https://venmo.com/u/Dover-Fire">Venmo</a>.</p>' + html, imageUrl: "", url: "https://tcountyconnect.com/news/fire/" };
+    const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
+    assert.ok(/<a [^>]*href="https:\/\/venmo\.com\/u\/Dover-Fire"[^>]*>Venmo<\/a>/.test(d), "text with link");
+    assert.ok(/<strong[^>]*>today<\/strong>/.test(d), "bold");
+    assert.ok(/<ul[^>]*>[\s\S]*Youth medium[\s\S]*Adult large/.test(d), "list");
+    assert.ok(d.includes("Thank you!"), "full text");
+    // plain (older) story text: bare web addresses become links
+    f.story = { id: "s1", articleId: null, title: "Fire in Dover", description: "Give at https://venmo.com/u/Dover-Fire today", imageUrl: "", url: "" };
+    assert.ok(/<a [^>]*href="https:\/\/venmo\.com\/u\/Dover-Fire"/.test(r.renderEmailDocument({ ...meta, content: c }, ctx)));
   });
   console.log(results.join("\n"));
   console.log(failed ? `${failed} FAILED` : `ALL ${results.length} PASS`);

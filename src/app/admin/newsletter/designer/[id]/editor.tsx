@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { designWarnings, renderEmailDocument, tocOutline, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
-const toPlain = (s: string) => (/<[a-z]/i.test(s) ? s.replace(/<\/(p|li)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim() : s);
 import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
 import type { PickedBusiness, PickedPoll, PickedStory } from "@/lib/newsletter-designer/server";
 import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
@@ -160,9 +159,11 @@ function StoryFields({ item, onChange, field }: { item: StoryItem; onChange: (s:
   return (
     <div className="space-y-3">
       <F label="Headline"><input className={input} value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} data-testid={`${field}-title`} /></F>
-      <F label="Story text" hint={item.articleId ? "Starts with a 2–3 sentence excerpt from the article. Everything you write here appears in the email, followed by a Read More link." : "Everything you write here appears in the email, followed by a Read More link. Leave a blank line between paragraphs."}>
-        <AutoTextarea value={toPlain(item.description)} onChange={(v) => onChange({ ...item, description: v })} testId={`${field}-excerpt`} />
-      </F>
+      <div>
+        <span className="label">Story text</span>
+        <RichText value={item.description} onChange={(html) => onChange({ ...item, description: html })} label="Story text" minHeight="min-h-28" testId={`${field}-excerpt`} />
+        <span className="mt-1 block text-xs text-slate-500">{item.articleId ? "Starts with a 2–3 sentence excerpt from the article. " : ""}Everything here appears in the email, followed by a Read More link. Use the toolbar for bold, italic, links and lists; pasted web addresses become links.</span>
+      </div>
       <F label="Link (Read More)" hint={item.articleId ? "Linked to the T County Connect article. Edits here only change the newsletter." : undefined}><input className={input} value={item.url} placeholder="https://" onChange={(e) => onChange({ ...item, url: e.target.value })} data-testid={`${field}-url`} /></F>
       <MediaField key={`${item.id}:${item.imageUrl}`} name={`img-${item.id}`} label="Image" defaultValue={item.imageUrl} onChange={(u) => onChange({ ...item, imageUrl: u })} />
     </div>
