@@ -3,7 +3,7 @@
  * "Copy HTML" and the beehiiv draft). Email-safe: table layout, inline styles only (beehiiv strips <style> and
  * <link>), fluid widths with no media queries, web fonts with system fallbacks.
  */
-import { tocDefaultLabel, type DesignContent, type EventItem, type Section, type SpotlightBusiness, type StoryItem, type TocEntry } from "./types";
+import { LEGACY_TOC_LABELS, tocDefaults, type DesignContent, type EventItem, type Section, type SpotlightBusiness, type StoryItem, type TocEntry } from "./types";
 
 export type RenderContext = {
   /** "https://tcountyconnect.com" — relative image/link URLs are made absolute against it */
@@ -345,21 +345,25 @@ export function sectionPresent(s: Section, ctx: RenderContext): boolean {
   }
 }
 
+export type TocLine = { sectionId: string; label: string; defaultLabel: string };
+
 /**
- * Overview lines: your saved entries (wording and order) for sections still in the issue, then any newly included
- * sections with their default wording, in newsletter order. Sections that aren't included never appear.
+ * Overview lines, built from the issue's content (see tocDefaults): your saved order first, then anything newly
+ * included in newsletter order. Lines you reworded keep your wording; the rest follow the content (change a
+ * story title and its line changes too). Sections or stories that aren't in the issue never appear.
+ * `editing` keeps your text exactly as typed; the email trims it and uses the content wording for an empty line.
  */
-export function tocLines(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>, opts: { editing?: boolean } = {}): TocEntry[] {
-  const present = content.sections.filter((x) => x.type !== "toc" && tocDefaultLabel(x) && sectionPresent(x, ctx));
-  const byId = new Map(present.map((x) => [x.id, x]));
-  // While editing, keep your text exactly as typed (spaces, an empty line you're retyping); the email trims it
-  // and falls back to the default wording for an empty line.
-  const saved = (toc?.entries ?? []).filter((e) => byId.has(e.sectionId)).map((e) => ({
-    sectionId: e.sectionId,
-    label: opts.editing ? e.label : e.label.trim() || tocDefaultLabel(byId.get(e.sectionId)!)!,
-  }));
+export function tocLines(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>, opts: { editing?: boolean } = {}): TocLine[] {
+  const items = content.sections.filter((x) => x.type !== "toc" && sectionPresent(x, ctx)).flatMap((x) => tocDefaults(x));
+  const byKey = new Map(items.map((i) => [i.key, i]));
+  const own = (e: TocEntry) => (e.label === null || LEGACY_TOC_LABELS.has(e.label) ? null : e.label);
+  const saved: TocLine[] = (toc?.entries ?? []).filter((e) => byKey.has(e.sectionId)).map((e) => {
+    const d = byKey.get(e.sectionId)!.label;
+    const mine = own(e);
+    return { sectionId: e.sectionId, defaultLabel: d, label: mine === null ? d : opts.editing ? mine : mine.trim() || d };
+  });
   const seen = new Set(saved.map((e) => e.sectionId));
-  return [...saved, ...present.filter((x) => !seen.has(x.id)).map((x) => ({ sectionId: x.id, label: tocDefaultLabel(x)! }))];
+  return [...saved, ...items.filter((i) => !seen.has(i.key)).map((i) => ({ sectionId: i.key, label: i.label, defaultLabel: i.label }))];
 }
 
 function tocHtml(s: Extract<Section, { type: "toc" }>, content: DesignContent, ctx: RenderContext) {

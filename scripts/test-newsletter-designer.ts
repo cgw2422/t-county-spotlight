@@ -173,31 +173,44 @@ async function main() {
     assert.equal(first.formattedText[1].text, "Read it online"); assert.equal(first.formattedText[1].link?.href, "{{live_url}}");
     assert.deepEqual(first.visibility_settings, { show_on_web: false, show_on_email: true });
   });
-  test("overview: follows included sections, hides missing ones, keeps your wording and order", () => {
+  test("overview: built from the issue — featured headline, each story title, section headings; follows edits; keeps your rewording and order", () => {
     const c = structuredClone(content);
     const toc = c.sections.find((x) => x.type === "toc") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "toc" }>;
+    const arts = c.sections.find((x) => x.type === "articles") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "articles" }>;
+    arts.items.push({ id: "s3", title: "Library Adds Sunday Hours", description: "", imageUrl: "", url: "https://tcountyconnect.com/x/" });
     let lines = r.tocLines(c, ctx, toc).map((l) => l.label);
-    assert.deepEqual(lines, ["📰 Local Headlines", "☀️ Your Local Weather Forecast", "📅 Upcoming Events Around T County", "🗞️ More Local Stories", "🏪 Business Spotlight"]);
-    const spot = c.sections.find((x) => x.type === "spotlight")!; spot.enabled = false;
+    assert.deepEqual(lines, ["📰 Main <Story> & More", "☀️ Your 3-Day Forecast", "📅 Upcoming Events", "🗞️ Second story", "🗞️ Library Adds Sunday Hours", "🏪 Business Spotlight: Joe's Diner"]);
+    // Change a story title → its line follows
+    arts.items[0].title = "Second story, updated";
+    assert.ok(r.tocLines(c, ctx, toc).some((l) => l.label === "🗞️ Second story, updated"));
+    // Disabled section / untitled story never listed
+    c.sections.find((x) => x.type === "spotlight")!.enabled = false;
     lines = r.tocLines(c, ctx, toc).map((l) => l.label);
-    assert.ok(!lines.includes("🏪 Business Spotlight"), "disabled section not listed");
-    const ids = r.tocLines(c, ctx, toc);
-    toc.entries = [{ sectionId: ids[2].sectionId, label: "📅 What's On This Week" }, { sectionId: ids[0].sectionId, label: "" }];
+    assert.ok(!lines.some((l) => l.startsWith("🏪")) && !lines.includes("🗞️ "));
+    // Your wording + order: reworded line keeps your text; untouched lines (null) keep following the titles
+    const all = r.tocLines(c, ctx, toc);
+    const ev = all.find((l) => l.label.startsWith("📅"))!, feat = all[0];
+    toc.entries = [{ sectionId: ev.sectionId, label: "📅 What's On This Week" }, { sectionId: feat.sectionId, label: null }];
+    (c.sections.find((x) => x.type === "featured") as { story: { title: string } }).story.title = "New Top Headline";
     lines = r.tocLines(c, ctx, toc).map((l) => l.label);
-    assert.deepEqual(lines.slice(0, 2), ["📅 What's On This Week", "📰 Local Headlines"]);
-    // Editing keeps text exactly as typed (trailing space, empty line); the email trims / falls back to the default
-    toc.entries[0].label = "📅 What's On ";
+    assert.deepEqual(lines.slice(0, 2), ["📅 What's On This Week", "📰 New Top Headline"]);
+    // Older drafts stored the generic wording for every line: those now follow the content
+    toc.entries = [{ sectionId: feat.sectionId, label: "📰 Local Headlines" }];
+    assert.equal(r.tocLines(c, ctx, toc)[0].label, "📰 New Top Headline");
+    // Editing keeps text exactly as typed (trailing space, empty line); the email trims / falls back to the content
+    toc.entries = [{ sectionId: ev.sectionId, label: "📅 What's On " }];
     assert.equal(r.tocLines(c, ctx, toc, { editing: true })[0].label, "📅 What's On ");
     assert.equal(r.tocLines(c, ctx, toc)[0].label, "📅 What's On");
-    toc.entries[0].label = "";
+    toc.entries = [{ sectionId: ev.sectionId, label: "" }];
     assert.equal(r.tocLines(c, ctx, toc, { editing: true })[0].label, "");
-    assert.equal(r.tocLines(c, ctx, toc)[0].label, "📅 Upcoming Events Around T County");
-    toc.entries[0].label = "📅 What's On This Week";
-    const sv = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: { ...c, sections: c.sections.map((x) => (x.type === "toc" ? { ...x, entries: [{ sectionId: ids[2].sectionId, label: "Spaced out " }] } : x)) } });
-    assert.ok(sv.success && (sv.data.content.sections.find((x) => x.type === "toc") as { entries: { label: string }[] }).entries[0].label === "Spaced out ", "saved as typed");
+    assert.equal(r.tocLines(c, ctx, toc)[0].label, "📅 Upcoming Events");
+    toc.entries = [{ sectionId: ev.sectionId, label: "📅 What's On This Week" }];
+    const sv = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: c });
+    assert.ok(sv.success, sv.success ? "" : JSON.stringify(sv.error.issues[0]));
+    const story = r.tocLines(c, ctx, toc).find((l) => l.label.includes("Library"))!;
+    assert.match(story.sectionId, /^[a-z0-9]+:s3$/i, "per-story key");
     const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
-    assert.ok(d.includes("In This T County Connect Issue") && d.includes("What&#39;s On This Week"));
-    assert.ok(!/href="#/.test(d.replace('href="#"', "")), "no jump links");
+    assert.ok(d.includes("In This T County Connect Issue") && d.includes("What&#39;s On This Week") && d.includes("New Top Headline") && d.includes("Library Adds Sunday Hours"));
     const tiny = t.defaultContent(); // nothing filled in → only the weather is included → no one-line overview
     assert.ok(!r.renderEmailDocument({ ...meta, content: tiny }, ctx).includes("In This T County Connect Issue"));
   });

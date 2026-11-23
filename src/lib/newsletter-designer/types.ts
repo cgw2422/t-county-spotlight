@@ -15,8 +15,14 @@ export type SectionType = "intro" | "featured" | "sponsor" | "weather" | "events
 export type StoryItem = { id: string; articleId?: string | null; title: string; description: string; imageUrl: string; url: string };
 /** Entered by hand only — events are never added automatically. */
 export type EventItem = { id: string; title: string; date: string; time: string; location: string; description: string; imageUrl: string; url: string };
-/** One line of "In This T County Connect Issue": which section it points at and your wording. */
-export type TocEntry = { sectionId: string; label: string };
+/**
+ * One line of "In This T County Connect Issue". `sectionId` is the section id, or "sectionId:itemId" for one story
+ * in More stories. `label` null = follow the content automatically (e.g. the featured article's headline);
+ * a string = your own wording.
+ */
+export type TocEntry = { sectionId: string; label: string | null };
+/** A line the overview builds from the issue's content. */
+export type TocItem = { key: string; label: string };
 /** A native beehiiv poll chosen from your publication (inserted as a real beehiiv poll block in the draft). */
 export type PollRef = { id: string; name: string; question: string; choices: string[] };
 export type SpotlightBusiness = { businessId?: string | null; name: string; imageUrl: string; text: string; url: string };
@@ -107,17 +113,30 @@ export function newSection(type: SectionType): Section {
   }
 }
 
-/** Default overview wording per section (you can change each line in the editor). */
-export function tocDefaultLabel(s: Section): string | null {
+/**
+ * Overview lines built from what's in the issue: the featured article's headline, one line per story title in
+ * More stories, the business name in the Business Spotlight, and each other section's own heading.
+ */
+export function tocDefaults(s: Section): TocItem[] {
+  const line = (emoji: string, t: string) => `${emoji} ${t.trim()}`;
   switch (s.type) {
-    case "featured": return "📰 Local Headlines";
-    case "articles": return "🗞️ More Local Stories";
-    case "events": return "📅 Upcoming Events Around T County";
-    case "weather": return "☀️ Your Local Weather Forecast";
-    case "spotlight": return "🏪 Business Spotlight";
-    case "joke": return "😄 Daily Dad Joke";
-    case "poll": return "📊 Community Poll";
-    case "custom": return s.heading.trim() || s.title.trim() ? `📌 ${s.heading.trim() || s.title.trim()}` : null;
-    default: return null; // intro, sponsor, promo and the overview itself aren't listed
+    case "featured": return s.story?.title.trim() ? [{ key: s.id, label: line("📰", s.story.title) }] : [];
+    case "articles": return s.items.filter((i) => i.title.trim()).map((i) => ({ key: `${s.id}:${i.id}`, label: line("🗞️", i.title) }));
+    case "events": return [{ key: s.id, label: line("📅", s.heading.trim() || "Upcoming Events") }];
+    case "weather": return [{ key: s.id, label: line("☀️", s.heading.trim() || "Your 3-Day Forecast") }];
+    case "spotlight": {
+      const h = s.heading.trim() || "Business Spotlight";
+      return s.business?.name.trim() ? [{ key: s.id, label: line("🏪", `${h}: ${s.business.name}`) }] : [];
+    }
+    case "joke": return [{ key: s.id, label: line("😄", s.heading.trim() || "Daily Dad Joke") }];
+    case "poll": return [{ key: s.id, label: line("📊", s.heading.trim() || "Community Poll") }];
+    case "custom": {
+      const t = s.title.trim() || s.heading.trim();
+      return t ? [{ key: s.id, label: line("📌", t) }] : [];
+    }
+    default: return []; // intro, sponsor, promo and the overview itself aren't listed
   }
 }
+
+/** Generic wording earlier versions saved for every line; treated as "follow the content" now. */
+export const LEGACY_TOC_LABELS = new Set(["📰 Local Headlines", "🗞️ More Local Stories", "📅 Upcoming Events Around T County", "☀️ Your Local Weather Forecast", "🏪 Business Spotlight", "😄 Daily Dad Joke", "📊 Community Poll"]);

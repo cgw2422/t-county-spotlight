@@ -10,7 +10,7 @@ import { designWarnings, excerpt, renderEmailDocument, tocLines, type DesignMeta
 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
 const toPlain = (s: string) => (/<[a-z]/i.test(s) ? s.replace(/<\/(p|li)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim() : s);
-import { ADDABLE, tocDefaultLabel, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
+import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
 import type { PickedBusiness, PickedPoll, PickedStory } from "@/lib/newsletter-designer/server";
 import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
 import { RichText } from "./rich-text";
@@ -197,17 +197,18 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
   switch (s.type) {
     case "toc": {
       const lines = tocLines(content, ctx, s, { editing: true });
-      const setLines = (l: typeof lines) => update({ ...s, entries: l });
+      // Save order + only the lines you reworded (null = keep following the article titles / section headings).
+      const setLines = (l: typeof lines) => update({ ...s, entries: l.map((x) => ({ sectionId: x.sectionId, label: x.label === x.defaultLabel ? null : x.label })) });
       return (
         <div className="space-y-3">
           <F label="Title"><input className={input} value={s.heading} onChange={(e) => update({ ...s, heading: e.target.value })} /></F>
-          <p className="text-xs text-slate-500">Lines follow the sections included in this issue automatically. Reword or reorder them here; sections you leave out never appear. (Jump links aren&apos;t used: many email apps don&apos;t support them.)</p>
+          <p className="text-xs text-slate-500">Lines come from this issue: the featured article and each story&apos;s headline, and each section&apos;s heading. They update when you change the content. Reword or reorder any line; anything you leave out of the issue never appears. (Jump links aren&apos;t used: many email apps don&apos;t support them.)</p>
           {lines.length === 0 && <p className="text-sm text-slate-600">Nothing to list yet — fill in a few sections first.</p>}
           {lines.length === 1 && <p className="text-sm text-slate-600">The overview appears once at least two sections are included.</p>}
           <ul className="space-y-2" data-testid="toc-lines">
             {lines.map((l, i) => (
               <li key={l.sectionId} className="flex items-center gap-1">
-                <input className={cn(input, "min-w-0 flex-1")} value={l.label} placeholder={tocDefaultLabel(content.sections.find((x) => x.id === l.sectionId) ?? s) ?? ""} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} data-testid="toc-line" />
+                <input className={cn(input, "min-w-0 flex-1")} value={l.label} placeholder={l.defaultLabel} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} data-testid="toc-line" />
                 <MoveButtons what="line" onUp={() => setLines(move(lines, i, -1))} onDown={() => setLines(move(lines, i, 1))} upDisabled={i === 0} downDisabled={i === lines.length - 1} />
               </li>
             ))}

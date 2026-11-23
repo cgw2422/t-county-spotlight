@@ -70,7 +70,10 @@ const section = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("articles"), heading: str(), items: z.array(story).max(ITEMS) }),
   z.object({ ...base, type: z.literal("spotlight"), heading: str(), business: business.nullable() }),
   z.object({ ...base, type: z.literal("promo"), heading: str(), text: rich(), ctaLabel: str(), ctaUrl: url }),
-  z.object({ ...base, type: z.literal("toc"), heading: str(), entries: z.array(z.object({ sectionId: id, label: z.string().max(LINE * 4).transform((v) => v.replace(/<[^>]*>/g, "").replace(/[\r\n\t]+/g, " ").slice(0, LINE)) })).max(200) }),
+  z.object({ ...base, type: z.literal("toc"), heading: str(), entries: z.array(z.object({
+    sectionId: z.string().max(90).regex(/^[a-z0-9]+(:[a-z0-9]+)?$/i),
+    label: z.string().max(LINE * 4).transform((v) => v.replace(/<[^>]*>/g, "").replace(/[\r\n\t]+/g, " ").slice(0, LINE)).nullable(),
+  })).max(500) }),
   z.object({ ...base, type: z.literal("joke"), heading: str(), intro: str(), setup: rich(), punchline: rich() }),
   z.object({ ...base, type: z.literal("poll"), heading: str(), intro: rich(), poll: z.object({ id: z.string().max(120).regex(/^[A-Za-z0-9_-]+$/), name: str(), question: str(), choices: z.array(str()).max(50) }).nullable() }),
   z.object({ ...base, type: z.literal("custom"), heading: str(), title: str(), html: rich(), imageUrl: url, imageLink: url, ctaLabel: str(), ctaUrl: url }),
