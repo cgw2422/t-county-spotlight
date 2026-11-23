@@ -6,10 +6,13 @@ import {
 } from "lucide-react";
 import { MediaField } from "@/components/admin/media-picker";
 import { cn } from "@/lib/utils";
-import { designWarnings, renderEmailDocument, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
+import { designWarnings, excerpt, renderEmailDocument, tocLines, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
+
+/** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
+const toPlain = (s: string) => (/<[a-z]/i.test(s) ? s.replace(/<\/(p|li)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim() : s);
 import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
-import type { PickedBusiness, PickedStory } from "@/lib/newsletter-designer/server";
-import { articleFullTextAction, checkBeehiivAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
+import type { PickedBusiness, PickedPoll, PickedStory } from "@/lib/newsletter-designer/server";
+import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
 import { RichText } from "./rich-text";
 
 type Beehiiv = { status: string; postId: string | null; editUrl: string | null; message: string | null; configured: boolean; hasTemplate: boolean };
@@ -107,31 +110,50 @@ function BusinessPicker({ onPick }: { onPick: (b: PickedBusiness) => void }) {
   );
 }
 
-// ───────────── item editors ─────────────
-
-function FullTextButton({ articleId, onText }: { articleId: string; onText: (html: string) => void }) {
+function PollPicker({ onPick }: { onPick: (p: PickedPoll) => void }) {
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<{ polls?: PickedPoll[]; error?: string } | null>(null);
   const [pending, start] = useTransition();
-  const [err, setErr] = useState("");
+  const load = () => start(async () => { const r = await listPollsAction(); setState(r.ok ? { polls: r.polls } : { error: r.message }); });
+  if (!open) return <button type="button" className="btn-secondary btn-sm" onClick={() => { setOpen(true); load(); }} data-testid="pick-poll"><Search className="h-4 w-4" /> Choose a beehiiv poll</button>;
   return (
-    <span className="mt-1 flex flex-wrap items-center gap-2">
-      <button type="button" className="btn-ghost btn-sm" disabled={pending} data-testid="use-full-text"
-        onClick={() => { if (!window.confirm("Replace this text with the full article?")) return; start(async () => { const html = await articleFullTextAction(articleId); if (html) { setErr(""); onText(html); } else setErr("That article isn't published anymore."); }); }}>
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Use full article text
-      </button>
-      {err && <span className="text-xs text-red-700">{err}</span>}
-    </span>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid="poll-picker">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-slate-800">Your beehiiv polls</span>
+        <span className="flex gap-1">
+          <button type="button" className="btn-ghost btn-sm" onClick={load}>{pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}</button>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)} aria-label="Close"><X className="h-4 w-4" /></button>
+        </span>
+      </div>
+      {state?.error && <p className="mt-2 text-sm text-red-700">{state.error}</p>}
+      {state?.polls?.length === 0 && <p className="mt-2 text-sm text-slate-600">No polls yet. Create one in beehiiv (Audience → Polls), then click Refresh.</p>}
+      <ul className="mt-2 space-y-1">
+        {state?.polls?.map((p) => (
+          <li key={p.id}>
+            <button type="button" className="w-full rounded-lg p-2 text-left hover:bg-white" onClick={() => { onPick(p); setOpen(false); }}>
+              <span className="block text-sm font-semibold text-slate-900">{p.question || p.name}</span>
+              <span className="block text-xs text-slate-500">{p.name}{p.status && p.status !== "published" ? ` · ${p.status}` : ""}{p.choices.length ? ` · ${p.choices.length} choices` : ""}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
+
+// ───────────── item editors ─────────────
+
 
 function StoryFields({ item, onChange, field }: { item: StoryItem; onChange: (s: StoryItem) => void; field: string }) {
   return (
     <div className="space-y-3">
       <F label="Headline"><input className={input} value={item.title} onChange={(e) => onChange({ ...item, title: e.target.value })} data-testid={`${field}-title`} /></F>
-      <div>
-        <span className="label">Story text</span>
-        <RichText value={item.description} onChange={(html) => onChange({ ...item, description: html })} label="Story text" minHeight="min-h-24" />
-        {item.articleId && <FullTextButton articleId={item.articleId} onText={(html) => onChange({ ...item, description: html })} />}
-      </div>
+      <F label="Short excerpt (2–3 sentences)" hint="Articles never appear in full: readers get this excerpt and a Read More link to TCountyConnect.com.">
+        <textarea className={input} rows={3} value={toPlain(item.description)} onChange={(e) => onChange({ ...item, description: e.target.value })} data-testid={`${field}-excerpt`} />
+      </F>
+      {excerpt(item.description) && excerpt(item.description) !== toPlain(item.description).replace(/\s+/g, " ").trim() && (
+        <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600" data-testid={`${field}-excerpt-preview`}>In the email: “{excerpt(item.description)}”</p>
+      )}
       <F label="Link (Read More)" hint={item.articleId ? "Linked to the T County Connect article. Edits here only change the newsletter." : undefined}><input className={input} value={item.url} placeholder="https://" onChange={(e) => onChange({ ...item, url: e.target.value })} data-testid={`${field}-url`} /></F>
       <MediaField key={`${item.id}:${item.imageUrl}`} name={`img-${item.id}`} label="Image" defaultValue={item.imageUrl} onChange={(u) => onChange({ ...item, imageUrl: u })} />
     </div>
@@ -171,8 +193,58 @@ function Collapsible({ title, children, defaultOpen = false, actions }: { title:
 
 // ───────────── section editor ─────────────
 
-function SectionBody({ s, update }: { s: Section; update: (s: Section) => void }) {
+function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Section) => void; content: DesignMeta["content"]; ctx: RenderContext }) {
   switch (s.type) {
+    case "toc": {
+      const lines = tocLines(content, ctx, s);
+      const setLines = (l: typeof lines) => update({ ...s, entries: l });
+      return (
+        <div className="space-y-3">
+          <F label="Title"><input className={input} value={s.heading} onChange={(e) => update({ ...s, heading: e.target.value })} /></F>
+          <p className="text-xs text-slate-500">Lines follow the sections included in this issue automatically. Reword or reorder them here; sections you leave out never appear. (Jump links aren&apos;t used: many email apps don&apos;t support them.)</p>
+          {lines.length === 0 && <p className="text-sm text-slate-600">Nothing to list yet — fill in a few sections first.</p>}
+          {lines.length === 1 && <p className="text-sm text-slate-600">The overview appears once at least two sections are included.</p>}
+          <ul className="space-y-2" data-testid="toc-lines">
+            {lines.map((l, i) => (
+              <li key={l.sectionId} className="flex items-center gap-1">
+                <input className={cn(input, "min-w-0 flex-1")} value={l.label} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} data-testid="toc-line" />
+                <MoveButtons what="line" onUp={() => setLines(move(lines, i, -1))} onDown={() => setLines(move(lines, i, 1))} upDisabled={i === 0} downDisabled={i === lines.length - 1} />
+              </li>
+            ))}
+          </ul>
+          {s.entries.length > 0 && <button type="button" className="btn-ghost btn-sm" onClick={() => update({ ...s, entries: [] })}>Reset wording and order</button>}
+        </div>
+      );
+    }
+    case "joke":
+      return (
+        <div className="space-y-3">
+          <F label="Section label"><input className={input} value={s.heading} onChange={(e) => update({ ...s, heading: e.target.value })} /></F>
+          <F label="Short intro (optional)" hint="For example: “This one’s from a reader in Dover.”"><input className={input} value={s.intro} onChange={(e) => update({ ...s, intro: e.target.value })} data-testid="joke-intro" /></F>
+          <F label="Setup"><textarea className={input} rows={2} value={s.setup} onChange={(e) => update({ ...s, setup: e.target.value })} data-testid="joke-setup" /></F>
+          <F label="Punchline"><textarea className={input} rows={2} value={s.punchline} onChange={(e) => update({ ...s, punchline: e.target.value })} data-testid="joke-punchline" /></F>
+        </div>
+      );
+    case "poll":
+      return (
+        <div className="space-y-3">
+          <F label="Section label"><input className={input} value={s.heading} onChange={(e) => update({ ...s, heading: e.target.value })} /></F>
+          <F label="Intro line (optional)"><input className={input} value={s.intro} onChange={(e) => update({ ...s, intro: e.target.value })} /></F>
+          {s.poll ? (
+            <div className="rounded-xl border border-slate-200 p-3 text-sm" data-testid="poll-chosen">
+              <p className="font-semibold text-slate-900">{s.poll.question || s.poll.name}</p>
+              {s.poll.choices.length > 0 && <p className="mt-1 text-xs text-slate-500">{s.poll.choices.join(" · ")}</p>}
+              <p className="mt-2 text-xs text-slate-500">Added to the beehiiv draft as a native beehiiv poll: voting, subscriber tracking and results stay in beehiiv.</p>
+              <div className="mt-2 flex gap-2"><PollPicker onPick={(p) => update({ ...s, poll: { id: p.id, name: p.name, question: p.question, choices: p.choices } })} /><button type="button" className="btn-ghost btn-sm text-red-600" onClick={() => update({ ...s, poll: null })}><X className="h-4 w-4" /> Remove</button></div>
+            </div>
+          ) : (
+            <>
+              <PollPicker onPick={(p) => update({ ...s, poll: { id: p.id, name: p.name, question: p.question, choices: p.choices } })} />
+              <p className="text-xs text-slate-500">Create the poll in beehiiv first. Without a poll, this section is left out of the issue.</p>
+            </>
+          )}
+        </div>
+      );
     case "intro":
       return (
         <div className="space-y-3">
@@ -280,6 +352,46 @@ function SectionBody({ s, update }: { s: Section; update: (s: Section) => void }
         </div>
       );
   }
+}
+
+// ───────────── preview ─────────────
+
+/**
+ * The preview grows to the newsletter's full height, so the page scrolls as one continuous column (no scrollbars
+ * inside the preview). Same-origin is allowed only to measure the height; scripts stay disabled.
+ */
+function PreviewFrame({ html, width }: { html: string; width: number }) {
+  const ref = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(900);
+  useEffect(() => {
+    const frame = ref.current;
+    if (!frame) return;
+    let ro: ResizeObserver | null = null;
+    const measure = () => {
+      const doc = frame.contentDocument;
+      if (doc?.documentElement) setHeight(Math.max(300, doc.documentElement.scrollHeight));
+    };
+    const onLoad = () => {
+      measure();
+      const doc = frame.contentDocument;
+      if (doc?.body && typeof ResizeObserver !== "undefined") { ro?.disconnect(); ro = new ResizeObserver(measure); ro.observe(doc.body); }
+      doc?.querySelectorAll("img").forEach((im) => im.addEventListener("load", measure));
+    };
+    frame.addEventListener("load", onLoad);
+    return () => { frame.removeEventListener("load", onLoad); ro?.disconnect(); };
+  }, [html, width]);
+  return (
+    <iframe
+      ref={ref}
+      title="Newsletter preview"
+      srcDoc={html}
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      scrolling="no"
+      className="block rounded-xl bg-white shadow"
+      style={{ width: "100%", maxWidth: width, height, border: 0, overflow: "hidden" }}
+      data-testid="design-preview"
+    />
+  );
 }
 
 // ───────────── editor ─────────────
@@ -399,7 +511,7 @@ export function DesignEditor({ id, initial, ctx, beehiiv: initialBeehiiv }: { id
                   <MoveButtons what={info.label} onUp={() => setSections(move(sections, i, -1))} onDown={() => setSections(move(sections, i, 1))} upDisabled={i === 0} downDisabled={i === sections.length - 1}
                     onRemove={() => { if (window.confirm(`Remove “${info.label}” from this issue?`)) setSections(sections.filter((x) => x.id !== s.id)); }} />
                 </div>
-                {isOpen && <div className="border-t border-slate-100 p-4"><SectionBody s={s} update={updateSection} /></div>}
+                {isOpen && <div className="border-t border-slate-100 p-4"><SectionBody s={s} update={updateSection} content={meta.content} ctx={ctx} /></div>}
               </div>
             );
           })}
@@ -452,7 +564,7 @@ export function DesignEditor({ id, initial, ctx, beehiiv: initialBeehiiv }: { id
         </section>
       </div>
 
-      <div className="min-w-0 xl:sticky xl:top-4 xl:self-start">
+      <div className="min-w-0">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex rounded-lg bg-slate-100 p-1" role="group" aria-label="Preview size">
             <button type="button" className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium", device === "desktop" ? "bg-white shadow-sm text-navy-900" : "text-slate-600")} onClick={() => setDevice("desktop")} aria-pressed={device === "desktop"} data-testid="preview-desktop"><Monitor className="h-4 w-4" /> Desktop</button>
@@ -461,14 +573,7 @@ export function DesignEditor({ id, initial, ctx, beehiiv: initialBeehiiv }: { id
           <a href={`/admin/newsletter/designer/${id}/preview/`} target="_blank" rel="noopener" className="text-sm font-medium text-brand-700 hover:underline">Open saved preview ↗</a>
         </div>
         <div className="flex justify-center overflow-hidden rounded-2xl bg-slate-200 p-3">
-          <iframe
-            title="Newsletter preview"
-            srcDoc={previewHtml}
-            sandbox="allow-popups allow-popups-to-escape-sandbox"
-            className="h-[78vh] rounded-xl bg-white shadow"
-            style={{ width: device === "desktop" ? "100%" : 390, maxWidth: device === "desktop" ? 680 : 390 }}
-            data-testid="design-preview"
-          />
+          <PreviewFrame html={previewHtml} width={device === "desktop" ? 680 : 390} />
         </div>
       </div>
     </div>

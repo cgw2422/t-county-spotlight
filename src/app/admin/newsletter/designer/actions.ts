@@ -6,8 +6,8 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { defaultContent, uid } from "@/lib/newsletter-designer/types";
 import {
-  articleFullText, checkDesignInBeehiiv, cleanContent, designInput, nextIssueNumber, readContent, searchArticles, searchBusinesses, sendDesignToBeehiiv,
-  type PickedBusiness, type PickedStory, type SendResult, type WeatherMode,
+  checkDesignInBeehiiv, listBeehiivPolls, cleanContent, designInput, nextIssueNumber, readContent, searchArticles, searchBusinesses, sendDesignToBeehiiv,
+  type PickedBusiness, type PickedPoll, type PickedStory, type SendResult, type WeatherMode,
 } from "@/lib/newsletter-designer/server";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -84,11 +84,6 @@ export async function searchArticlesAction(q: string): Promise<PickedStory[]> {
   return searchArticles(String(q ?? ""));
 }
 
-export async function articleFullTextAction(articleId: string): Promise<string | null> {
-  await requireAdmin();
-  return articleFullText(String(articleId ?? ""));
-}
-
 export async function searchBusinessesAction(q: string): Promise<PickedBusiness[]> {
   await requireAdmin();
   return searchBusinesses(String(q ?? ""));
@@ -108,4 +103,9 @@ export async function checkBeehiivAction(id: string): Promise<SendResult> {
   const r = await checkDesignInBeehiiv(String(id).slice(0, 40), user.id);
   revalidatePath(`${BASE}/`);
   return r;
+}
+
+export async function listPollsAction(): Promise<{ ok: true; polls: PickedPoll[] } | { ok: false; message: string }> {
+  await requireAdmin();
+  return listBeehiivPolls();
 }

@@ -52,7 +52,7 @@ async function main() {
     assert.match(doc, /Issue #004/); assert.match(doc, /Monday, November 23, 2026/);
     assert.ok(doc.includes("Main &lt;Story&gt; &amp; More") && !doc.includes("<Story>"));
     assert.ok(doc.includes('src="https://tcountyconnect.com/media/hero.jpg"') && doc.includes('href="https://tcountyconnect.com/articles/main/"'));
-    assert.ok(doc.includes("Line one<br>Line two"));
+    assert.ok(doc.includes("Line one Line two"), "article description shown as a clean excerpt");
     assert.ok(!/<style|<link|<script|javascript:/i.test(doc));
     assert.ok(!doc.includes("Preview <text>"), "preview text escaped");
   });
@@ -84,7 +84,7 @@ async function main() {
   test("beehiiv blocks: html runs, sponsor paragraph and weather RSS block in editor order", () => {
     const blocks = beehiivBlocks(meta, ctx, "rss") as Record<string, unknown>[];
     const kinds = blocks.map((b) => b.type);
-    const sp = kinds.indexOf("paragraph"), rss = kinds.indexOf("rss");
+    const sp = blocks.findIndex((b) => JSON.stringify(b).includes("SPONSOR")), rss = kinds.indexOf("rss");
     assert.ok(sp > 0 && rss > sp, kinds.join(","));
     const rssBlock = blocks[rss];
     assert.equal(rssBlock.rssFeedUrl, "https://tcountyconnect.com/weather/rss/");
@@ -103,10 +103,10 @@ async function main() {
   test("save validation accepts a fresh template (empty preview text) and rejects unsafe values", () => {
     assert.ok(designInput.safeParse({ title: "x", previewText: null, issueNumber: null, issueDate: "2026-11-23", content: t.defaultContent() }).success);
     const c = t.defaultContent();
-    (c.sections[1] as { story: unknown }).story = { id: "abc", title: "<b>T</b>", description: "", imageUrl: "javascript:alert(1)", url: "data:text/html,x" };
+    (c.sections.find((x) => x.type === "featured") as { story: unknown }).story = { id: "abc", title: "<b>T</b>", description: "", imageUrl: "javascript:alert(1)", url: "data:text/html,x" };
     const r2 = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: c });
     assert.ok(r2.success);
-    const st = (r2.data.content.sections[1] as { story: { title: string; imageUrl: string; url: string } }).story;
+    const st = (r2.data.content.sections.find((x) => x.type === "featured") as { story: { title: string; imageUrl: string; url: string } }).story;
     assert.equal(st.imageUrl, ""); assert.equal(st.url, ""); assert.ok(!st.title.includes("<"));
     assert.ok(!designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "not-a-date", content: t.defaultContent() }).success);
   });
@@ -126,9 +126,13 @@ async function main() {
     const f = c.sections.find((x) => x.type === "featured") as { story: unknown };
     f.story = { id: "x1", articleId: null, title: "Rich", description: "<h2>Sub head</h2><p>Para <a href=\"https://x.org\" onclick=\"y()\">link</a></p><ul><li>One</li><li>Two</li></ul><script>bad()</script>", imageUrl: "", url: "https://tcountyconnect.com/a/" };
     const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
-    assert.ok(d.includes("<strong style=\"font-weight:700;\">Sub head</strong>"));
-    assert.ok(/<ul style="[^"]*"><li style="[^"]*">One<\/li>/.test(d));
+    // Article cards show a clean excerpt (no formatting, never the full text)…
+    assert.ok(d.includes("Para link One Two") && !d.includes("Sub head"), "excerpt: text only, headings left out");
     assert.ok(!/onclick|<script|bad\(\)/.test(d));
+    // …while events, spotlight and custom text keep their formatting.
+    const ev = c.sections.find((x) => x.type === "events") as { items: unknown[] };
+    ev.items = [{ id: "e9", title: "Fair", date: "2026-12-05", time: "", location: "", description: "<ul><li>One</li><li>Two</li></ul>", imageUrl: "", url: "" }];
+    assert.ok(/<ul style="[^"]*"><li style="[^"]*">One<\/li>/.test(r.renderEmailDocument({ ...meta, content: c }, ctx)));
     assert.equal(r.toEditorHtml("Line A\nLine B\n\nPara 2"), "<p>Line A<br>Line B</p><p>Para 2</p>");
     assert.equal(r.toEditorHtml("<p>x</p>"), "<p>x</p>");
   });
@@ -145,9 +149,78 @@ async function main() {
     assert.ok(d.indexOf("Issue #004") < d.indexOf("Library Hours Change") && d.indexOf("Library Hours Change") < d.indexOf("Hi neighbors"), "masthead, then the custom section moved to the top, then the intro");
     assert.ok(d.includes("Plain text<br>with a break"));
     const blocks = beehiivBlocks({ ...meta, content: c }, ctx, "rss") as Record<string, unknown>[];
-    assert.equal(blocks.filter((x) => x.type === "paragraph").length, 2, "two sponsor slots");
+    assert.equal(blocks.filter((x) => JSON.stringify(x).includes("SPONSOR")).length, 2, "two sponsor slots");
     const saved = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: c });
     assert.ok(saved.success, saved.success ? "" : JSON.stringify(saved.error.issues[0]));
+  });
+  test("excerpts: 2–3 clean sentences, generated from long text, never the full article", () => {
+    assert.equal(r.excerpt("One. Two! Three? Four. Five."), "One. Two! Three?");
+    assert.equal(r.excerpt("<h2>The story</h2><p>A new bakery opened. It sells bread. Owners are local. More later.</p>"), "A new bakery opened. It sells bread. Owners are local.", "headings never leak into excerpts");
+    assert.equal(r.excerpt("<p>Hello <b>there</b>.</p><p>Second &amp; last.</p>"), "Hello there. Second & last.");
+    const long = r.excerpt("word ".repeat(300));
+    assert.ok(long.length <= 361 && long.endsWith("…"));
+    const many = r.excerpt("This is a sentence of moderate length here. ".repeat(20));
+    assert.ok(many.length <= 360 && (many.match(/\./g) ?? []).length <= 3);
+  });
+  test("Read Online: first, above the logo; {{live_url}} in exported HTML; inert in preview; email-only native paragraph in beehiiv", () => {
+    const d = r.renderEmailDocument(meta, ctx);
+    const i = d.indexOf("Having trouble viewing this email?");
+    assert.ok(i > 0 && i < d.indexOf("brand/logo-sm.png"));
+    assert.ok(d.includes('href="{{live_url}}"'));
+    assert.ok(r.renderEmailDocument(meta, { ...ctx, preview: true }).includes('href="#"'));
+    const first = (beehiivBlocks(meta, ctx, "rss") as Record<string, unknown>[])[0] as { type: string; formattedText: { text: string; link?: { href: string } }[]; visibility_settings: Record<string, boolean> };
+    assert.equal(first.type, "paragraph");
+    assert.equal(first.formattedText[1].text, "Read it online"); assert.equal(first.formattedText[1].link?.href, "{{live_url}}");
+    assert.deepEqual(first.visibility_settings, { show_on_web: false, show_on_email: true });
+  });
+  test("overview: follows included sections, hides missing ones, keeps your wording and order", () => {
+    const c = structuredClone(content);
+    const toc = c.sections.find((x) => x.type === "toc") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "toc" }>;
+    let lines = r.tocLines(c, ctx, toc).map((l) => l.label);
+    assert.deepEqual(lines, ["📰 Local Headlines", "☀️ Your Local Weather Forecast", "📅 Upcoming Events Around T County", "🗞️ More Local Stories", "🏪 Business Spotlight"]);
+    const spot = c.sections.find((x) => x.type === "spotlight")!; spot.enabled = false;
+    lines = r.tocLines(c, ctx, toc).map((l) => l.label);
+    assert.ok(!lines.includes("🏪 Business Spotlight"), "disabled section not listed");
+    const ids = r.tocLines(c, ctx, toc);
+    toc.entries = [{ sectionId: ids[2].sectionId, label: "📅 What's On This Week" }, { sectionId: ids[0].sectionId, label: "" }];
+    lines = r.tocLines(c, ctx, toc).map((l) => l.label);
+    assert.deepEqual(lines.slice(0, 2), ["📅 What's On This Week", "📰 Local Headlines"]);
+    const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
+    assert.ok(d.includes("In This T County Connect Issue") && d.includes("What&#39;s On This Week"));
+    assert.ok(!/href="#/.test(d.replace('href="#"', "")), "no jump links");
+    const tiny = t.defaultContent(); // nothing filled in → only the weather is included → no one-line overview
+    assert.ok(!r.renderEmailDocument({ ...meta, content: tiny }, ctx).includes("In This T County Connect Issue"));
+  });
+  test("Daily Dad Joke: setup and punchline clearly separated; skipped until both are filled; never generated", () => {
+    const c = structuredClone(content);
+    const j = c.sections.find((x) => x.type === "joke") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "joke" }>;
+    assert.ok(!r.renderEmailDocument({ ...meta, content: c }, ctx).includes("Daily Dad Joke"), "empty joke left out");
+    Object.assign(j, { intro: "From a reader in Dover.", setup: "Why did the scarecrow win an award?", punchline: "He was outstanding in his field." });
+    const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
+    const a = d.indexOf("Why did the scarecrow"), b = d.indexOf("He was outstanding");
+    assert.ok(a > 0 && b > a && d.slice(a, b).includes("dashed"), "dashed divider between setup and punchline");
+    assert.ok(d.includes("Daily Dad Joke") && d.includes("&#128516;") && d.includes("From a reader in Dover."));
+    assert.ok(r.tocLines(c, ctx).some((l) => l.label === "😄 Daily Dad Joke"));
+  });
+  test("Community Poll: native beehiiv poll block; preview placeholder only in the builder; left out without a poll", () => {
+    const c = structuredClone(content);
+    const pl = c.sections.find((x) => x.type === "poll") as Extract<import("@/lib/newsletter-designer/types").Section, { type: "poll" }>;
+    assert.ok(!(beehiivBlocks({ ...meta, content: c }, ctx, "rss") as Record<string, unknown>[]).some((b) => b.type === "poll"));
+    pl.poll = { id: "poll_abc-123", name: "Holiday lights", question: "Best light display?", choices: ["Dover", "New Phila"] };
+    const blocks = beehiivBlocks({ ...meta, content: c }, ctx, "rss") as Record<string, unknown>[];
+    const pb = blocks.find((b) => b.type === "poll");
+    assert.deepEqual(pb, { type: "poll", poll_id: "poll_abc-123", show_options_initially: true });
+    assert.ok(!blocks.some((b) => JSON.stringify(b).includes("Preview only")), "placeholder never sent");
+    assert.ok(!r.renderEmailDocument({ ...meta, content: c }, ctx).includes("Best light display?"), "not in exported HTML");
+    assert.ok(r.renderEmailDocument({ ...meta, content: c }, { ...ctx, preview: true }).includes("Preview only · native beehiiv poll"));
+    assert.ok(r.tocLines(c, ctx).some((l) => l.label === "📊 Community Poll"));
+  });
+  test("mobile-safe email: wrapping on all text, stacked story images, no fixed-height or scrolling containers", () => {
+    const d = r.renderEmailDocument(meta, ctx);
+    assert.ok((d.match(/overflow-wrap:break-word/g) ?? []).length > 20);
+    assert.ok(!/width="120"/.test(d), "no narrow thumbnail columns");
+    assert.ok(!/overflow:(auto|scroll)|overflow-x|overflow-y/i.test(d));
+    assert.ok(!/[^-]height:\s*\d{3,}px/i.test(d), "no fixed-height containers");
   });
   test("Gmail clipping warning for very large issues (nothing is cut)", () => {
     const c = t.defaultContent();

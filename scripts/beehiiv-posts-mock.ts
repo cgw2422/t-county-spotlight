@@ -5,6 +5,7 @@
  *
  *   POST /v2/publications/{pub}/posts          201 { data: { id, preview_url } } (stored as a draft)
  *   GET  /v2/publications/{pub}/posts/{id}     first call 202 (being created), then 200 — or 404 POST_CREATION_FAILED
+ *   GET  /v2/publications/{pub}/polls          two sample polls (newsletter designer poll picker)
  *   GET  /v2/publications/{pub}/posts?status=  stored posts; status=draft is honoured, any other status
  *                                              returns EVERYTHING (drafts leak, so the sync's own filter is tested)
  * Behaviour by a keyword in the post title:
@@ -43,6 +44,13 @@ export function startPostsMock(opts: { port?: number; apiKey: string; publicatio
       requests.push({ method: req.method ?? "", path: url.pathname, query: url.search, auth: req.headers.authorization, body, at: Date.now() });
 
       if (req.headers.authorization !== `Bearer ${opts.apiKey}`) return err(res, 401, "unauthorized", "Invalid API key");
+      // GET /v2/publications/{pub}/polls — two sample polls (newsletter designer's Community Poll picker).
+      if (req.method === "GET" && url.pathname === `/v2/publications/${opts.publicationId}/polls`) {
+        return json(res, 200, { data: [
+          { id: "poll_mock-lights", name: "Holiday lights", question: "Which town has the best holiday lights?", poll_type: "voting", status: "published", created_at: 1, poll_choices: [{ id: "c1", label: "Dover" }, { id: "c2", label: "New Philadelphia" }, { id: "c3", label: "Sugarcreek" }] },
+          { id: "poll_mock-draft", name: "Draft poll", question: "Unpublished question", poll_type: "voting", status: "draft", created_at: 2, poll_choices: [] },
+        ], has_more: false });
+      }
       const m = url.pathname.match(/^\/v2\/publications\/([^/]+)\/posts(?:\/([^/]+))?$/);
       if (!m || decodeURIComponent(m[1]) !== opts.publicationId) return err(res, 404, "not_found", "Publication not found");
       const postId = m[2] ? decodeURIComponent(m[2]) : null;

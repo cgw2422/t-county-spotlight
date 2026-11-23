@@ -4,7 +4,7 @@
  * other section is optional and reorderable.
  */
 
-export type SectionType = "intro" | "featured" | "sponsor" | "weather" | "events" | "articles" | "spotlight" | "promo" | "custom";
+export type SectionType = "intro" | "featured" | "sponsor" | "weather" | "events" | "articles" | "spotlight" | "promo" | "custom" | "toc" | "joke" | "poll";
 
 /**
  * Text fields marked "rich" accept the editor's formatting (paragraphs, bold, italic, underline, links, lists);
@@ -15,6 +15,10 @@ export type SectionType = "intro" | "featured" | "sponsor" | "weather" | "events
 export type StoryItem = { id: string; articleId?: string | null; title: string; description: string; imageUrl: string; url: string };
 /** Entered by hand only — events are never added automatically. */
 export type EventItem = { id: string; title: string; date: string; time: string; location: string; description: string; imageUrl: string; url: string };
+/** One line of "In This T County Connect Issue": which section it points at and your wording. */
+export type TocEntry = { sectionId: string; label: string };
+/** A native beehiiv poll chosen from your publication (inserted as a real beehiiv poll block in the draft). */
+export type PollRef = { id: string; name: string; question: string; choices: string[] };
 export type SpotlightBusiness = { businessId?: string | null; name: string; imageUrl: string; text: string; url: string };
 
 export type Section =
@@ -27,6 +31,11 @@ export type Section =
   | { id: string; type: "spotlight"; enabled: boolean; heading: string; business: SpotlightBusiness | null }
   | { id: string; type: "promo"; enabled: boolean; heading: string; text: string; ctaLabel: string; ctaUrl: string }
   /** Anything else: your own heading, text, image and button. Add as many as you like. */
+  /** Overview of the issue. Entries follow the included sections automatically; you can reword and reorder them. */
+  | { id: string; type: "toc"; enabled: boolean; heading: string; entries: TocEntry[] }
+  /** Written by you for each issue — never generated or fetched. */
+  | { id: string; type: "joke"; enabled: boolean; heading: string; intro: string; setup: string; punchline: string }
+  | { id: string; type: "poll"; enabled: boolean; heading: string; intro: string; poll: PollRef | null }
   | { id: string; type: "custom"; enabled: boolean; heading: string; title: string; html: string; imageUrl: string; imageLink: string; ctaLabel: string; ctaUrl: string };
 
 export type DesignContent = { version: 1; sections: Section[] };
@@ -41,6 +50,9 @@ export const SECTION_INFO: Record<SectionType, { label: string; help: string }> 
   spotlight: { label: "Business Spotlight", help: "One local business to feature." },
   promo: { label: "Explore T County Connect", help: "Invite readers to the website." },
   custom: { label: "Custom section", help: "Your own heading, text, image and button." },
+  toc: { label: "In This T County Connect Issue", help: "A compact overview of what's in this issue." },
+  joke: { label: "Daily Dad Joke", help: "Your joke: setup and punchline." },
+  poll: { label: "Community Poll", help: "A native beehiiv poll (voting and results stay in beehiiv)." },
 };
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -51,12 +63,15 @@ export function defaultContent(): DesignContent {
     version: 1,
     sections: [
       { id: uid(), type: "intro", enabled: true, heading: "", html: "<p>Hi neighbors,</p><p>Here&#39;s what&#39;s happening around Tuscarawas County this week.</p>", signature: "Cody, T County Connect" },
+      { id: uid(), type: "toc", enabled: true, heading: "In This T County Connect Issue", entries: [] },
       { id: uid(), type: "featured", enabled: true, heading: "Top Story", story: null, ctaLabel: "Read More" },
       { id: uid(), type: "sponsor", enabled: true },
       { id: uid(), type: "weather", enabled: true, heading: "Your 3-Day Forecast" },
       { id: uid(), type: "events", enabled: true, heading: "Upcoming Events", items: [] },
       { id: uid(), type: "articles", enabled: true, heading: "More From T County Connect", items: [] },
       { id: uid(), type: "spotlight", enabled: true, heading: "Business Spotlight", business: null },
+      { id: uid(), type: "joke", enabled: true, heading: "Daily Dad Joke", intro: "", setup: "", punchline: "" },
+      { id: uid(), type: "poll", enabled: true, heading: "Community Poll", intro: "", poll: null },
       {
         id: uid(), type: "promo", enabled: true, heading: "Explore More on T County Connect",
         text: "Find local businesses, upcoming events, churches, nonprofits and community resources across Tuscarawas County, all in one place.",
@@ -71,7 +86,7 @@ export const emptyEvent = (): EventItem => ({ id: uid(), title: "", date: "", ti
 export const emptyBusiness = (): SpotlightBusiness => ({ businessId: null, name: "", imageUrl: "", text: "", url: "" });
 
 /** Sections you can add to an issue (any number of each, except one weather section is plenty). */
-export const ADDABLE: SectionType[] = ["custom", "featured", "articles", "events", "spotlight", "sponsor", "promo", "intro", "weather"];
+export const ADDABLE: SectionType[] = ["custom", "featured", "articles", "events", "spotlight", "joke", "poll", "sponsor", "promo", "toc", "intro", "weather"];
 
 /** A fresh section of `type`, ready to fill in. */
 export function newSection(type: SectionType): Section {
@@ -86,5 +101,23 @@ export function newSection(type: SectionType): Section {
     case "spotlight": return { id, type, enabled: true, heading: "Business Spotlight", business: null };
     case "promo": return { id, type, enabled: true, heading: "", text: "", ctaLabel: "", ctaUrl: "" };
     case "custom": return { id, type, enabled: true, heading: "", title: "", html: "", imageUrl: "", imageLink: "", ctaLabel: "", ctaUrl: "" };
+    case "toc": return { id, type, enabled: true, heading: "In This T County Connect Issue", entries: [] };
+    case "joke": return { id, type, enabled: true, heading: "Daily Dad Joke", intro: "", setup: "", punchline: "" };
+    case "poll": return { id, type, enabled: true, heading: "Community Poll", intro: "", poll: null };
+  }
+}
+
+/** Default overview wording per section (you can change each line in the editor). */
+export function tocDefaultLabel(s: Section): string | null {
+  switch (s.type) {
+    case "featured": return "📰 Local Headlines";
+    case "articles": return "🗞️ More Local Stories";
+    case "events": return "📅 Upcoming Events Around T County";
+    case "weather": return "☀️ Your Local Weather Forecast";
+    case "spotlight": return "🏪 Business Spotlight";
+    case "joke": return "😄 Daily Dad Joke";
+    case "poll": return "📊 Community Poll";
+    case "custom": return s.heading.trim() || s.title.trim() ? `📌 ${s.heading.trim() || s.title.trim()}` : null;
+    default: return null; // intro, sponsor, promo and the overview itself aren't listed
   }
 }

@@ -3,7 +3,7 @@
  * "Copy HTML" and the beehiiv draft). Email-safe: table layout, inline styles only (beehiiv strips <style> and
  * <link>), fluid widths with no media queries, web fonts with system fallbacks.
  */
-import type { DesignContent, EventItem, Section, SpotlightBusiness, StoryItem } from "./types";
+import { tocDefaultLabel, type DesignContent, type EventItem, type Section, type SpotlightBusiness, type StoryItem, type TocEntry } from "./types";
 
 export type RenderContext = {
   /** "https://tcountyconnect.com" — relative image/link URLs are made absolute against it */
@@ -21,12 +21,23 @@ export type DesignMeta = { title: string; previewText?: string | null; issueNumb
 
 export type Segment =
   | { kind: "html"; html: string }
+  /** "Having trouble viewing this email? Read it online" — beehiiv fills {{live_url}} with this issue's web version. */
+  | { kind: "readOnline" }
   | { kind: "weather"; headingHtml: string; snapshotHtml: string | null }
-  | { kind: "sponsor" };
+  | { kind: "sponsor" }
+  /** A native beehiiv poll (inserted as a real poll block in the draft; never part of exported HTML). */
+  | { kind: "poll"; headingHtml: string; pollId: string; previewHtml: string };
+
+/** beehiiv merge tag for the published web version of the issue being sent. */
+export const LIVE_URL_TAG = "{{live_url}}";
+export const READ_ONLINE_TEXT = "Having trouble viewing this email?";
+export const READ_ONLINE_LINK = "Read it online";
 
 export const C = { navy: "#0B2340", green: "#387D14", orange: "#FF8508", offWhite: "#F7F8F5", text: "#1F2937", muted: "#5B6577", line: "#E3E6EA" } as const;
-const HEAD = "font-family:Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:700;";
-const BODY = "font-family:'Open Sans','Segoe UI',Helvetica,Arial,sans-serif;";
+// Long words and URLs wrap instead of widening the email (no horizontal scrolling on phones).
+const WRAP = "overflow-wrap:break-word;word-wrap:break-word;word-break:break-word;";
+const HEAD = `font-family:Montserrat,'Helvetica Neue',Helvetica,Arial,sans-serif;font-weight:700;${WRAP}`;
+const BODY = `font-family:'Open Sans','Segoe UI',Helvetica,Arial,sans-serif;${WRAP}`;
 const TABLE = 'role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"';
 
 // ───────────── escaping & URLs ─────────────
@@ -104,6 +115,26 @@ export function toEditorHtml(s: string | null | undefined): string {
   const v = String(s ?? "");
   if (!v.trim() || isRich(v)) return v;
   return v.trim().split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
+}
+
+const decode = (s: string) => s.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+
+/**
+ * Article cards never show full articles: a clean excerpt of up to 3 sentences (about 360 characters), cut at a
+ * word boundary with an ellipsis if a single sentence runs long. Formatting is removed.
+ */
+export function excerpt(s: string | null | undefined, maxSentences = 3, maxChars = 360): string {
+  const plain = decode(String(s ?? "").replace(/<(script|style|iframe|noscript|h[1-6]|figcaption)\b[\s\S]*?<\/\1\s*>/gi, " ").replace(/<\/(p|li|h[1-6])>/gi, " ").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
+  if (!plain) return "";
+  const sentences = plain.match(/[^.!?]+(?:[.!?]+["'”’)\]]*|$)\s*/g) ?? [plain];
+  let out = "";
+  for (const sent of sentences.slice(0, maxSentences)) {
+    if (out && (out + sent).trim().length > maxChars) break;
+    out += sent;
+  }
+  out = out.trim();
+  if (out.length > maxChars) out = `${out.slice(0, maxChars).replace(/\s+\S*$/, "").replace(/[,;:\s]+$/, "")}…`;
+  return out;
 }
 
 type Tone = { size: number; color: string; link: string; gap?: number };
@@ -206,21 +237,26 @@ function featuredHtml(s: Extract<Section, { type: "featured" }>, ctx: RenderCont
   return sectionLabel(s.heading) + wrap(
     (image ? `<div style="margin:0 0 16px;">${image}</div>` : "") +
     `<div>${headline(st.title, href, 26)}</div>` +
-    body(st.description, { size: 16, color: C.text, link: C.green }, ctx.siteUrl) +
+    excerptHtml(st.description, 16, C.text) +
     button(s.ctaLabel, href),
   );
 }
 
+const excerptHtml = (d: string, size: number, color: string) => {
+  const e = excerpt(d);
+  return e ? `<p style="margin:10px 0 0;${BODY}font-size:${size}px;line-height:1.6;color:${color};">${esc(e)}</p>` : "";
+};
+
+/** One story: full-width image, headline, short excerpt, Read more — a single column that reads well on phones. */
 function storyRow(st: StoryItem, ctx: RenderContext, first: boolean) {
   const href = safeUrl(st.url, ctx.siteUrl);
   const src = safeUrl(st.imageUrl, ctx.siteUrl);
-  const thumb = src ? `<td width="120" valign="top" style="width:120px;padding:0 16px 0 0;">${img(src, st.title, href, 120, 6)}</td>` : "";
-  return `<table ${TABLE}><tr><td style="padding:${first ? "0" : "16px"} 0 16px;${first ? "" : `border-top:1px solid ${C.line};`}">` +
-    `<table ${TABLE}><tr>${thumb}<td valign="top">` +
-    `<div>${headline(st.title, href, 17)}</div>` +
-    body(st.description, { size: 14, color: C.muted, link: C.green, gap: 8 }, ctx.siteUrl, "6px 0 0") +
-    (href ? `<p style="margin:8px 0 0;${BODY}font-size:14px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Read more &rarr;</a></p>` : "") +
-    `</td></tr></table></td></tr></table>`;
+  return `<table ${TABLE}><tr><td style="padding:${first ? "0" : "22px"} 0 22px;${first ? "" : `border-top:1px solid ${C.line};`}">` +
+    (src ? `<div style="margin:0 0 14px;">${img(src, st.title, href, 600, 8)}</div>` : "") +
+    `<div>${headline(st.title, href, 19)}</div>` +
+    excerptHtml(st.description, 15, C.muted) +
+    (href ? `<p style="margin:10px 0 0;${BODY}font-size:15px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Read more &rarr;</a></p>` : "") +
+    `</td></tr></table>`;
 }
 
 function articlesHtml(s: Extract<Section, { type: "articles" }>, ctx: RenderContext) {
@@ -243,10 +279,11 @@ function eventRow(e: EventItem, ctx: RenderContext, first: boolean) {
     `<table ${TABLE}><tr>${badge}<td valign="top">` +
     `<div>${headline(e.title, href, 17)}</div>` +
     (meta ? `<p style="margin:5px 0 0;${BODY}font-size:13px;line-height:1.5;color:${C.muted};font-weight:600;">${meta}</p>` : "") +
-    (src ? `<div style="margin:10px 0 0;">${img(src, e.title, href, 420, 6)}</div>` : "") +
     body(e.description, { size: 14, color: C.text, link: C.green, gap: 8 }, ctx.siteUrl, "8px 0 0") +
     (href ? `<p style="margin:8px 0 0;${BODY}font-size:14px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">More info &rarr;</a></p>` : "") +
-    `</td></tr></table></td></tr></table>`;
+    `</td></tr></table>` +
+    (src ? `<div style="margin:12px 0 0;">${img(src, e.title, href, 600, 8)}</div>` : "") +
+    `</td></tr></table>`;
 }
 
 function eventsHtml(s: Extract<Section, { type: "events" }>, ctx: RenderContext) {
@@ -291,6 +328,70 @@ function customHtml(s: Extract<Section, { type: "custom" }>, ctx: RenderContext)
   return sectionLabel(s.heading) + wrap(inner, s.heading.trim() ? "0" : "26px 0 0");
 }
 
+// ───────────── overview, joke, poll ─────────────
+
+/** Is this section actually in the email (enabled and with content)? Used by the overview. */
+export function sectionPresent(s: Section, ctx: RenderContext): boolean {
+  if (!s.enabled) return false;
+  switch (s.type) {
+    case "featured": return !!s.story?.title.trim();
+    case "articles": case "events": return s.items.some((i) => i.title.trim());
+    case "spotlight": return !!s.business?.name.trim();
+    case "weather": return true;
+    case "joke": return !!(s.setup.trim() && s.punchline.trim());
+    case "poll": return !!s.poll?.id;
+    case "custom": return !!customHtml(s, ctx);
+    default: return false;
+  }
+}
+
+/**
+ * Overview lines: your saved entries (wording and order) for sections still in the issue, then any newly included
+ * sections with their default wording, in newsletter order. Sections that aren't included never appear.
+ */
+export function tocLines(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>): TocEntry[] {
+  const present = content.sections.filter((x) => x.type !== "toc" && tocDefaultLabel(x) && sectionPresent(x, ctx));
+  const byId = new Map(present.map((x) => [x.id, x]));
+  const saved = (toc?.entries ?? []).filter((e) => byId.has(e.sectionId)).map((e) => ({ sectionId: e.sectionId, label: e.label.trim() || tocDefaultLabel(byId.get(e.sectionId)!)! }));
+  const seen = new Set(saved.map((e) => e.sectionId));
+  return [...saved, ...present.filter((x) => !seen.has(x.id)).map((x) => ({ sectionId: x.id, label: tocDefaultLabel(x)! }))];
+}
+
+function tocHtml(s: Extract<Section, { type: "toc" }>, content: DesignContent, ctx: RenderContext) {
+  const lines = tocLines(content, ctx, s);
+  if (lines.length < 2) return ""; // an overview of one thing isn't useful
+  // Two columns where there's room, one on phones (inline-block wraps; no media queries needed).
+  const items = lines.map((l) => `<div style="display:inline-block;vertical-align:top;width:100%;max-width:250px;padding:4px 0;${BODY}font-size:15px;line-height:1.45;color:${C.navy};">${esc(l.label)}</div>`).join("");
+  return `<table ${TABLE}><tr><td style="padding:24px 0 0;"><table ${TABLE}><tr><td style="background:${C.offWhite};border-radius:10px;padding:16px 18px 14px;">` +
+    `<div style="${HEAD}font-size:12px;line-height:16px;letter-spacing:2px;text-transform:uppercase;color:${C.green};margin:0 0 8px;">${esc(s.heading || "In This T County Connect Issue")}</div>` +
+    `<div style="font-size:0;line-height:0;">${items}</div>` +
+    `</td></tr></table></td></tr></table>`;
+}
+
+function jokeHtml(s: Extract<Section, { type: "joke" }>) {
+  if (!s.setup.trim() || !s.punchline.trim()) return "";
+  return `<table ${TABLE}><tr><td style="padding:30px 0 0;"><table ${TABLE}><tr><td style="background:#FFF6EA;border-radius:12px;padding:22px 22px 20px;">` +
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr>` +
+    `<td valign="middle" style="width:36px;padding:0 10px 0 0;"><div style="width:36px;height:36px;line-height:36px;border-radius:18px;background:#FFE3C2;text-align:center;font-size:20px;">&#128516;</div></td>` +
+    `<td valign="middle"><div style="${HEAD}font-size:12px;line-height:16px;letter-spacing:2px;text-transform:uppercase;color:#C45E00;">${esc(s.heading || "Daily Dad Joke")}</div></td>` +
+    `</tr></table>` +
+    (s.intro.trim() ? `<p style="margin:12px 0 0;${BODY}font-size:14px;line-height:1.5;font-style:italic;color:${C.muted};">${esc(s.intro)}</p>` : "") +
+    `<p style="margin:12px 0 0;${HEAD}font-size:19px;line-height:1.4;color:${C.navy};">${text(s.setup)}</p>` +
+    `<table ${TABLE}><tr><td style="padding:14px 0 0;"><div style="border-top:2px dashed #F5C892;font-size:0;line-height:0;">&nbsp;</div></td></tr></table>` +
+    `<p style="margin:12px 0 0;${BODY}font-size:17px;line-height:1.5;font-weight:700;color:${C.green};">${text(s.punchline)}</p>` +
+    `</td></tr></table></td></tr></table>`;
+}
+
+function pollPreview(s: Extract<Section, { type: "poll" }>) {
+  const p = s.poll!;
+  const choices = p.choices.slice(0, 8).map((c) => `<div style="margin:6px auto 0;max-width:360px;border:1px solid #C5CCD6;border-radius:8px;padding:8px 12px;${BODY}font-size:14px;color:${C.navy};">${esc(c)}</div>`).join("");
+  return `<table ${TABLE}><tr><td style="padding:4px 0 0;"><table ${TABLE}><tr><td align="center" style="border:2px dashed #C5CCD6;border-radius:10px;padding:16px;">` +
+    `<div style="${HEAD}font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:${C.muted};">Preview only · native beehiiv poll</div>` +
+    `<div style="margin:8px 0 0;${HEAD}font-size:17px;line-height:1.35;color:${C.navy};">${esc(p.question || p.name)}</div>${choices}` +
+    `<div style="margin:10px 0 0;${BODY}font-size:12px;line-height:1.5;color:${C.muted};">The real poll (voting and results) is added to the beehiiv draft. This box never appears in the email.</div>` +
+    `</td></tr></table></td></tr></table>`;
+}
+
 function weatherSnapshot(ctx: RenderContext) {
   if (!ctx.weather) return null;
   return wrap(`<a href="${esc(ctx.weather.linkUrl)}" style="text-decoration:none;"><img src="${esc(ctx.weather.imageUrl)}" alt="${esc(ctx.weather.alt)}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;border-radius:8px;"></a>`);
@@ -313,7 +414,7 @@ function footerHtml(ctx: RenderContext) {
  * slot (where you add your Ad Network ad in beehiiv). Disabled and empty sections are skipped.
  */
 export function renderSegments(m: DesignMeta, ctx: RenderContext): Segment[] {
-  const segs: Segment[] = [];
+  const segs: Segment[] = [{ kind: "readOnline" }];
   let buf = masthead(m, ctx);
   const flush = () => { if (buf) segs.push({ kind: "html", html: buf }); buf = ""; };
   for (const s of m.content.sections) {
@@ -326,6 +427,16 @@ export function renderSegments(m: DesignMeta, ctx: RenderContext): Segment[] {
       case "spotlight": buf += spotlightHtml(s, ctx); break;
       case "promo": buf += promoHtml(s, ctx); break;
       case "custom": buf += customHtml(s, ctx); break;
+      case "toc": buf += tocHtml(s, m.content, ctx); break;
+      case "joke": buf += jokeHtml(s); break;
+      case "poll":
+        if (!s.poll?.id) break;
+        flush();
+        segs.push({
+          kind: "poll", pollId: s.poll.id, previewHtml: pollPreview(s),
+          headingHtml: sectionLabel(s.heading) + (s.intro.trim() ? wrap(`<p style="margin:0 0 8px;${BODY}font-size:15px;line-height:1.55;color:${C.text};">${text(s.intro)}</p>`) : ""),
+        });
+        break;
       case "sponsor": flush(); segs.push({ kind: "sponsor" }); break;
       case "weather": flush(); segs.push({ kind: "weather", headingHtml: sectionLabel(s.heading), snapshotHtml: weatherSnapshot(ctx) }); break;
     }
@@ -339,10 +450,19 @@ const previewNote = (title: string, body: string) =>
   `<table ${TABLE}><tr><td style="padding:22px 0 0;"><table ${TABLE}><tr><td align="center" style="border:2px dashed #C5CCD6;border-radius:10px;padding:18px;${BODY}font-size:13px;line-height:1.5;color:${C.muted};">` +
   `<div style="${HEAD}font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${C.navy};">${esc(title)}</div>${esc(body)}</td></tr></table></td></tr></table>`;
 
+/** The small centered line above the logo. In the preview the link is inert; exported HTML keeps {{live_url}}. */
+export function readOnlineHtml(ctx: RenderContext) {
+  const href = ctx.preview ? "#" : LIVE_URL_TAG;
+  return `<p style="margin:0;padding:12px 0 0;text-align:center;${BODY}font-size:12px;line-height:1.5;color:${C.muted};">${esc(READ_ONLINE_TEXT)} ` +
+    `<a href="${href}" style="color:${C.green};font-weight:700;text-decoration:underline;">${esc(READ_ONLINE_LINK)}</a></p>`;
+}
+
 /** Full HTML document (600px wide) for the preview, "Copy HTML" and snapshot exports. */
 export function renderEmailDocument(m: DesignMeta, ctx: RenderContext): string {
   const parts = renderSegments(m, ctx).map((s) => {
     if (s.kind === "html") return s.html;
+    if (s.kind === "readOnline") return readOnlineHtml(ctx);
+    if (s.kind === "poll") return ctx.preview ? s.headingHtml + s.previewHtml : ""; // a native poll can't be exported as HTML
     if (s.kind === "sponsor") return ctx.preview ? previewNote("Sponsor", "Your beehiiv Ad Network ad goes here. Add it in beehiiv before sending.") : "";
     return s.headingHtml + (s.snapshotHtml ?? (ctx.preview ? previewNote("Weather", "The forecast isn't available right now. In beehiiv it comes from the weather RSS feed.") : ""));
   });
@@ -370,6 +490,8 @@ export function designWarnings(m: DesignMeta, ctx: RenderContext): string[] {
     if (s.type === "articles" && !s.items.some((i) => i.title.trim())) w.push("More stories is on but has no articles — it won't appear.");
     if (s.type === "events" && !s.items.some((i) => i.title.trim())) w.push("Upcoming events is on but has no events — it won't appear.");
     if (s.type === "spotlight" && !s.business?.name.trim()) w.push("Business Spotlight is on but empty — it won't appear.");
+    if (s.type === "poll" && !s.poll?.id) w.push("Community Poll is on but no beehiiv poll is chosen — it will be left out.");
+    if (s.type === "joke" && (!s.setup.trim() || !s.punchline.trim())) w.push("Daily Dad Joke needs a setup and a punchline — it won't appear until both are filled in.");
     if (s.type === "weather" && !ctx.weather) w.push("The weather forecast isn't available right now (it still comes from the weather feed in beehiiv).");
     if (s.type === "events") s.items.forEach((e, i) => { if (e.title.trim() && !e.date.trim()) w.push(`Event ${i + 1} (“${e.title}”) has no date.`); });
     if (s.type === "articles" || s.type === "featured") {

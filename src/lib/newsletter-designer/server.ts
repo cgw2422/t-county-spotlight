@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { getSettings } from "@/lib/settings";
 import { sanitizePlain } from "@/lib/sanitize";
-import { absoluteUrl, stripHtml, truncate } from "@/lib/utils";
+import { absoluteUrl, stripHtml } from "@/lib/utils";
 import { articleHref, businessHref } from "@/lib/links";
 import { publishedArticleWhere, publicBusinessWhere } from "@/lib/queries";
 import { brandAssetUrl, effectiveBrandLogoUrl } from "@/lib/brand-assets";
@@ -14,7 +14,7 @@ import { beehiivEditUrl, buildDraftPostBody, createDraftPost, getPostState, list
 import { getTemplateId } from "@/lib/newsletter-events";
 import { getCurrentForecast } from "@/lib/weather/forecast";
 import { dayLine, forecastImagePath, forecastTitle, NWS_FORECAST_PAGE, WEATHER_FEED_PATH } from "@/lib/weather/shared";
-import { isRich, renderSegments, sanitizeIntroHtml, type DesignMeta, type RenderContext } from "./render";
+import { excerpt, isRich, LIVE_URL_TAG, READ_ONLINE_LINK, READ_ONLINE_TEXT, renderSegments, sanitizeIntroHtml, type DesignMeta, type RenderContext } from "./render";
 import { defaultContent, type DesignContent } from "./types";
 
 // ───────────── render context ─────────────
@@ -70,6 +70,9 @@ const section = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("articles"), heading: str(), items: z.array(story).max(ITEMS) }),
   z.object({ ...base, type: z.literal("spotlight"), heading: str(), business: business.nullable() }),
   z.object({ ...base, type: z.literal("promo"), heading: str(), text: rich(), ctaLabel: str(), ctaUrl: url }),
+  z.object({ ...base, type: z.literal("toc"), heading: str(), entries: z.array(z.object({ sectionId: id, label: str() })).max(200) }),
+  z.object({ ...base, type: z.literal("joke"), heading: str(), intro: str(), setup: rich(), punchline: rich() }),
+  z.object({ ...base, type: z.literal("poll"), heading: str(), intro: rich(), poll: z.object({ id: z.string().max(120).regex(/^[A-Za-z0-9_-]+$/), name: str(), question: str(), choices: z.array(str()).max(50) }).nullable() }),
   z.object({ ...base, type: z.literal("custom"), heading: str(), title: str(), html: rich(), imageUrl: url, imageLink: url, ctaLabel: str(), ctaUrl: url }),
 ]);
 const contentSchema = z.object({ version: z.literal(1), sections: z.array(section).max(200) });
@@ -118,18 +121,39 @@ export async function searchArticles(q: string): Promise<PickedStory[]> {
   });
   return rows.map((a) => ({
     articleId: a.id, title: sanitizePlain(a.title, 200),
-    // The full excerpt (no cut-off); articles without one start with the opening of the story — "Use full
-    // article text" in the editor brings in the whole thing.
-    description: sanitizePlain(a.excerpt, TEXT) || truncate(stripHtml(a.content ?? ""), 600),
+    // A clean 2–3 sentence excerpt: the article's own excerpt, or generated from the opening of the story.
+    description: excerpt(sanitizePlain(a.excerpt, TEXT)) || excerpt(a.content ?? ""),
     imageUrl: a.featuredImageUrl ? absoluteUrl(a.featuredImageUrl) : "",
     url: absoluteUrl(articleHref(a)), publishedAt: a.publishedAt?.toISOString() ?? null,
   }));
 }
 
-/** The whole article body as editor-ready rich text (paragraphs, bold, links, lists; headings become bold lines). */
-export async function articleFullText(articleId: string): Promise<string | null> {
-  const a = await db.article.findFirst({ where: publishedArticleWhere({ id: articleId.slice(0, 40) }), select: { content: true } });
-  return a ? sanitizeIntroHtml(a.content ?? "", absoluteUrl("/").replace(/\/$/, "")) : null;
+export type PickedPoll = { id: string; name: string; question: string; choices: string[]; status: string };
+
+/** Your publication's beehiiv polls (newest first), for the Community Poll section. */
+export async function listBeehiivPolls(fetchImpl: typeof fetch = fetch): Promise<{ ok: true; polls: PickedPoll[] } | { ok: false; message: string }> {
+  const env = beehiivEnv();
+  if (!env) return { ok: false, message: "beehiiv isn't connected on this server." };
+  const url = `${env.apiBase}/publications/${encodeURIComponent(env.publicationId)}/polls?limit=100&order_by=created&direction=desc`;
+  let res: Response;
+  try {
+    res = await fetchImpl(url, { headers: { Authorization: `Bearer ${env.apiKey}`, Accept: "application/json" }, cache: "no-store", signal: AbortSignal.timeout(12_000) });
+  } catch {
+    return { ok: false, message: "Couldn't reach beehiiv." };
+  }
+  if (!res.ok) return { ok: false, message: res.status === 401 || res.status === 403 ? "beehiiv refused the request. The API key may not have permission to read polls (polls:read)." : `beehiiv returned HTTP ${res.status}.` };
+  const json = (await res.json().catch(() => null)) as { data?: { id?: unknown; name?: unknown; question?: unknown; status?: unknown; poll_choices?: { label?: unknown; text?: unknown; name?: unknown }[] }[] } | null;
+  if (!json || !Array.isArray(json.data)) return { ok: false, message: "beehiiv returned an unexpected response." };
+  const polls = json.data
+    .filter((p) => typeof p?.id === "string" && /^[A-Za-z0-9_-]+$/.test(p.id as string))
+    .map((p) => ({
+      id: p.id as string,
+      name: sanitizePlain(typeof p.name === "string" ? p.name : "", LINE),
+      question: sanitizePlain(typeof p.question === "string" ? p.question : "", LINE),
+      status: typeof p.status === "string" ? p.status : "",
+      choices: (Array.isArray(p.poll_choices) ? p.poll_choices : []).map((c) => sanitizePlain(String(c?.label ?? c?.text ?? c?.name ?? ""), LINE)).filter(Boolean),
+    }));
+  return { ok: true, polls };
 }
 
 export type PickedBusiness = { businessId: string; name: string; imageUrl: string; text: string; url: string; city: string | null };
@@ -163,9 +187,23 @@ export function beehiivBlocks(meta: DesignMeta, ctx: RenderContext, weatherMode:
   const blocks: DesignerBlock[] = [];
   for (const seg of renderSegments(meta, { ...ctx, preview: false })) {
     if (seg.kind === "html") blocks.push({ type: "html", html: seg.html });
-    else if (seg.kind === "sponsor") {
+    else if (seg.kind === "readOnline") {
+      // Native paragraph so beehiiv fills {{live_url}} with this issue's own web version; email only (pointless on the web page).
+      blocks.push({
+        type: "paragraph", textAlignment: "center",
+        formattedText: [
+          { text: `${READ_ONLINE_TEXT} `, text_color: "#5B6577" },
+          { text: READ_ONLINE_LINK, styling: ["bold", "underline"], text_color: "#387D14", link: { href: LIVE_URL_TAG } },
+        ],
+        visibility_settings: { show_on_web: false, show_on_email: true },
+      });
+    } else if (seg.kind === "poll") {
+      // Native beehiiv poll: voting, subscriber tracking and results stay in beehiiv.
+      if (seg.headingHtml) blocks.push({ type: "html", html: seg.headingHtml });
+      blocks.push({ type: "poll", poll_id: seg.pollId, show_options_initially: true });
+    } else if (seg.kind === "sponsor") {
       blocks.push({ type: "paragraph", textAlignment: "center", formattedText: [{ text: "▶ SPONSOR: add your beehiiv Ad Network ad here, then delete this line.", styling: ["bold"], text_color: "#FF8508" }] });
-    } else {
+    } else if (seg.kind === "weather") {
       if (seg.headingHtml) blocks.push({ type: "html", html: seg.headingHtml });
       if (weatherMode === "snapshot") {
         if (seg.snapshotHtml) blocks.push({ type: "html", html: seg.snapshotHtml });
