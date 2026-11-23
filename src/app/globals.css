@@ -155,3 +155,75 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
 @media (max-width: 1023.98px) {
   html { scroll-padding-bottom: calc(4.5rem + var(--safe-bottom)); }
 }
+
+/* Newsletter issues on the website (built in the Newsletter designer; see renderWebArticle). Mirrors the email's
+   look with site CSS: the email's own inline styles are stripped by the sanitizer. */
+@layer components {
+  .nl-web { --nl-navy: var(--color-navy-900); --nl-green: var(--color-hillside-600); --nl-orange: var(--color-sunset-500); --nl-off: #f7f8f5; --nl-line: #e3e6ea;
+    color: #1f2937; font-size: 1.0625rem; line-height: 1.65; overflow-wrap: anywhere; }
+  .nl-web a { color: var(--nl-green); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+  .nl-web .nl-section, .nl-web .nl-intro { margin-top: 2.25rem; }
+  .nl-web > :first-child { margin-top: 0; }
+  .nl-web .nl-label { display: inline-block; margin: 0 0 1.1rem; padding-bottom: .45rem; border-bottom: 3px solid var(--nl-orange);
+    font-family: var(--font-heading); font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--nl-green); }
+  .nl-web .nl-title { margin: 0; font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; line-height: 1.3; color: var(--nl-navy); }
+  .nl-web .nl-title-lg { font-size: 1.6rem; line-height: 1.2; }
+  .nl-web .nl-title a { color: inherit; text-decoration: none; font-weight: inherit; }
+  .nl-web .nl-title a:hover { text-decoration: underline; }
+  .nl-web .nl-figure { margin: 0 0 1rem; }
+  .nl-web .nl-figure img { display: block; width: 100%; height: auto; border-radius: .75rem; }
+  .nl-web .nl-text { margin-top: .6rem; }
+  .nl-web .nl-text p { margin: 0 0 .85rem; }
+  .nl-web .nl-text p:last-child { margin-bottom: 0; }
+  .nl-web .nl-text ul, .nl-web .nl-text ol { margin: 0 0 .85rem; padding-left: 1.4rem; }
+  .nl-web .nl-text ul { list-style: disc; }
+  .nl-web .nl-text ol { list-style: decimal; }
+  .nl-web .nl-text li { margin: .2rem 0; }
+  .nl-web .nl-text li::marker { color: var(--nl-green); }
+  .nl-web .nl-more { margin: .75rem 0 0; }
+  .nl-web .nl-more a { text-decoration: none; font-weight: 700; }
+  .nl-web .nl-btn-row { margin: 1.1rem 0 0; }
+  .nl-web .nl-btn { display: inline-block; padding: .7rem 1.4rem; border-radius: .4rem; background: var(--nl-orange); color: var(--nl-navy);
+    font-family: var(--font-heading); font-weight: 700; font-size: .95rem; text-decoration: none; }
+  .nl-web .nl-btn:hover { filter: brightness(1.05); }
+  /* intro */
+  .nl-web .nl-intro-head { margin: 0 0 .75rem; font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; color: var(--nl-navy); }
+  .nl-web .nl-sig { margin: .4rem 0 0; font-style: italic; color: var(--nl-navy); }
+  /* overview */
+  .nl-web .nl-toc { margin-top: 2rem; padding: 1rem 1.15rem; border-radius: .75rem; background: var(--nl-off); }
+  .nl-web .nl-toc-head { margin: 0 0 .5rem; font-family: var(--font-heading); font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--nl-green); }
+  .nl-web .nl-toc ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .3rem 1.5rem; }
+  @media (min-width: 640px) { .nl-web .nl-toc ul { grid-template-columns: 1fr 1fr; } }
+  .nl-web .nl-toc a { color: var(--nl-navy); font-weight: 500; text-decoration: none; }
+  .nl-web .nl-toc a:hover { text-decoration: underline; }
+  /* stories */
+  .nl-web .nl-story + .nl-story { margin-top: 1.4rem; padding-top: 1.4rem; border-top: 1px solid var(--nl-line); }
+  /* events */
+  .nl-web .nl-event { display: flex; gap: 1rem; align-items: flex-start; }
+  .nl-web .nl-event + .nl-event { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid var(--nl-line); }
+  .nl-web .nl-date { flex: none; width: 3.9rem; padding: .5rem 0 .55rem; border-radius: .5rem; background: var(--nl-navy); text-align: center; font-family: var(--font-heading); font-weight: 700; }
+  .nl-web .nl-date-mon { display: block; font-size: .7rem; letter-spacing: .08em; line-height: 1.1; color: var(--nl-orange); }
+  .nl-web .nl-date-day { display: block; font-size: 1.5rem; line-height: 1.15; color: #fff; }
+  .nl-web .nl-event-body { min-width: 0; flex: 1; }
+  .nl-web .nl-event .nl-title { font-size: 1.1rem; }
+  .nl-web .nl-meta { margin: .3rem 0 0; font-size: .875rem; font-weight: 600; color: #5b6577; }
+  .nl-web .nl-event .nl-text { font-size: .95rem; }
+  .nl-web .nl-event .nl-figure { margin: .8rem 0 0; }
+  /* cards */
+  .nl-web .nl-card { padding: 1.25rem; border-radius: .75rem; background: var(--nl-off); }
+  .nl-web .nl-weather-card { display: flex; gap: .75rem; align-items: center; }
+  .nl-web .nl-weather-card p { margin: 0; }
+  .nl-web .nl-weather-icon { font-size: 1.6rem; line-height: 1; }
+  /* dad joke */
+  .nl-web .nl-joke { padding: 1.35rem 1.4rem 1.25rem; border-radius: .9rem; background: #fff6ea; }
+  .nl-web .nl-joke-head { display: flex; align-items: center; gap: .6rem; }
+  .nl-web .nl-joke-icon { display: inline-flex; width: 2.25rem; height: 2.25rem; align-items: center; justify-content: center; border-radius: 999px; background: #ffe3c2; font-size: 1.2rem; }
+  .nl-web .nl-joke-label { margin: 0; font-family: var(--font-heading); font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #c45e00; }
+  .nl-web .nl-joke-intro { margin: .75rem 0 0; font-size: .9rem; font-style: italic; color: #5b6577; }
+  .nl-web .nl-joke-setup { margin: .75rem 0 0; padding-bottom: .85rem; border-bottom: 2px dashed #f5c892; font-family: var(--font-heading); font-weight: 700; font-size: 1.2rem; line-height: 1.4; color: var(--nl-navy); }
+  .nl-web .nl-joke-punch { margin: .75rem 0 0; font-weight: 700; font-size: 1.08rem; color: var(--nl-green); }
+  /* explore box */
+  .nl-web .nl-promo { padding: 1.75rem 1.5rem; border-radius: .75rem; background: var(--nl-navy); text-align: center; color: #d5dce6; }
+  .nl-web .nl-promo-head { margin: 0; font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; line-height: 1.3; color: #fff; }
+  .nl-web .nl-promo .nl-text a { color: #fff; }
+}

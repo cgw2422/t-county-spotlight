@@ -589,102 +589,138 @@ export type WebArticleOptions = {
 };
 
 /**
- * The issue as a normal web article for T County Connect (used when a designer issue comes back from beehiiv as
- * a post). The email layout (600px tables, inline colors, masthead, "Read it online", the overview, the sponsor
- * slot, the beehiiv poll and the footer) is email-only; the website gets plain, semantic HTML — headings,
- * paragraphs, lists, images and links — styled by the site like any other article. Same content, same order.
+ * The issue as a web article for T County Connect (used when a designer issue comes back from beehiiv as a post).
+ * Email layout (600px tables, inline styles) doesn't survive the site's sanitizer, so the website version uses
+ * semantic HTML with `nl-*` classes, styled like the newsletter by the site's stylesheet (globals.css): green
+ * section labels, event date badges, the joke card, the Explore box. Same content, same order. Email-only parts
+ * (masthead, "Read it online", the sponsor slot, the beehiiv poll, the footer) are left out; the overview links
+ * to the sections on the page. Only tags and attributes the site's sanitizer keeps (sanitizeRichText) are used.
  */
 export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArticleOptions = {}): string {
   const site = ctx.siteUrl.replace(/\/$/, "");
   const norm = (u: string) => u.replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
   const self = opts.selfPath ? norm(site + opts.selfPath) : null;
   const featured = opts.featuredImageUrl ? norm(opts.featuredImageUrl) : null;
+  const pageTitle = m.title.trim().toLowerCase();
   const link = (u: string) => { const h = safeUrl(u, site); return h && (!self || norm(h) !== self) ? h : ""; };
+  const anchor = (key: string) => `nl-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const rich = (v: string | null | undefined) => {
     const s = String(v ?? "");
     if (!s.trim()) return "";
-    return linkifyHtml(isRich(s) ? sanitizeIntroHtml(s, site) : plainToHtml(s));
+    return `<div class="nl-text">${linkifyHtml(isRich(s) ? sanitizeIntroHtml(s, site) : plainToHtml(s))}</div>`;
   };
-  const h2 = (t: string) => (t.trim() ? `<h2>${esc(t.trim())}</h2>` : "");
-  const h3 = (t: string, href: string) => `<h3>${href ? `<a href="${esc(href)}">${esc(t.trim())}</a>` : esc(t.trim())}</h3>`;
+  const label = (t: string) => (t.trim() ? `<h2 class="nl-label">${esc(t.trim())}</h2>` : "");
+  const title = (t: string, href: string, cls = "nl-title") => `<h3 class="${cls}">${href ? `<a href="${esc(href)}">${esc(t.trim())}</a>` : esc(t.trim())}</h3>`;
   const figure = (src: string, alt: string, href = "") => {
     const s = safeUrl(src, site);
     if (!s || (featured && norm(s) === featured)) return "";
     const im = `<img src="${esc(s)}" alt="${esc(alt.trim())}">`;
-    return `<figure>${href ? `<a href="${esc(href)}">${im}</a>` : im}</figure>`;
+    return `<figure class="nl-figure">${href ? `<a href="${esc(href)}">${im}</a>` : im}</figure>`;
   };
-  const more = (label: string, href: string) => (href ? `<p><a href="${esc(href)}"><strong>${esc(label)} &rarr;</strong></a></p>` : "");
-  const pageTitle = m.title.trim().toLowerCase();
-  const story = (st: StoryItem, cta: string, lead = false) => {
-    const href = link(st.url);
-    // The page's own hero image already leads the article: the featured story's picture would show twice.
-    if (lead && opts.featuredImageUrl) st = { ...st, imageUrl: "" };
-    // The page already shows the issue title as its headline: don't repeat it when the story has the same title.
-    const head = st.title.trim().toLowerCase() === pageTitle ? "" : h3(st.title, href);
-    return figure(st.imageUrl, st.title, href) + head + rich(st.description) + more(cta || "Read more", href);
-  };
+  const more = (t: string, href: string) => (href ? `<p class="nl-more"><a href="${esc(href)}">${esc(t)} &rarr;</a></p>` : "");
+  const btn = (t: string, href: string) => (href ? `<p class="nl-btn-row"><a class="nl-btn" href="${esc(href)}">${esc(t)}</a></p>` : "");
+  const section = (key: string, cls: string, inner: string) => `<section id="${anchor(key)}" class="nl-section ${cls}">${inner}</section>`;
 
   const out: string[] = [];
+  const present = new Set<string>();
+  let tocAt = -1;
+  let tocSection: Extract<Section, { type: "toc" }> | undefined;
   for (const s of m.content.sections) {
     if (!s.enabled) continue;
     switch (s.type) {
       case "intro": {
         const b = rich(s.html);
         if (!b && !s.heading.trim()) break;
-        out.push(h2(s.heading) + b + (s.signature.trim() ? `<p><em>&mdash; ${esc(s.signature.trim())}</em></p>` : ""));
+        out.push(`<section class="nl-intro">${s.heading.trim() ? `<h2 class="nl-intro-head">${esc(s.heading.trim())}</h2>` : ""}${b}${s.signature.trim() ? `<p class="nl-sig">&mdash; ${esc(s.signature.trim())}</p>` : ""}</section>`);
         break;
       }
-      case "featured":
-        if (s.story?.title.trim()) out.push(h2(s.heading) + story(s.story, s.ctaLabel, true));
+      case "toc":
+        if (tocAt < 0) { tocAt = out.length; tocSection = s; out.push(""); }
         break;
+      case "featured": {
+        const st = s.story;
+        if (!st?.title.trim()) break;
+        const href = link(st.url);
+        // The page's hero image and title already lead the article: don't repeat them.
+        const img = opts.featuredImageUrl ? "" : figure(st.imageUrl, st.title, href);
+        const head = st.title.trim().toLowerCase() === pageTitle ? "" : title(st.title, href, "nl-title nl-title-lg");
+        present.add(s.id);
+        out.push(section(s.id, "nl-featured", label(s.heading) + img + head + rich(st.description) + btn(s.ctaLabel || "Read More", href)));
+        break;
+      }
       case "articles": {
         const items = s.items.filter((i) => i.title.trim());
-        if (items.length) out.push(h2(s.heading) + items.map((i) => story(i, "Read more")).join(""));
+        if (!items.length) break;
+        out.push(`<div class="nl-section nl-stories">${label(s.heading)}${items.map((st) => {
+          const href = link(st.url);
+          const key = `${s.id}:${st.id}`;
+          present.add(key);
+          const head = st.title.trim().toLowerCase() === pageTitle ? "" : title(st.title, href);
+          return `<div id="${anchor(key)}" class="nl-story">${figure(st.imageUrl, st.title, href)}${head}${rich(st.description)}${more("Read more", href)}</div>`;
+        }).join("")}</div>`);
         break;
       }
       case "events": {
         const items = s.items.filter((i) => i.title.trim());
         if (!items.length) break;
-        out.push(h2(s.heading) + items.map((e) => {
+        present.add(s.id);
+        out.push(section(s.id, "nl-events", label(s.heading) + items.map((e) => {
           const href = link(e.url);
           const d = eventDateParts(e.date);
           const meta = [d ? d.long : e.date.trim(), e.time.trim(), e.location.trim()].filter(Boolean).map(esc).join(" &middot; ");
-          return h3(e.title, href) + (meta ? `<p><strong>${meta}</strong></p>` : "") + rich(e.description) + more("More info", href) + figure(e.imageUrl, e.title, href);
-        }).join(""));
+          const badge = `<div class="nl-date" aria-hidden="true"><span class="nl-date-mon">${esc(d ? d.month : "DATE")}</span><span class="nl-date-day">${esc(d ? d.day : "—")}</span></div>`;
+          return `<div class="nl-event">${badge}<div class="nl-event-body">${title(e.title, href)}${meta ? `<p class="nl-meta">${meta}</p>` : ""}${rich(e.description)}${more("More info", href)}${figure(e.imageUrl, e.title, href)}</div></div>`;
+        }).join("")));
         break;
       }
       case "spotlight": {
         const b = s.business;
         if (!b?.name.trim()) break;
         const href = link(b.url);
-        out.push(h2(s.heading) + figure(b.imageUrl, b.name, href) + h3(b.name, href) + rich(b.text) + more(`Visit ${b.name.trim()}`, href));
+        present.add(s.id);
+        out.push(section(s.id, "nl-spotlight", label(s.heading) + `<div class="nl-card">${figure(b.imageUrl, b.name, href)}${title(b.name, href)}${rich(b.text)}${more(`Visit ${b.name.trim()}`, href)}</div>`));
         break;
       }
       case "weather": {
         const href = opts.forecastUrl ? safeUrl(opts.forecastUrl, site) : "";
-        if (href) out.push(h2(s.heading || "Weather") + `<p><a href="${esc(href)}">See the current forecast &rarr;</a></p>`);
+        if (!href) break;
+        present.add(s.id);
+        out.push(section(s.id, "nl-weather", label(s.heading || "Weather") + `<div class="nl-card nl-weather-card"><span class="nl-weather-icon" aria-hidden="true">&#9728;&#65039;</span><p>The forecast in this issue has passed. <a href="${esc(href)}">See the current forecast &rarr;</a></p></div>`));
         break;
       }
       case "joke":
         if (!s.setup.trim() || !s.punchline.trim()) break;
-        out.push(h2(s.heading || "Daily Dad Joke") + (s.intro.trim() ? `<p><em>${text(s.intro.trim())}</em></p>` : "") + `<p><strong>${text(s.setup.trim())}</strong></p><p>${text(s.punchline.trim())}</p>`);
+        present.add(s.id);
+        out.push(section(s.id, "nl-joke", `<div class="nl-joke-head"><span class="nl-joke-icon" aria-hidden="true">&#128516;</span><h2 class="nl-joke-label">${esc(s.heading.trim() || "Daily Dad Joke")}</h2></div>` +
+          (s.intro.trim() ? `<p class="nl-joke-intro">${text(s.intro.trim())}</p>` : "") +
+          `<p class="nl-joke-setup">${text(s.setup.trim())}</p><p class="nl-joke-punch">${text(s.punchline.trim())}</p>`));
         break;
       case "promo": {
         if (!s.heading.trim() && !s.text.trim()) break;
         const href = link(s.ctaUrl);
-        out.push(h2(s.heading) + rich(s.text) + more(s.ctaLabel || "Visit TCountyConnect.com", href));
+        present.add(s.id);
+        out.push(section(s.id, "nl-promo", (s.heading.trim() ? `<h2 class="nl-promo-head">${esc(s.heading.trim())}</h2>` : "") + rich(s.text) + btn(s.ctaLabel || "Visit TCountyConnect.com", href)));
         break;
       }
       case "custom": {
         const cta = link(s.ctaUrl);
         const imgHref = link(s.imageLink);
-        const inner = figure(s.imageUrl, s.title || s.heading, imgHref) + (s.title.trim() ? h3(s.title, imgHref || cta) : "") + rich(s.html) + (cta ? more(s.ctaLabel || "Learn more", cta) : "");
-        if (inner) out.push(h2(s.heading) + inner);
+        const inner = figure(s.imageUrl, s.title || s.heading, imgHref) + (s.title.trim() ? title(s.title, imgHref || cta, "nl-title nl-title-lg") : "") + rich(s.html) + (cta ? btn(s.ctaLabel || "Learn more", cta) : "");
+        if (!inner) break;
+        present.add(s.id);
+        out.push(section(s.id, "nl-custom", label(s.heading) + inner));
         break;
       }
-      // toc (an email overview), sponsor (a beehiiv ad), poll (a native beehiiv poll): email only.
+      // sponsor (a beehiiv ad) and poll (a native beehiiv poll): email only.
       default: break;
     }
   }
-  return out.join("\n");
+  if (tocAt >= 0) {
+    const lines = tocLines(m.content, ctx, tocSection).filter((l) => present.has(l.sectionId));
+    out[tocAt] = lines.length >= 2
+      ? `<div class="nl-toc" role="navigation" aria-label="In this issue"><p class="nl-toc-head">${esc(tocSection?.heading.trim() || "In This T County Connect Issue")}</p><ul>${lines.map((l) => `<li><a href="#${anchor(l.sectionId)}">${esc(l.label)}</a></li>`).join("")}</ul></div>`
+      : "";
+  }
+  const body = out.filter(Boolean).join("\n");
+  return body ? `<div class="nl-web not-prose">\n${body}\n</div>` : "";
 }

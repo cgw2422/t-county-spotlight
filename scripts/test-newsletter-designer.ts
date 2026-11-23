@@ -22,6 +22,7 @@ async function main() {
   const t = await import("@/lib/newsletter-designer/types");
   const { beehiivBlocks } = await import("@/lib/newsletter-designer/server");
   const { buildDraftPostBody, assertDraftOnly } = await import("@/lib/beehiiv/posts-api");
+  const { sanitizeRichText } = await import("@/lib/sanitize");
 
   const ctx: import("@/lib/newsletter-designer/render").RenderContext = {
     siteUrl: "https://tcountyconnect.com", logoUrl: "https://tcountyconnect.com/brand/logo-sm.png?v=1",
@@ -299,18 +300,26 @@ async function main() {
     (c.sections.find((x) => x.type === "featured") as { story: unknown }).story = { id: "s1", articleId: null, title: "Big fire", description: "Line one\nGive at https://venmo.com/u/x\n* Shirts", imageUrl: "https://cdn.example.com/a.jpg", url: "/articles/big-fire/" };
     (c.sections.find((x) => x.type === "articles") as { items: unknown[] }).items = [{ id: "a1", articleId: null, title: "Second story", description: "<p><strong>Bold</strong> text</p>", imageUrl: "", url: "https://tcountyconnect.com/articles/second/" }];
     const w = r.renderWebArticle({ ...meta, title: "Weekly issue", content: c }, ctx, { selfPath: "/articles/weekly-issue/", featuredImageUrl: "https://cdn.example.com/a.jpg", forecastUrl: "https://forecast.weather.gov/x" });
-    assert.ok(!/<table|style=|\{\{live_url\}\}|In This T County Connect Issue|Read it online/i.test(w));
+    assert.ok(!/<table|style=|\{\{live_url\}\}|Read it online|SPONSOR/i.test(w), "no email layout or email-only parts");
+    assert.ok(w.startsWith('<div class="nl-web not-prose">'), "styled by the site's newsletter classes");
+    const shown = sanitizeRichText(w);
+    for (const cls of [...new Set([...w.matchAll(/class="([^"]+)"/g)].map((x) => x[1]))]) assert.ok(shown.includes(`class="${cls}"`), `site keeps class ${cls}`);
+    for (const id of [...w.matchAll(/ id="([^"]+)"/g)].map((x) => x[1])) assert.ok(shown.includes(`id="${id}"`), `site keeps id ${id}`);
+    assert.ok(/<div class="nl-toc"[\s\S]*<a href="#nl-[^"]+">📰 Big fire<\/a>[\s\S]*🗞️ Second story/.test(w), "overview links to the sections");
+    for (const id of [...w.matchAll(/href="#([^"]+)"/g)].map((x) => x[1])) assert.ok(w.includes(`id="${id}"`), `anchor ${id} exists`);
+    (c.sections.find((x) => x.type === "events") as { items: unknown[] }).items = [{ id: "e1", title: "Parade", date: "2026-12-05", time: "6 p.m.", location: "Dover", description: "", imageUrl: "", url: "" }];
+    assert.ok(/<div class="nl-date"[^>]*><span class="nl-date-mon">DEC<\/span><span class="nl-date-day">5<\/span><\/div>/.test(r.renderWebArticle({ ...meta, content: c }, ctx)), "event date badge");
     assert.ok(w.indexOf("Hi neighbors") < w.indexOf("Big fire") && w.indexOf("Big fire") < w.indexOf("Second story"), "newsletter order");
-    assert.ok(w.includes('<h3><a href="https://tcountyconnect.com/articles/big-fire/">Big fire</a></h3>'));
+    assert.ok(w.includes('<h3 class="nl-title nl-title-lg"><a href="https://tcountyconnect.com/articles/big-fire/">Big fire</a></h3>'));
     assert.ok(w.includes('<a href="https://venmo.com/u/x">https://venmo.com/u/x</a>') && w.includes("<ul><li>Shirts</li></ul>"));
     assert.ok(!w.includes("cdn.example.com/a.jpg"), "image already shown as the page's featured image");
     assert.ok(w.includes("<strong>Bold</strong> text"));
     assert.ok(w.includes("https://forecast.weather.gov/x"));
-    assert.ok(w.includes("<p><em>&mdash; Cody, T County Connect</em></p>"));
+    assert.ok(w.includes('<p class="nl-sig">&mdash; Cody, T County Connect</p>'));
     const self = r.renderWebArticle({ ...meta, title: "Weekly issue", content: c }, ctx, { selfPath: "/articles/big-fire/" });
     assert.ok(!self.includes("/articles/big-fire/"), "no link back to the same page");
     const same = r.renderWebArticle({ ...meta, title: "Big fire", content: c }, ctx);
-    assert.ok(!/<h3>[\s\S]*?Big fire[\s\S]*?<\/h3>/.test(same), "headline equal to the page title isn't repeated");
+    assert.ok(!/<h3[^>]*>[^]*?Big fire[^]*?<\/h3>/.test(same), "headline equal to the page title isn't repeated");
   });
   console.log(results.join("\n"));
   console.log(failed ? `${failed} FAILED` : `ALL ${results.length} PASS`);
