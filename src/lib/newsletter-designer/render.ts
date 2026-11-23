@@ -3,7 +3,7 @@
  * "Copy HTML" and the beehiiv draft). Email-safe: table layout, inline styles only (beehiiv strips <style> and
  * <link>), fluid widths with no media queries, web fonts with system fallbacks.
  */
-import { LEGACY_TOC_LABELS, tocDefaults, type DesignContent, type EventItem, type Section, type SpotlightBusiness, type StoryItem, type TocEntry } from "./types";
+import { LEGACY_TOC_LABELS, tocDefaults, tocPendingHint, type DesignContent, type EventItem, type Section, type SpotlightBusiness, type StoryItem } from "./types";
 
 export type RenderContext = {
   /** "https://tcountyconnect.com" — relative image/link URLs are made absolute against it */
@@ -341,29 +341,42 @@ export function sectionPresent(s: Section, ctx: RenderContext): boolean {
     case "joke": return !!(s.setup.trim() && s.punchline.trim());
     case "poll": return !!s.poll?.id;
     case "custom": return !!customHtml(s, ctx);
+    case "promo": return !!(s.heading.trim() || s.text.trim());
     default: return false;
   }
 }
 
 export type TocLine = { sectionId: string; label: string; defaultLabel: string };
+export type TocOutlineItem = ({ kind: "line" } & TocLine) | { kind: "pending"; sectionId: string; hint: string };
 
 /**
- * Overview lines, built from the issue's content (see tocDefaults): your saved order first, then anything newly
- * included in newsletter order. Lines you reworded keep your wording; the rest follow the content (change a
- * story title and its line changes too). Sections or stories that aren't in the issue never appear.
- * `editing` keeps your text exactly as typed; the email trims it and uses the content wording for an empty line.
+ * The overview in the newsletter's own order: every included section (stories one line each), built from the
+ * issue's content (see tocDefaults). Move a section and its line moves too. Lines you reworded keep your wording;
+ * the rest follow the content. Switched-on sections that are still empty come back as "pending" (editor only —
+ * they're not in the email). `editing` keeps your text exactly as typed; the email trims it.
  */
+export function tocOutline(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>, opts: { editing?: boolean } = {}): TocOutlineItem[] {
+  const own = new Map((toc?.entries ?? []).map((e) => [e.sectionId, e.label === null || LEGACY_TOC_LABELS.has(e.label) ? null : e.label]));
+  const out: TocOutlineItem[] = [];
+  for (const x of content.sections) {
+    if (x.type === "toc" || !x.enabled) continue;
+    const items = sectionPresent(x, ctx) ? tocDefaults(x) : [];
+    if (!items.length) {
+      const hint = tocPendingHint(x);
+      if (hint) out.push({ kind: "pending", sectionId: x.id, hint });
+      continue;
+    }
+    for (const i of items) {
+      const mine = own.get(i.key) ?? null;
+      out.push({ kind: "line", sectionId: i.key, defaultLabel: i.label, label: mine === null ? i.label : opts.editing ? mine : mine.trim() || i.label });
+    }
+  }
+  return out;
+}
+
+/** Overview lines that go in the email, in newsletter order. */
 export function tocLines(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>, opts: { editing?: boolean } = {}): TocLine[] {
-  const items = content.sections.filter((x) => x.type !== "toc" && sectionPresent(x, ctx)).flatMap((x) => tocDefaults(x));
-  const byKey = new Map(items.map((i) => [i.key, i]));
-  const own = (e: TocEntry) => (e.label === null || LEGACY_TOC_LABELS.has(e.label) ? null : e.label);
-  const saved: TocLine[] = (toc?.entries ?? []).filter((e) => byKey.has(e.sectionId)).map((e) => {
-    const d = byKey.get(e.sectionId)!.label;
-    const mine = own(e);
-    return { sectionId: e.sectionId, defaultLabel: d, label: mine === null ? d : opts.editing ? mine : mine.trim() || d };
-  });
-  const seen = new Set(saved.map((e) => e.sectionId));
-  return [...saved, ...items.filter((i) => !seen.has(i.key)).map((i) => ({ sectionId: i.key, label: i.label, defaultLabel: i.label }))];
+  return tocOutline(content, ctx, toc, opts).flatMap((i) => (i.kind === "line" ? [{ sectionId: i.sectionId, label: i.label, defaultLabel: i.defaultLabel }] : []));
 }
 
 function tocHtml(s: Extract<Section, { type: "toc" }>, content: DesignContent, ctx: RenderContext) {

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { MediaField } from "@/components/admin/media-picker";
 import { cn } from "@/lib/utils";
-import { designWarnings, excerpt, renderEmailDocument, tocLines, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
+import { designWarnings, excerpt, renderEmailDocument, tocOutline, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
 const toPlain = (s: string) => (/<[a-z]/i.test(s) ? s.replace(/<\/(p|li)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim() : s);
@@ -196,24 +196,26 @@ function Collapsible({ title, children, defaultOpen = false, actions }: { title:
 function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Section) => void; content: DesignMeta["content"]; ctx: RenderContext }) {
   switch (s.type) {
     case "toc": {
-      const lines = tocLines(content, ctx, s, { editing: true });
-      // Save order + only the lines you reworded (null = keep following the article titles / section headings).
-      const setLines = (l: typeof lines) => update({ ...s, entries: l.map((x) => ({ sectionId: x.sectionId, label: x.label === x.defaultLabel ? null : x.label })) });
+      const outline = tocOutline(content, ctx, s, { editing: true });
+      const lineCount = outline.filter((o) => o.kind === "line").length;
+      // Saves only the lines you reworded (label null = keep following the content). Order always follows the newsletter.
+      const setLabel = (key: string, value: string, def: string) =>
+        update({ ...s, entries: [...s.entries.filter((e) => e.sectionId !== key), { sectionId: key, label: value === def ? null : value }].filter((e) => e.label !== null) });
       return (
         <div className="space-y-3">
           <F label="Title"><input className={input} value={s.heading} onChange={(e) => update({ ...s, heading: e.target.value })} /></F>
-          <p className="text-xs text-slate-500">Lines come from this issue: the featured article and each story&apos;s headline, and each section&apos;s heading. They update when you change the content. Reword or reorder any line; anything you leave out of the issue never appears. (Jump links aren&apos;t used: many email apps don&apos;t support them.)</p>
-          {lines.length === 0 && <p className="text-sm text-slate-600">Nothing to list yet — fill in a few sections first.</p>}
-          {lines.length === 1 && <p className="text-sm text-slate-600">The overview appears once at least two sections are included.</p>}
+          <p className="text-xs text-slate-500">One line for each section in this issue, in the same order as the newsletter: the featured article and each story&apos;s headline, and each section&apos;s heading. Move a section to move its line. Lines update when you change the content; reword any line here. (Jump links aren&apos;t used: many email apps don&apos;t support them.)</p>
+          {lineCount === 1 && <p className="text-sm text-slate-600">The overview appears once at least two sections have content.</p>}
           <ul className="space-y-2" data-testid="toc-lines">
-            {lines.map((l, i) => (
-              <li key={l.sectionId} className="flex items-center gap-1">
-                <input className={cn(input, "min-w-0 flex-1")} value={l.label} placeholder={l.defaultLabel} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} data-testid="toc-line" />
-                <MoveButtons what="line" onUp={() => setLines(move(lines, i, -1))} onDown={() => setLines(move(lines, i, 1))} upDisabled={i === 0} downDisabled={i === lines.length - 1} />
+            {outline.map((o, i) => o.kind === "line" ? (
+              <li key={o.sectionId}>
+                <input className={cn(input, "w-full")} value={o.label} placeholder={o.defaultLabel} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLabel(o.sectionId, e.target.value, o.defaultLabel)} data-testid="toc-line" />
               </li>
+            ) : (
+              <li key={o.sectionId} className="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-500" data-testid="toc-pending">{o.hint}</li>
             ))}
           </ul>
-          {s.entries.length > 0 && <button type="button" className="btn-ghost btn-sm" onClick={() => update({ ...s, entries: [] })}>Reset wording and order</button>}
+          {s.entries.some((e) => e.label !== null) && <button type="button" className="btn-ghost btn-sm" onClick={() => update({ ...s, entries: [] })}>Reset wording</button>}
         </div>
       );
     }

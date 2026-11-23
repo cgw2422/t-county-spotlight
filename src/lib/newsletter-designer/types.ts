@@ -134,7 +134,23 @@ export function tocDefaults(s: Section): TocItem[] {
       const t = s.title.trim() || s.heading.trim();
       return t ? [{ key: s.id, label: line("📌", t) }] : [];
     }
-    default: return []; // intro, sponsor, promo and the overview itself aren't listed
+    case "promo": return s.heading.trim() || s.text.trim() ? [{ key: s.id, label: line("🔎", s.heading.trim() || "Explore T County Connect") }] : [];
+    default: return []; // the introduction, sponsor ad and the overview itself aren't listed
+  }
+}
+
+/** What a switched-on section still needs before it shows up in the email (and so in the overview). */
+export function tocPendingHint(s: Section): string | null {
+  switch (s.type) {
+    case "featured": return "📰 Featured article — appears once you choose an article";
+    case "articles": return `🗞️ ${s.heading.trim() || "More stories"} — appears once you add a story`;
+    case "events": return `📅 ${s.heading.trim() || "Upcoming Events"} — appears once you add an event`;
+    case "spotlight": return `🏪 ${s.heading.trim() || "Business Spotlight"} — appears once you choose a business`;
+    case "joke": return `😄 ${s.heading.trim() || "Daily Dad Joke"} — appears once the setup and punchline are filled in`;
+    case "poll": return `📊 ${s.heading.trim() || "Community Poll"} — appears once you choose a beehiiv poll`;
+    case "custom": return "📌 Custom section — appears once it has a headline or text";
+    case "promo": return "🔎 Explore T County Connect — appears once it has a heading or message";
+    default: return null;
   }
 }
 
