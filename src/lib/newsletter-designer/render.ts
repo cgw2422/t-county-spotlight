@@ -349,10 +349,15 @@ export function sectionPresent(s: Section, ctx: RenderContext): boolean {
  * Overview lines: your saved entries (wording and order) for sections still in the issue, then any newly included
  * sections with their default wording, in newsletter order. Sections that aren't included never appear.
  */
-export function tocLines(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>): TocEntry[] {
+export function tocLines(content: DesignContent, ctx: RenderContext, toc?: Extract<Section, { type: "toc" }>, opts: { editing?: boolean } = {}): TocEntry[] {
   const present = content.sections.filter((x) => x.type !== "toc" && tocDefaultLabel(x) && sectionPresent(x, ctx));
   const byId = new Map(present.map((x) => [x.id, x]));
-  const saved = (toc?.entries ?? []).filter((e) => byId.has(e.sectionId)).map((e) => ({ sectionId: e.sectionId, label: e.label.trim() || tocDefaultLabel(byId.get(e.sectionId)!)! }));
+  // While editing, keep your text exactly as typed (spaces, an empty line you're retyping); the email trims it
+  // and falls back to the default wording for an empty line.
+  const saved = (toc?.entries ?? []).filter((e) => byId.has(e.sectionId)).map((e) => ({
+    sectionId: e.sectionId,
+    label: opts.editing ? e.label : e.label.trim() || tocDefaultLabel(byId.get(e.sectionId)!)!,
+  }));
   const seen = new Set(saved.map((e) => e.sectionId));
   return [...saved, ...present.filter((x) => !seen.has(x.id)).map((x) => ({ sectionId: x.id, label: tocDefaultLabel(x)! }))];
 }

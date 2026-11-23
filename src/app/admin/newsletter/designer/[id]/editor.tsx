@@ -10,7 +10,7 @@ import { designWarnings, excerpt, renderEmailDocument, tocLines, type DesignMeta
 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
 const toPlain = (s: string) => (/<[a-z]/i.test(s) ? s.replace(/<\/(p|li)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim() : s);
-import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
+import { ADDABLE, tocDefaultLabel, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
 import type { PickedBusiness, PickedPoll, PickedStory } from "@/lib/newsletter-designer/server";
 import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
 import { RichText } from "./rich-text";
@@ -196,7 +196,7 @@ function Collapsible({ title, children, defaultOpen = false, actions }: { title:
 function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Section) => void; content: DesignMeta["content"]; ctx: RenderContext }) {
   switch (s.type) {
     case "toc": {
-      const lines = tocLines(content, ctx, s);
+      const lines = tocLines(content, ctx, s, { editing: true });
       const setLines = (l: typeof lines) => update({ ...s, entries: l });
       return (
         <div className="space-y-3">
@@ -207,7 +207,7 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
           <ul className="space-y-2" data-testid="toc-lines">
             {lines.map((l, i) => (
               <li key={l.sectionId} className="flex items-center gap-1">
-                <input className={cn(input, "min-w-0 flex-1")} value={l.label} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} data-testid="toc-line" />
+                <input className={cn(input, "min-w-0 flex-1")} value={l.label} placeholder={tocDefaultLabel(content.sections.find((x) => x.id === l.sectionId) ?? s) ?? ""} aria-label={`Overview line ${i + 1}`} onChange={(e) => setLines(lines.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} data-testid="toc-line" />
                 <MoveButtons what="line" onUp={() => setLines(move(lines, i, -1))} onDown={() => setLines(move(lines, i, 1))} upDisabled={i === 0} downDisabled={i === lines.length - 1} />
               </li>
             ))}

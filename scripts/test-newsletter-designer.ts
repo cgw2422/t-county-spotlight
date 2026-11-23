@@ -185,6 +185,16 @@ async function main() {
     toc.entries = [{ sectionId: ids[2].sectionId, label: "📅 What's On This Week" }, { sectionId: ids[0].sectionId, label: "" }];
     lines = r.tocLines(c, ctx, toc).map((l) => l.label);
     assert.deepEqual(lines.slice(0, 2), ["📅 What's On This Week", "📰 Local Headlines"]);
+    // Editing keeps text exactly as typed (trailing space, empty line); the email trims / falls back to the default
+    toc.entries[0].label = "📅 What's On ";
+    assert.equal(r.tocLines(c, ctx, toc, { editing: true })[0].label, "📅 What's On ");
+    assert.equal(r.tocLines(c, ctx, toc)[0].label, "📅 What's On");
+    toc.entries[0].label = "";
+    assert.equal(r.tocLines(c, ctx, toc, { editing: true })[0].label, "");
+    assert.equal(r.tocLines(c, ctx, toc)[0].label, "📅 Upcoming Events Around T County");
+    toc.entries[0].label = "📅 What's On This Week";
+    const sv = designInput.safeParse({ title: "x", previewText: "", issueNumber: 1, issueDate: "2026-11-23", content: { ...c, sections: c.sections.map((x) => (x.type === "toc" ? { ...x, entries: [{ sectionId: ids[2].sectionId, label: "Spaced out " }] } : x)) } });
+    assert.ok(sv.success && (sv.data.content.sections.find((x) => x.type === "toc") as { entries: { label: string }[] }).entries[0].label === "Spaced out ", "saved as typed");
     const d = r.renderEmailDocument({ ...meta, content: c }, ctx);
     assert.ok(d.includes("In This T County Connect Issue") && d.includes("What&#39;s On This Week"));
     assert.ok(!/href="#/.test(d.replace('href="#"', "")), "no jump links");
