@@ -1816,3 +1816,21 @@ model BusinessLeadSubmission {
   @@index([leadId, createdAt])
   @@index([ipHash, createdAt])
 }
+
+/// Newsletter weather (/weather/rss/): one row per distinct 3-day forecast for New Philadelphia from the
+/// National Weather Service. Rows are immutable so each forecast image URL (/weather/forecast/<id>.png) never
+/// changes after beehiiv picks it up. Not shown anywhere on the public website.
+model WeatherForecast {
+  id        String   @id @default(cuid())
+  /// sha256 of the NWS issue time + the normalized days — the same forecast is stored once
+  hash      String   @unique
+  /// NWS forecast updateTime (when the forecast office issued it)
+  issuedAt  DateTime
+  /// Last time NWS confirmed this is still the current forecast
+  fetchedAt DateTime @default(now())
+  /// WeatherDay[] (see src/lib/weather/shared.ts)
+  days      Json
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

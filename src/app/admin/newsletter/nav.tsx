@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/admin/newsletter/events/", label: "Newsletter Events" },
   { href: "/admin/newsletter/beehiiv/", label: "beehiiv" },
   { href: "/admin/newsletter/article-link/", label: "Article link" },
+  { href: "/admin/newsletter/weather/", label: "Weather" },
   { href: "/admin/newsletter/settings/", label: "Settings" },
 ];
 
