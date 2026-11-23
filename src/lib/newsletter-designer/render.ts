@@ -576,3 +576,115 @@ export function designWarnings(m: DesignMeta, ctx: RenderContext): string[] {
   }
   return w;
 }
+
+// ───────────── website version ─────────────
+
+export type WebArticleOptions = {
+  /** This article's own path (e.g. "/articles/my-issue/"): "Read more" links pointing back to it are left out. */
+  selfPath?: string | null;
+  /** The article's featured image: the featured story's picture (or any identical image) isn't repeated in the body. */
+  featuredImageUrl?: string | null;
+  /** Where the weather section points on the web (a past issue's forecast is out of date). */
+  forecastUrl?: string | null;
+};
+
+/**
+ * The issue as a normal web article for T County Connect (used when a designer issue comes back from beehiiv as
+ * a post). The email layout (600px tables, inline colors, masthead, "Read it online", the overview, the sponsor
+ * slot, the beehiiv poll and the footer) is email-only; the website gets plain, semantic HTML — headings,
+ * paragraphs, lists, images and links — styled by the site like any other article. Same content, same order.
+ */
+export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArticleOptions = {}): string {
+  const site = ctx.siteUrl.replace(/\/$/, "");
+  const norm = (u: string) => u.replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
+  const self = opts.selfPath ? norm(site + opts.selfPath) : null;
+  const featured = opts.featuredImageUrl ? norm(opts.featuredImageUrl) : null;
+  const link = (u: string) => { const h = safeUrl(u, site); return h && (!self || norm(h) !== self) ? h : ""; };
+  const rich = (v: string | null | undefined) => {
+    const s = String(v ?? "");
+    if (!s.trim()) return "";
+    return linkifyHtml(isRich(s) ? sanitizeIntroHtml(s, site) : plainToHtml(s));
+  };
+  const h2 = (t: string) => (t.trim() ? `<h2>${esc(t.trim())}</h2>` : "");
+  const h3 = (t: string, href: string) => `<h3>${href ? `<a href="${esc(href)}">${esc(t.trim())}</a>` : esc(t.trim())}</h3>`;
+  const figure = (src: string, alt: string, href = "") => {
+    const s = safeUrl(src, site);
+    if (!s || (featured && norm(s) === featured)) return "";
+    const im = `<img src="${esc(s)}" alt="${esc(alt.trim())}">`;
+    return `<figure>${href ? `<a href="${esc(href)}">${im}</a>` : im}</figure>`;
+  };
+  const more = (label: string, href: string) => (href ? `<p><a href="${esc(href)}"><strong>${esc(label)} &rarr;</strong></a></p>` : "");
+  const pageTitle = m.title.trim().toLowerCase();
+  const story = (st: StoryItem, cta: string, lead = false) => {
+    const href = link(st.url);
+    // The page's own hero image already leads the article: the featured story's picture would show twice.
+    if (lead && opts.featuredImageUrl) st = { ...st, imageUrl: "" };
+    // The page already shows the issue title as its headline: don't repeat it when the story has the same title.
+    const head = st.title.trim().toLowerCase() === pageTitle ? "" : h3(st.title, href);
+    return figure(st.imageUrl, st.title, href) + head + rich(st.description) + more(cta || "Read more", href);
+  };
+
+  const out: string[] = [];
+  for (const s of m.content.sections) {
+    if (!s.enabled) continue;
+    switch (s.type) {
+      case "intro": {
+        const b = rich(s.html);
+        if (!b && !s.heading.trim()) break;
+        out.push(h2(s.heading) + b + (s.signature.trim() ? `<p><em>&mdash; ${esc(s.signature.trim())}</em></p>` : ""));
+        break;
+      }
+      case "featured":
+        if (s.story?.title.trim()) out.push(h2(s.heading) + story(s.story, s.ctaLabel, true));
+        break;
+      case "articles": {
+        const items = s.items.filter((i) => i.title.trim());
+        if (items.length) out.push(h2(s.heading) + items.map((i) => story(i, "Read more")).join(""));
+        break;
+      }
+      case "events": {
+        const items = s.items.filter((i) => i.title.trim());
+        if (!items.length) break;
+        out.push(h2(s.heading) + items.map((e) => {
+          const href = link(e.url);
+          const d = eventDateParts(e.date);
+          const meta = [d ? d.long : e.date.trim(), e.time.trim(), e.location.trim()].filter(Boolean).map(esc).join(" &middot; ");
+          return h3(e.title, href) + (meta ? `<p><strong>${meta}</strong></p>` : "") + rich(e.description) + more("More info", href) + figure(e.imageUrl, e.title, href);
+        }).join(""));
+        break;
+      }
+      case "spotlight": {
+        const b = s.business;
+        if (!b?.name.trim()) break;
+        const href = link(b.url);
+        out.push(h2(s.heading) + figure(b.imageUrl, b.name, href) + h3(b.name, href) + rich(b.text) + more(`Visit ${b.name.trim()}`, href));
+        break;
+      }
+      case "weather": {
+        const href = opts.forecastUrl ? safeUrl(opts.forecastUrl, site) : "";
+        if (href) out.push(h2(s.heading || "Weather") + `<p><a href="${esc(href)}">See the current forecast &rarr;</a></p>`);
+        break;
+      }
+      case "joke":
+        if (!s.setup.trim() || !s.punchline.trim()) break;
+        out.push(h2(s.heading || "Daily Dad Joke") + (s.intro.trim() ? `<p><em>${text(s.intro.trim())}</em></p>` : "") + `<p><strong>${text(s.setup.trim())}</strong></p><p>${text(s.punchline.trim())}</p>`);
+        break;
+      case "promo": {
+        if (!s.heading.trim() && !s.text.trim()) break;
+        const href = link(s.ctaUrl);
+        out.push(h2(s.heading) + rich(s.text) + more(s.ctaLabel || "Visit TCountyConnect.com", href));
+        break;
+      }
+      case "custom": {
+        const cta = link(s.ctaUrl);
+        const imgHref = link(s.imageLink);
+        const inner = figure(s.imageUrl, s.title || s.heading, imgHref) + (s.title.trim() ? h3(s.title, imgHref || cta) : "") + rich(s.html) + (cta ? more(s.ctaLabel || "Learn more", cta) : "");
+        if (inner) out.push(h2(s.heading) + inner);
+        break;
+      }
+      // toc (an email overview), sponsor (a beehiiv ad), poll (a native beehiiv poll): email only.
+      default: break;
+    }
+  }
+  return out.join("\n");
+}

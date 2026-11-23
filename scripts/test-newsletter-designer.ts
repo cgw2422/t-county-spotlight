@@ -294,6 +294,24 @@ async function main() {
     f.story = { id: "s1", articleId: null, title: "Fire in Dover", description: "Give at https://venmo.com/u/Dover-Fire today", imageUrl: "", url: "" };
     assert.ok(/<a [^>]*href="https:\/\/venmo\.com\/u\/Dover-Fire"/.test(r.renderEmailDocument({ ...meta, content: c }, ctx)));
   });
+  test("web version for the website: semantic HTML in newsletter order, no email layout or email-only parts", () => {
+    const c = t.defaultContent();
+    (c.sections.find((x) => x.type === "featured") as { story: unknown }).story = { id: "s1", articleId: null, title: "Big fire", description: "Line one\nGive at https://venmo.com/u/x\n* Shirts", imageUrl: "https://cdn.example.com/a.jpg", url: "/articles/big-fire/" };
+    (c.sections.find((x) => x.type === "articles") as { items: unknown[] }).items = [{ id: "a1", articleId: null, title: "Second story", description: "<p><strong>Bold</strong> text</p>", imageUrl: "", url: "https://tcountyconnect.com/articles/second/" }];
+    const w = r.renderWebArticle({ ...meta, title: "Weekly issue", content: c }, ctx, { selfPath: "/articles/weekly-issue/", featuredImageUrl: "https://cdn.example.com/a.jpg", forecastUrl: "https://forecast.weather.gov/x" });
+    assert.ok(!/<table|style=|\{\{live_url\}\}|In This T County Connect Issue|Read it online/i.test(w));
+    assert.ok(w.indexOf("Hi neighbors") < w.indexOf("Big fire") && w.indexOf("Big fire") < w.indexOf("Second story"), "newsletter order");
+    assert.ok(w.includes('<h3><a href="https://tcountyconnect.com/articles/big-fire/">Big fire</a></h3>'));
+    assert.ok(w.includes('<a href="https://venmo.com/u/x">https://venmo.com/u/x</a>') && w.includes("<ul><li>Shirts</li></ul>"));
+    assert.ok(!w.includes("cdn.example.com/a.jpg"), "image already shown as the page's featured image");
+    assert.ok(w.includes("<strong>Bold</strong> text"));
+    assert.ok(w.includes("https://forecast.weather.gov/x"));
+    assert.ok(w.includes("<p><em>&mdash; Cody, T County Connect</em></p>"));
+    const self = r.renderWebArticle({ ...meta, title: "Weekly issue", content: c }, ctx, { selfPath: "/articles/big-fire/" });
+    assert.ok(!self.includes("/articles/big-fire/"), "no link back to the same page");
+    const same = r.renderWebArticle({ ...meta, title: "Big fire", content: c }, ctx);
+    assert.ok(!/<h3>[\s\S]*?Big fire[\s\S]*?<\/h3>/.test(same), "headline equal to the page title isn't repeated");
+  });
   console.log(results.join("\n"));
   console.log(failed ? `${failed} FAILED` : `ALL ${results.length} PASS`);
   process.exit(failed ? 1 : 0);

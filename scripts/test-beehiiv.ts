@@ -442,6 +442,37 @@ async function main() {
       assert.equal(due2.skipped, undefined);
     });
 
+    await test("designer issues: the website gets a clean web version from the saved design (not the email tables)", async () => {
+      const { defaultContent } = await import("@/lib/newsletter-designer/types");
+      const content = defaultContent();
+      const f = content.sections.find((x) => x.type === "featured") as { story: unknown };
+      f.story = { id: "s1", articleId: null, title: "Changed title Z1", description: '<p>Eight people escaped. Give via <a href="https://venmo.com/u/Dover-Fire">Venmo</a>.</p><ul><li>Youth medium</li></ul>', imageUrl: "https://media.beehiiv.com/uploads/asset/file/fire.jpg", url: "/articles/bhtest-z1/" };
+      const joke = content.sections.find((x) => x.type === "joke") as { setup: string; punchline: string };
+      joke.setup = "Why did the scarecrow win?"; joke.punchline = "He was outstanding in his field.";
+      posts.set("Z1", post("Z1", { tags: [], title: "Changed title Z1", web: '<div><table role="presentation" width="600"><tr><td style="padding:0 24px;background:#0B2340;border-radius:12px"><p>EMAIL LAYOUT</p></td></tr></table></div>' }));
+      const d = await db.newsletterDesign.create({ data: { title: "Changed title Z1", issueDate: new Date("2026-11-23T12:00:00Z"), content: content as never, beehiivStatus: "created", beehiivPostId: "post_bhtest_Z1", beehiivSentAt: new Date() } });
+      try {
+        await syncBeehiiv({ trigger: "test" });
+        const a = await db.article.findUniqueOrThrow({ where: { beehiivPostId: "post_bhtest_Z1" } });
+        assert.ok(!/<table|EMAIL LAYOUT|style=|\{\{/.test(a.content), "no email layout: " + a.content.slice(0, 200));
+        assert.match(a.content, /<h2>Top Story<\/h2>/);
+        assert.match(a.content, /<a href="https:\/\/venmo\.com\/u\/Dover-Fire">Venmo<\/a>/);
+        assert.match(a.content, /<ul><li>Youth medium<\/li><\/ul>/);
+        assert.ok(!a.content.includes("fire.jpg"), "featured picture not repeated under the page's hero image");
+        assert.equal(a.featuredImageUrl, posts.get("Z1")!.thumbnail_url);
+        assert.match(a.content, /Why did the scarecrow win\?/);
+        assert.ok(!a.content.includes("/articles/bhtest-z1/"), "no Read More link back to this same page");
+        assert.ok(!/<h3>[^<]*Changed title Z1/.test(a.content), "headline not repeated under the page title");
+        assert.ok(!/In This T County Connect Issue|SPONSOR|Read it online/i.test(a.content), "email-only parts left out");
+        assert.equal(a.beehiivContentSource, "web");
+        const again = await syncBeehiiv({ trigger: "test" });
+        assert.equal(again.counts.articlesUpdated, 0, "stable on re-run");
+      } finally {
+        await db.newsletterDesign.delete({ where: { id: d.id } });
+        posts.delete("Z1");
+      }
+    });
+
     await test("default newsletter copy (no separate brand) and theName helper", async () => {
       const { newsletterCopy, theName } = await import("@/lib/newsletter/copy");
       const d = newsletterCopy();

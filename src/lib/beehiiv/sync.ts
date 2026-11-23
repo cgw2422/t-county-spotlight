@@ -2,10 +2,13 @@ import "server-only";
 import { db } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { sanitizePlain } from "@/lib/sanitize";
-import { slugify, stripHtml, truncate } from "@/lib/utils";
+import { absoluteUrl, slugify, stripHtml, truncate } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 import { BeehiivError, beehiivEnv, listConfirmedPosts, type BeehiivPost } from "./client";
 import { prepareBeehiivContent } from "./html";
+import { renderWebArticle, type DesignMeta } from "@/lib/newsletter-designer/render";
+import type { DesignContent } from "@/lib/newsletter-designer/types";
+import { NWS_FORECAST_PAGE } from "@/lib/weather/shared";
 import { backfillNewsletterCategory as backfillCategory, ensureNewsletterCategory as ensureCategory } from "./newsletter-category";
 
 export { NEWSLETTER_CATEGORY } from "./newsletter-category";
@@ -239,7 +242,23 @@ export async function syncBeehiiv(opts: { trigger?: string; actorId?: string | n
 
 type Fields = { title: string; subtitle: string | null; publishedAt: Date; thumbnailUrl: string | null; html: string; source: "web" | "email"; syncedAt: Date };
 
+/**
+ * Posts built with the Newsletter designer arrive from beehiiv as email layout (600px tables with inline styles),
+ * which doesn't belong on a web page. For those, the site uses a web version rendered from the saved design
+ * instead: the same content in the same order as plain headings, paragraphs, images and links.
+ */
+async function designerWebHtml(p: BeehiivPost, selfPath: string | null, featuredImageUrl: string | null): Promise<string | null> {
+  const d = await db.newsletterDesign.findFirst({ where: { beehiivPostId: p.id }, orderBy: { beehiivSentAt: "desc" } });
+  if (!d) return null;
+  const meta: DesignMeta = { title: d.title, previewText: d.previewText, issueNumber: d.issueNumber, issueDate: d.issueDate.toISOString().slice(0, 10), content: d.content as unknown as DesignContent };
+  if (!Array.isArray(meta.content?.sections)) return null;
+  const html = renderWebArticle(meta, { siteUrl: absoluteUrl("/").replace(/\/$/, ""), logoUrl: null, weather: null, socials: [] }, { selfPath, featuredImageUrl, forecastUrl: NWS_FORECAST_PAGE });
+  return html.trim() ? html : null;
+}
+
 async function upsertIssue(p: BeehiivPost, f: Fields & { webUrl: string | null }, c: SyncCounts) {
+  const designHtml = await designerWebHtml(p, null, f.thumbnailUrl);
+  if (designHtml) f = { ...f, html: designHtml, source: "web" };
   const existing = await db.newsletterIssue.findUnique({ where: { beehiivPostId: p.id } });
   const data = { title: f.title, subtitle: f.subtitle, html: f.html, thumbnailUrl: f.thumbnailUrl, publishedAt: f.publishedAt, webUrl: f.webUrl, contentSource: f.source };
   if (existing) {
@@ -271,6 +290,10 @@ async function upsertArticle(p: BeehiivPost, f: Fields, c: SyncCounts, opts: { e
   const existing = await db.article.findUnique({ where: { beehiivPostId: p.id } });
   // Local edits win (same rule as the WordPress importer); deleted articles stay deleted.
   if (existing && (existing.localEditedAt || existing.deletedAt)) { c.preservedLocalEdits++; return { outcome: "preserved", articleId: existing.id }; }
+  if (existing) {
+    const designHtml = await designerWebHtml(p, `/articles/${existing.slug}/`, f.thumbnailUrl);
+    if (designHtml) f = { ...f, html: designHtml, source: "web" };
+  }
   const excerpt = f.subtitle || sanitizePlain(p.meta_default_description, 500) || sanitizePlain(p.preview_text, 500) || truncate(stripHtml(f.html), 280) || null;
   const data = {
     title: f.title.slice(0, 500), excerpt, content: f.html, status: "PUBLISHED" as const, publishedAt: f.publishedAt,
@@ -296,6 +319,8 @@ async function upsertArticle(p: BeehiivPost, f: Fields, c: SyncCounts, opts: { e
   } else {
     slug = await uniqueSlug(p.slug || f.title, articleSlugTaken);
   }
+  const designHtml = await designerWebHtml(p, `/articles/${slug}/`, f.thumbnailUrl);
+  if (designHtml) { data.content = designHtml; data.beehiivContentSource = "web"; }
   // New imports are filed under Newsletter. Later syncs never change categories, so a manual change sticks.
   const categoryId = await ensureNewsletterCategory();
   const a = await db.article.create({ data: { ...data, slug, kind: "GENERAL", beehiivPostId: p.id, beehiivSyncedAt: f.syncedAt, categories: { connect: { id: categoryId } } } });
