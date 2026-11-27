@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, FileText, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
+  LayoutDashboard, FileText, Landmark, Building2, FileStack, Image as ImageIcon, Store, ClipboardList, Tags, Megaphone, Briefcase,
   CalendarDays, CalendarCog, BadgePercent, Home, Sparkles, Menu as MenuIcon, ArrowRightLeft, Users, CreditCard,
   Palette, Leaf, Settings, ScrollText, DatabaseZap, HeartHandshake, Church, HandHelping, Mail, Star, ChevronsLeft, ChevronsRight, X, Menu, ExternalLink, LogOut, ShieldCheck, ChevronDown,
   MessagesSquare, ListOrdered, BarChart3, Inbox, CalendarClock, Tag, Truck, Compass, MapPinned, Lightbulb, ThumbsUp,
@@ -79,6 +79,14 @@ const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/newsletter/", label: "Newsletter", icon: Mail, adminOnly: true },
       { href: "/admin/newsletter/events/", label: "Newsletter Events", icon: CalendarDays, adminOnly: true },
+    ],
+  },
+  {
+    title: "Government Watch",
+    items: [
+      { href: "/admin/government-watch/", label: "Government Watch", icon: Landmark, adminOnly: true },
+      { href: "/admin/government-watch/documents/", label: "Meeting documents", icon: FileText, adminOnly: true },
+      { href: "/admin/government-watch/sources/", label: "Government sources", icon: Building2, adminOnly: true },
     ],
   },
   {

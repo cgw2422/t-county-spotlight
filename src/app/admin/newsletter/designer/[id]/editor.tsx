@@ -11,7 +11,7 @@ import { designWarnings, normalizeGifUrl, renderEmailDocument, tocOutline, type 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
 import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type ImageMeta, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
 import type { PickedBusiness, PickedPoll, PickedStory } from "@/lib/newsletter-designer/server";
-import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
+import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, searchGovStoriesAction, sendToBeehiivAction } from "../actions";
 import { RichText } from "./rich-text";
 
 type Beehiiv = { status: string; postId: string | null; editUrl: string | null; message: string | null; configured: boolean; hasTemplate: boolean };
@@ -48,25 +48,27 @@ const move = <T,>(arr: T[], i: number, d: -1 | 1) => {
 
 // ───────────── pickers ─────────────
 
-function ArticlePicker({ onPick, label = "Choose from the website" }: { onPick: (a: PickedStory) => void; label?: string }) {
+function ArticlePicker({ onPick, label = "Choose from the website", search = searchArticlesAction, testId = "pick-article", placeholder = "Search articles", empty = "No published articles match." }: {
+  onPick: (a: PickedStory) => void; label?: string; search?: (q: string) => Promise<PickedStory[]>; testId?: string; placeholder?: string; empty?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<PickedStory[] | null>(null);
   const [pending, start] = useTransition();
-  const run = useCallback((term: string) => start(async () => setRows(await searchArticlesAction(term))), []);
+  const run = useCallback((term: string) => start(async () => setRows(await search(term))), [search]);
   useEffect(() => { if (open && rows === null) run(""); }, [open, rows, run]);
-  if (!open) return <button type="button" className="btn-secondary btn-sm" onClick={() => setOpen(true)} data-testid="pick-article"><Search className="h-4 w-4" /> {label}</button>;
+  if (!open) return <button type="button" className="btn-secondary btn-sm" onClick={() => setOpen(true)} data-testid={testId}><Search className="h-4 w-4" /> {label}</button>;
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid="article-picker">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3" data-testid={testId === "pick-article" ? "article-picker" : `${testId}-list`}>
       <div className="flex gap-2">
-        <input className={cn(input, "min-w-0 flex-1")} placeholder="Search articles" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); run(q); } }} aria-label="Search articles" />
+        <input className={cn(input, "min-w-0 flex-1")} placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); run(q); } }} aria-label={placeholder} />
         <button type="button" className="btn-secondary btn-sm" onClick={() => run(q)}>{pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}<span className="sr-only">Search</span></button>
         <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)} aria-label="Close"><X className="h-4 w-4" /></button>
       </div>
       <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto">
-        {rows?.length === 0 && <li className="p-2 text-sm text-slate-500">No published articles match.</li>}
+        {rows?.length === 0 && <li className="p-2 text-sm text-slate-500">{empty}</li>}
         {rows?.map((a) => (
-          <li key={a.articleId}>
+          <li key={`${a.articleId}|${a.url}|${a.title}`}>
             <button type="button" className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-white" onClick={() => { onPick(a); setOpen(false); }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {a.imageUrl ? <img src={a.imageUrl} alt="" className="h-12 w-16 shrink-0 rounded object-cover" /> : <span className="h-12 w-16 shrink-0 rounded bg-slate-200" />}
@@ -374,6 +376,8 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
           ))}
           <div className="flex flex-wrap gap-2">
             <ArticlePicker label="Add from the website" onPick={(a) => update({ ...s, items: [...s.items, { id: uid(), articleId: a.articleId, title: a.title, description: a.description, imageUrl: a.imageUrl, url: a.url }] })} />
+            <ArticlePicker label="Add from Government Watch" testId="pick-gov" placeholder="Search approved government stories" empty="No approved Government Watch stories match. Mark stories Reviewed or Published in Government Watch first."
+              search={searchGovStoriesAction} onPick={(a) => update({ ...s, items: [...s.items, { id: uid(), articleId: a.articleId || null, title: a.title, description: a.description, imageUrl: a.imageUrl, url: a.url }] })} />
             <button type="button" className="btn-ghost btn-sm" onClick={() => update({ ...s, items: [...s.items, emptyStory()] })}><Plus className="h-4 w-4" /> Add manually</button>
           </div>
         </div>

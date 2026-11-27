@@ -6,6 +6,7 @@ import { processDueNewsletters } from "@/lib/newsletter/send";
 import { processEmailUpdates } from "@/lib/notifications/run";
 import { reconcileRecommendationCounts } from "@/lib/recommendations";
 import { maybeSyncBeehiivFromCron } from "@/lib/beehiiv/sync";
+import { runGovWatchCron } from "@/lib/gov-watch/collect";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,8 @@ function authorized(req: Request) {
  *   update at most once per member — run this at least hourly)
  * - recomputes cached business recommendation counts from rows (heals drift,
  *   e.g. after account deletions cascade-remove recommendations)
+ * - Government Watch: checks up to 2 sources not checked in the last day, reads the records inbox every
+ *   30 minutes (when configured), and analyzes up to 3 new documents (when ANTHROPIC_API_KEY is set)
  */
 async function run(req: Request) {
   if (!process.env.CRON_SECRET) return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 503 });
@@ -79,6 +82,8 @@ async function run(req: Request) {
     recommendationCountsFixed = { error: (e as Error).message };
   }
 
+  const govWatch = await runGovWatchCron();
+
   return NextResponse.json({
     ok: true,
     time: now.toISOString(),
@@ -89,6 +94,7 @@ async function run(req: Request) {
     beehiiv,
     emailUpdates,
     recommendationCountsFixed,
+    govWatch,
   });
 }
 

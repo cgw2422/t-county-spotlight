@@ -84,6 +84,13 @@ export async function searchArticlesAction(q: string): Promise<PickedStory[]> {
   return searchArticles(String(q ?? ""));
 }
 
+/** Government Watch stories marked Reviewed or Published (for More stories / Featured). */
+export async function searchGovStoriesAction(q: string): Promise<PickedStory[]> {
+  await requireAdmin();
+  const { searchGovStories } = await import("@/lib/gov-watch/newsletter");
+  return searchGovStories(String(q ?? ""));
+}
+
 export async function searchBusinessesAction(q: string): Promise<PickedBusiness[]> {
   await requireAdmin();
   return searchBusinesses(String(q ?? ""));

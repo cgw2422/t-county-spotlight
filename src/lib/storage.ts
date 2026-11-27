@@ -63,8 +63,8 @@ export function publicUrlFor(key: string) {
   return `/media/${key}`;
 }
 
-export async function putObject(buf: Buffer, mimeType: string, nameHint = "file") {
-  const ext = ALLOWED_IMAGE_TYPES[mimeType] ?? "bin";
+export async function putObject(buf: Buffer, mimeType: string, nameHint = "file", extOverride?: string) {
+  const ext = extOverride ?? ALLOWED_IMAGE_TYPES[mimeType] ?? "bin";
   const base = nameHint.toLowerCase().replace(/\.[a-z0-9]+$/, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "file";
   const now = new Date();
   const key = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${base}-${crypto.randomBytes(5).toString("hex")}.${ext}`;

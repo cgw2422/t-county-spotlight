@@ -1860,3 +1860,164 @@ model NewsletterDesign {
 
   @@index([updatedAt])
 }
+
+// ───────────── Government Watch ─────────────
+
+/// A government body whose meeting minutes, agendas and public documents are collected.
+model GovSource {
+  id                  String    @id @default(cuid())
+  name                String    @unique
+  /// Community it belongs to (e.g. "Dover"); "Tuscarawas County" for county-wide boards
+  community           String
+  /// county | city | village | township | school_board | other_board
+  govType             String
+  website             String?
+  minutesUrl          String?
+  agendasUrl          String?
+  /// More pages to check (document centers, meeting portals)
+  extraUrls           String[]  @default([])
+  clerkName           String?
+  clerkTitle          String?
+  clerkEmail          String?
+  clerkPhone          String?
+  /// web_page | web_platform | email | manual | facebook_only | unknown
+  collectionMethod    String    @default("unknown")
+  /// verified | needs_review | unavailable
+  verification        String    @default("needs_review")
+  verifiedAt          DateTime?
+  notes               String?
+  /// Where the source details came from (research links)
+  evidence            String[]  @default([])
+  /// Checked automatically every day
+  active              Boolean   @default(true)
+  lastCheckedAt       DateTime?
+  lastSuccessAt       DateTime?
+  /// never | ok | error
+  lastStatus          String    @default("never")
+  lastError           String?
+  consecutiveFailures Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  documents GovDocument[]
+  checkRuns GovCheckRun[]
+
+  @@index([community])
+  @@index([govType])
+}
+
+/// One collected document. The original file is kept unchanged in storage (storageKey/storageUrl).
+model GovDocument {
+  id               String    @id @default(cuid())
+  sourceId         String?
+  source           GovSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  title            String
+  /// minutes | agenda | packet | ordinance | resolution | notice | budget | other
+  docType          String    @default("other")
+  /// pdf | docx | doc | html | image | text
+  fileType         String
+  /// crawl | email | upload
+  origin           String
+  /// Original address on the government website (null for uploads and email)
+  sourceUrl        String?
+  /// Preserved original file
+  storageKey       String
+  storageUrl       String
+  mimeType         String
+  sizeBytes        Int
+  /// Duplicate detection: the same file is never stored twice
+  sha256           String    @unique
+  httpEtag         String?
+  httpLastModified String?
+  meetingDate      DateTime?
+  meetingBody      String?
+  /// Earlier version this document revises (same source, meeting and type; or the same URL with new content)
+  revisionOfId     String?
+  revisionOf       GovDocument?  @relation("GovDocRevision", fields: [revisionOfId], references: [id], onDelete: SetNull)
+  revisions        GovDocument[] @relation("GovDocRevision")
+  /// Set when a newer version exists
+  supersededAt     DateTime?
+  /// Extracted text with [Page N] markers (null for scans read by AI directly)
+  textContent      String?
+  pageCount        Int?
+  /// text | ocr_ai | none
+  extractionMethod String?
+  /// new | analyzing | analyzed | failed | skipped
+  status           String    @default("new")
+  analysisError    String?
+  analyzedAt       DateTime?
+  analysisModel    String?
+  inputTokens      Int?
+  outputTokens     Int?
+  summary          String?
+  /// awaiting_review | reviewed | ignored
+  reviewStatus     String    @default("awaiting_review")
+  emailFrom        String?
+  emailSubject     String?
+  uploadedById     String?
+  discoveredAt     DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  findings GovFinding[]
+
+  @@index([sourceId, discoveredAt])
+  @@index([status])
+  @@index([reviewStatus])
+  @@index([meetingDate])
+  @@index([sourceUrl])
+}
+
+/// A potential news story extracted from a document.
+model GovFinding {
+  id           String    @id @default(cuid())
+  documentId   String
+  document     GovDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  /// decision | vote | spending | roads | rates | zoning | business | grant | improvement | ordinance | meeting | other
+  category     String
+  headline     String
+  detail       String
+  /// proposed | discussed | approved | rejected | tabled | informational | scheduled
+  actionStatus String
+  /// high | medium | low
+  priority     String
+  amount       String?
+  voteResult   String?
+  pageNumber   Int?
+  /// Short supporting excerpt from the document
+  quote        String?
+  /// For upcoming meetings / hearings / closures: the date it happens
+  eventDate    DateTime?
+  /// new | reviewed | ignored | published
+  reviewStatus String    @default("new")
+  reviewedAt   DateTime?
+  reviewedById String?
+  /// Draft or published article built from this finding
+  articleId    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([documentId])
+  @@index([reviewStatus, priority])
+  @@index([eventDate])
+}
+
+/// One collection attempt (daily check, Check Now, records inbox) — the activity and error log.
+model GovCheckRun {
+  id         String    @id @default(cuid())
+  sourceId   String?
+  source     GovSource? @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  /// cron | manual | email
+  trigger    String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  /// running | ok | error
+  status     String    @default("running")
+  linksFound Int       @default(0)
+  newDocs    Int       @default(0)
+  revisions  Int       @default(0)
+  duplicates Int       @default(0)
+  message    String?
+
+  @@index([startedAt])
+  @@index([sourceId, startedAt])
+}
