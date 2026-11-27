@@ -172,6 +172,10 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
   .nl-web .nl-title a:hover { text-decoration: underline; }
   .nl-web .nl-figure { margin: 0 0 1rem; }
   .nl-web .nl-figure img { display: block; width: 100%; height: auto; border-radius: .75rem; }
+  .nl-web .nl-caption { margin: .4rem 0 0; font-size: .78rem; line-height: 1.45; color: #5b6577; }
+  .nl-web .nl-caption a { color: inherit; font-weight: 500; }
+  .nl-web .nl-gif { margin: 1rem 0 0; text-align: center; }
+  .nl-web .nl-gif img { width: auto; max-width: 100%; margin: 0 auto; }
   .nl-web .nl-text { margin-top: .6rem; }
   .nl-web .nl-text p { margin: 0 0 .85rem; }
   .nl-web .nl-text p:last-child { margin-bottom: 0; }

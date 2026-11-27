@@ -7,7 +7,7 @@ import { plainToHtml, sanitizeIntroHtml, toEditorHtml } from "@/lib/newsletter-d
  * Minimal rich-text editor for the personal introduction: paragraphs, bold, italic and links. Pasted content is
  * inserted as plain text; the saved HTML is sanitized again on the server (allowlist) before it's used.
  */
-export function RichText({ value, onChange, label, minHeight = "min-h-40", testId = "rich-editor" }: { value: string; onChange: (html: string) => void; label: string; minHeight?: string; testId?: string }) {
+export function RichText({ value, onChange, label, minHeight = "min-h-40", testId = "rich-editor", compact = false }: { value: string; onChange: (html: string) => void; label: string; minHeight?: string; testId?: string; /** captions: bold, italic and links only */ compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const last = useRef(value);
   useEffect(() => {
@@ -39,8 +39,8 @@ export function RichText({ value, onChange, label, minHeight = "min-h-40", testI
         <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); cmd("italic"); }} aria-label="Italic" title="Italic"><Italic className="h-4 w-4" /></button>
         <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); link(); }} aria-label="Add link" title="Add link"><Link2 className="h-4 w-4" /></button>
         <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); cmd("unlink"); }} aria-label="Remove link" title="Remove link"><Link2Off className="h-4 w-4" /></button>
-        <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); cmd("insertUnorderedList"); }} aria-label="Bulleted list" title="Bulleted list"><List className="h-4 w-4" /></button>
-        <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); cmd("insertOrderedList"); }} aria-label="Numbered list" title="Numbered list"><ListOrdered className="h-4 w-4" /></button>
+        {!compact && <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); cmd("insertUnorderedList"); }} aria-label="Bulleted list" title="Bulleted list"><List className="h-4 w-4" /></button>}
+        {!compact && <button type="button" className={tool} onMouseDown={(e) => { e.preventDefault(); cmd("insertOrderedList"); }} aria-label="Numbered list" title="Numbered list"><ListOrdered className="h-4 w-4" /></button>}
       </div>
       <div
         ref={ref}
@@ -50,7 +50,7 @@ export function RichText({ value, onChange, label, minHeight = "min-h-40", testI
         contentEditable
         suppressContentEditableWarning
         data-testid={testId}
-        className={`${minHeight} px-4 py-3 text-[15px] leading-relaxed text-slate-800 outline-none [&_a]:text-brand-700 [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6`}
+        className={`${minHeight} px-4 py-3 ${compact ? "text-sm" : "text-[15px]"} leading-relaxed text-slate-800 outline-none [&_a]:text-brand-700 [&_a]:underline [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6`}
         onFocus={() => document.execCommand("defaultParagraphSeparator", false, "p")}
         onInput={emit}
         onBlur={emit}

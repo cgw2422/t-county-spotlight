@@ -6,10 +6,10 @@ import {
 } from "lucide-react";
 import { MediaField } from "@/components/admin/media-picker";
 import { cn } from "@/lib/utils";
-import { designWarnings, renderEmailDocument, tocOutline, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
+import { designWarnings, normalizeGifUrl, renderEmailDocument, tocOutline, type DesignMeta, type RenderContext } from "@/lib/newsletter-designer/render";
 
 /** Older drafts may hold formatted story text; the excerpt field edits it as plain text. */
-import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
+import { ADDABLE, emptyBusiness, emptyEvent, emptyStory, newSection, SECTION_INFO, uid, type EventItem, type ImageMeta, type Section, type StoryItem } from "@/lib/newsletter-designer/types";
 import type { PickedBusiness, PickedPoll, PickedStory } from "@/lib/newsletter-designer/server";
 import { checkBeehiivAction, listPollsAction, saveDesignAction, searchArticlesAction, searchBusinessesAction, sendToBeehiivAction } from "../actions";
 import { RichText } from "./rich-text";
@@ -155,6 +155,63 @@ function AutoTextarea({ value, onChange, testId, minRows = 3 }: { value: string;
 // ───────────── item editors ─────────────
 
 
+/** Alt text and optional caption for an image (shown once an image is chosen). */
+function ImageDetails({ value, onChange, field, altHint }: { value: ImageMeta; onChange: (m: ImageMeta) => void; field: string; altHint?: string }) {
+  const caption = value.imageCaption ?? "";
+  const [showCaption, setShowCaption] = useState(!!caption.replace(/<[^>]*>/g, "").trim());
+  return (
+    <div className="space-y-3 rounded-xl bg-slate-50 p-3" data-testid={`${field}-image-details`}>
+      <F label="Alt text" hint={altHint ?? "Describes the image for people using screen readers. Leave empty to use the headline."}>
+        <input className={input} value={value.imageAlt ?? ""} onChange={(e) => onChange({ ...value, imageAlt: e.target.value })} data-testid={`${field}-alt`} />
+      </F>
+      {showCaption ? (
+        <div>
+          <span className="label">Caption (shown under the image)</span>
+          <RichText value={caption} onChange={(html) => onChange({ ...value, imageCaption: html })} label="Image caption" minHeight="min-h-12" testId={`${field}-caption`} compact />
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-slate-500">Photo credit, source or a short note. Select words and use the link button to link them.</span>
+            <button type="button" className="btn-ghost btn-sm text-red-600" onClick={() => { onChange({ ...value, imageCaption: "" }); setShowCaption(false); }} data-testid={`${field}-caption-remove`}><X className="h-4 w-4" /> Remove caption</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn-ghost btn-sm" onClick={() => setShowCaption(true)} data-testid={`${field}-caption-add`}><Plus className="h-4 w-4" /> Add caption or photo credit</button>
+      )}
+    </div>
+  );
+}
+
+/** Daily Dad Joke GIF: upload or paste a GIF address; preview, replace, remove. Its size is read so it's never stretched. */
+function JokeGifFields({ s, update }: { s: Extract<Section, { type: "joke" }>; update: (s: Section) => void }) {
+  const latest = useRef(s);
+  useEffect(() => { latest.current = s; });
+  const [brokenUrl, setBrokenUrl] = useState("");
+  const url = s.gifUrl ?? "";
+  const broken = !!url && brokenUrl === url;
+  useEffect(() => {
+    if (!url) return;
+    const im = new Image();
+    im.onload = () => {
+      const cur = latest.current;
+      if (cur.gifUrl === url && (cur.gifWidth !== im.naturalWidth || cur.gifHeight !== im.naturalHeight)) update({ ...cur, gifWidth: im.naturalWidth, gifHeight: im.naturalHeight });
+    };
+    im.onerror = () => setBrokenUrl(url);
+    im.src = url;
+  }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="space-y-3">
+      <MediaField key={`${s.id}:gif:${url}`} name={`gif-${s.id}`} label="GIF (optional)" aspect="aspect-[4/3]" defaultValue={url}
+        help="Upload a GIF or choose URL and paste a GIF address (a GIPHY page link works too). It stays animated in the email."
+        onChange={(u) => update({ ...latest.current, gifUrl: u ? normalizeGifUrl(u) : "", gifWidth: null, gifHeight: null, ...(u ? {} : { gifAlt: "", gifCaption: "" }) })} />
+      {broken && <p className="flex items-center gap-1.5 text-sm text-amber-700" data-testid="gif-broken"><TriangleAlert className="h-4 w-4" /> That address didn’t load as an image. Use a direct link to the GIF file (usually ending in .gif).</p>}
+      {url && s.gifWidth ? <p className="text-xs text-slate-500" data-testid="gif-size">{s.gifWidth} × {s.gifHeight}px{s.gifWidth > 508 ? " · shown at 508px wide in the email, smaller on phones" : " · shown at its own size, smaller on phones"}</p> : null}
+      {url && (
+        <ImageDetails field="gif" value={{ imageAlt: s.gifAlt, imageCaption: s.gifCaption }} altHint="Describes the GIF for screen readers, e.g. “Man laughing and slapping his knee.” Leave empty for “Animated GIF”."
+          onChange={(m) => update({ ...latest.current, gifAlt: m.imageAlt ?? "", gifCaption: m.imageCaption ?? "" })} />
+      )}
+    </div>
+  );
+}
+
 function StoryFields({ item, onChange, field }: { item: StoryItem; onChange: (s: StoryItem) => void; field: string }) {
   return (
     <div className="space-y-3">
@@ -166,6 +223,7 @@ function StoryFields({ item, onChange, field }: { item: StoryItem; onChange: (s:
       </div>
       <F label="Link (Read More)" hint={item.articleId ? "Linked to the T County Connect article. Edits here only change the newsletter." : undefined}><input className={input} value={item.url} placeholder="https://" onChange={(e) => onChange({ ...item, url: e.target.value })} data-testid={`${field}-url`} /></F>
       <MediaField key={`${item.id}:${item.imageUrl}`} name={`img-${item.id}`} label="Image" defaultValue={item.imageUrl} onChange={(u) => onChange({ ...item, imageUrl: u })} />
+      {item.imageUrl && <ImageDetails field={field} value={item} onChange={(m) => onChange({ ...item, ...m })} />}
     </div>
   );
 }
@@ -182,6 +240,7 @@ function EventFields({ e, onChange }: { e: EventItem; onChange: (e: EventItem) =
       <div><span className="label">Description (optional)</span><RichText value={e.description} onChange={(html) => onChange({ ...e, description: html })} label="Event description" minHeight="min-h-20" /></div>
       <F label="More information link"><input className={input} value={e.url} placeholder="https://" onChange={(x) => onChange({ ...e, url: x.target.value })} data-testid="event-url" /></F>
       <MediaField key={`${e.id}:${e.imageUrl}`} name={`img-${e.id}`} label="Image (optional)" defaultValue={e.imageUrl} onChange={(u) => onChange({ ...e, imageUrl: u })} />
+      {e.imageUrl && <ImageDetails field="event" value={e} onChange={(m) => onChange({ ...e, ...m })} altHint="Describes the image for screen readers. Leave empty to use the event title." />}
     </div>
   );
 }
@@ -236,6 +295,7 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
           <F label="Short intro (optional)" hint="For example: “This one’s from a reader in Dover.”"><input className={input} value={s.intro} onChange={(e) => update({ ...s, intro: e.target.value })} data-testid="joke-intro" /></F>
           <F label="Setup"><AutoTextarea minRows={2} value={s.setup} onChange={(v) => update({ ...s, setup: v })} testId="joke-setup" /></F>
           <F label="Punchline"><AutoTextarea minRows={2} value={s.punchline} onChange={(v) => update({ ...s, punchline: v })} testId="joke-punchline" /></F>
+          <JokeGifFields s={s} update={update} />
         </div>
       );
     case "poll":
@@ -334,6 +394,7 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
               <div><span className="label">Write-up</span><RichText value={b.text} onChange={(html) => update({ ...s, business: { ...b, text: html } })} label="Business write-up" minHeight="min-h-28" /></div>
               <F label="Link (listing or website)"><input className={input} value={b.url} placeholder="https://" onChange={(e) => update({ ...s, business: { ...b, url: e.target.value } })} /></F>
               <MediaField key={`spot:${b.imageUrl}`} name="img-spotlight" label="Image or logo" defaultValue={b.imageUrl} onChange={(u) => update({ ...s, business: { ...b, imageUrl: u } })} />
+              {b.imageUrl && <ImageDetails field="spotlight" value={b} onChange={(m) => update({ ...s, business: { ...b, ...m } })} altHint="Describes the image for screen readers. Leave empty to use the business name." />}
             </div>
           )}
         </div>
@@ -346,6 +407,7 @@ function SectionBody({ s, update, content, ctx }: { s: Section; update: (s: Sect
           <F label="Headline (optional)"><input className={input} value={s.title} onChange={(e) => update({ ...s, title: e.target.value })} data-testid="custom-title" /></F>
           <div><span className="label">Text</span><RichText value={s.html} onChange={(html) => update({ ...s, html })} label="Custom section text" /></div>
           <MediaField key={`${s.id}:${s.imageUrl}`} name={`img-${s.id}`} label="Image (optional)" defaultValue={s.imageUrl} onChange={(u) => update({ ...s, imageUrl: u })} />
+          {s.imageUrl && <ImageDetails field="custom" value={s} onChange={(m) => update({ ...s, ...m })} />}
           <F label="Image link (optional)"><input className={input} value={s.imageLink} placeholder="https://" onChange={(e) => update({ ...s, imageLink: e.target.value })} /></F>
           <div className="grid gap-3 sm:grid-cols-2">
             <F label="Button text (optional)"><input className={input} value={s.ctaLabel} onChange={(e) => update({ ...s, ctaLabel: e.target.value })} /></F>

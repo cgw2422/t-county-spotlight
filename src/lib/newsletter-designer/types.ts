@@ -11,10 +11,16 @@ export type SectionType = "intro" | "featured" | "sponsor" | "weather" | "events
  * older plain-text values still render (line breaks kept). There are no length or count limits beyond a high
  * technical ceiling; the editor warns when an issue gets big enough for Gmail to clip it.
  */
+/**
+ * Every image can carry alt text (for screen readers; falls back to the headline/name) and an optional visible
+ * caption shown in small text under the image: photo credits, sources, links. The caption is formatted text
+ * (bold, italic, links). Empty = no caption area at all. Optional so older drafts keep working.
+ */
+export type ImageMeta = { imageAlt?: string; imageCaption?: string };
 /** A story card: copied from a T County Connect article (still editable) or entered by hand. `description` is rich. */
-export type StoryItem = { id: string; articleId?: string | null; title: string; description: string; imageUrl: string; url: string };
+export type StoryItem = { id: string; articleId?: string | null; title: string; description: string; imageUrl: string; url: string } & ImageMeta;
 /** Entered by hand only — events are never added automatically. */
-export type EventItem = { id: string; title: string; date: string; time: string; location: string; description: string; imageUrl: string; url: string };
+export type EventItem = { id: string; title: string; date: string; time: string; location: string; description: string; imageUrl: string; url: string } & ImageMeta;
 /**
  * One line of "In This T County Connect Issue". `sectionId` is the section id, or "sectionId:itemId" for one story
  * in More stories. `label` null = follow the content automatically (e.g. the featured article's headline);
@@ -25,7 +31,13 @@ export type TocEntry = { sectionId: string; label: string | null };
 export type TocItem = { key: string; label: string };
 /** A native beehiiv poll chosen from your publication (inserted as a real beehiiv poll block in the draft). */
 export type PollRef = { id: string; name: string; question: string; choices: string[] };
-export type SpotlightBusiness = { businessId?: string | null; name: string; imageUrl: string; text: string; url: string };
+export type SpotlightBusiness = { businessId?: string | null; name: string; imageUrl: string; text: string; url: string } & ImageMeta;
+/**
+ * Optional GIF for the Daily Dad Joke: uploaded or an external GIF address. Sent as a plain <img> of the original
+ * file, so it stays animated wherever the email app plays GIFs. Width/height (when known) keep it from being
+ * stretched past its own size; it always shrinks to fit phones.
+ */
+export type JokeGif = { gifUrl?: string; gifAlt?: string; gifCaption?: string; gifWidth?: number | null; gifHeight?: number | null };
 
 export type Section =
   | { id: string; type: "intro"; enabled: boolean; heading: string; html: string; signature: string }
@@ -40,9 +52,9 @@ export type Section =
   /** Overview of the issue. Entries follow the included sections automatically; you can reword and reorder them. */
   | { id: string; type: "toc"; enabled: boolean; heading: string; entries: TocEntry[] }
   /** Written by you for each issue — never generated or fetched. */
-  | { id: string; type: "joke"; enabled: boolean; heading: string; intro: string; setup: string; punchline: string }
+  | ({ id: string; type: "joke"; enabled: boolean; heading: string; intro: string; setup: string; punchline: string } & JokeGif)
   | { id: string; type: "poll"; enabled: boolean; heading: string; intro: string; poll: PollRef | null }
-  | { id: string; type: "custom"; enabled: boolean; heading: string; title: string; html: string; imageUrl: string; imageLink: string; ctaLabel: string; ctaUrl: string };
+  | ({ id: string; type: "custom"; enabled: boolean; heading: string; title: string; html: string; imageUrl: string; imageLink: string; ctaLabel: string; ctaUrl: string } & ImageMeta);
 
 export type DesignContent = { version: 1; sections: Section[] };
 

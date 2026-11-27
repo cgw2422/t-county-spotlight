@@ -57,9 +57,14 @@ const url = z.string().max(2000).transform((v) => {
   try { const u = new URL(t); return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : ""; } catch { return ""; }
 });
 const id = z.string().max(40).regex(/^[a-z0-9]+$/i);
-const story = z.object({ id, articleId: z.string().max(40).nullish(), title: str(), description: rich(), imageUrl: url, url });
-const event = z.object({ id, title: str(), date: z.string().max(10).regex(/^(\d{4}-\d{2}-\d{2})?$/), time: str(), location: str(), description: rich(), imageUrl: url, url });
-const business = z.object({ businessId: z.string().max(40).nullish(), name: str(), imageUrl: url, text: rich(), url });
+/** Optional fields added later: missing in older drafts → "". */
+const opt = <T extends z.ZodType<string>>(schema: T) => z.preprocess((v) => v ?? "", schema);
+/** Image alt text and caption (caption: formatted text with links, kept to the inline allowlist). */
+const imageMeta = { imageAlt: opt(str()), imageCaption: opt(rich(LINE * 4)) };
+const dim = z.number().int().min(1).max(20000).nullish().transform((v) => v ?? null);
+const story = z.object({ id, articleId: z.string().max(40).nullish(), title: str(), description: rich(), imageUrl: url, url, ...imageMeta });
+const event = z.object({ id, title: str(), date: z.string().max(10).regex(/^(\d{4}-\d{2}-\d{2})?$/), time: str(), location: str(), description: rich(), imageUrl: url, url, ...imageMeta });
+const business = z.object({ businessId: z.string().max(40).nullish(), name: str(), imageUrl: url, text: rich(), url, ...imageMeta });
 const base = { id, enabled: z.boolean() };
 const section = z.discriminatedUnion("type", [
   z.object({ ...base, type: z.literal("intro"), heading: str(), html: z.string().max(TEXT * 2), signature: str() }),
@@ -74,9 +79,9 @@ const section = z.discriminatedUnion("type", [
     sectionId: z.string().max(90).regex(/^[a-z0-9]+(:[a-z0-9]+)?$/i),
     label: z.string().max(LINE * 4).transform((v) => v.replace(/<[^>]*>/g, "").replace(/[\r\n\t]+/g, " ").slice(0, LINE)).nullable(),
   })).max(500) }),
-  z.object({ ...base, type: z.literal("joke"), heading: str(), intro: str(), setup: rich(), punchline: rich() }),
+  z.object({ ...base, type: z.literal("joke"), heading: str(), intro: str(), setup: rich(), punchline: rich(), gifUrl: opt(url), gifAlt: opt(str()), gifCaption: opt(rich(LINE * 4)), gifWidth: dim, gifHeight: dim }),
   z.object({ ...base, type: z.literal("poll"), heading: str(), intro: rich(), poll: z.object({ id: z.string().max(120).regex(/^[A-Za-z0-9_-]+$/), name: str(), question: str(), choices: z.array(str()).max(50) }).nullable() }),
-  z.object({ ...base, type: z.literal("custom"), heading: str(), title: str(), html: rich(), imageUrl: url, imageLink: url, ctaLabel: str(), ctaUrl: url }),
+  z.object({ ...base, type: z.literal("custom"), heading: str(), title: str(), html: rich(), imageUrl: url, imageLink: url, ctaLabel: str(), ctaUrl: url, ...imageMeta }),
 ]);
 const contentSchema = z.object({ version: z.literal(1), sections: z.array(section).max(200) });
 

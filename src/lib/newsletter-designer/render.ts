@@ -3,7 +3,7 @@
  * "Copy HTML" and the beehiiv draft). Email-safe: table layout, inline styles only (beehiiv strips <style> and
  * <link>), fluid widths with no media queries, web fonts with system fallbacks.
  */
-import { LEGACY_TOC_LABELS, tocDefaults, tocPendingHint, type DesignContent, type EventItem, type Section, type SpotlightBusiness, type StoryItem } from "./types";
+import { LEGACY_TOC_LABELS, tocDefaults, tocPendingHint, type DesignContent, type EventItem, type ImageMeta, type Section, type SpotlightBusiness, type StoryItem } from "./types";
 
 export type RenderContext = {
   /** "https://tcountyconnect.com" — relative image/link URLs are made absolute against it */
@@ -229,6 +229,49 @@ function img(src: string, alt: string, href: string, width: number, radius = 8) 
   return href ? `<a href="${esc(href)}" style="text-decoration:none;">${tag}</a>` : tag;
 }
 
+/**
+ * A caption's inner HTML: formatting and links kept, paragraphs/list items run together as lines (a caption is a
+ * short credit or note, not a block of text). Plain-text captions get their web addresses linked. "" when empty.
+ */
+export function captionInnerHtml(v: string | null | undefined, siteUrl: string): string {
+  const s = String(v ?? "");
+  if (!s.trim()) return "";
+  if (!isRich(s)) return linkify(text(s.trim()));
+  const clean = sanitizeIntroHtml(s, siteUrl)
+    .replace(/<\/?(ul|ol)>/g, "")
+    .replace(/<li>/g, "&bull; ").replace(/<\/li>/g, "<br>")
+    .replace(/<\/p>\s*<p>/g, "<br>").replace(/<\/?p>/g, "")
+    .replace(/(<br>\s*)+$/g, "").trim();
+  return clean.replace(/<[^>]+>|&nbsp;|\s/g, "") ? linkifyHtml(clean) : "";
+}
+
+/** Small, subtle caption line under an image (email). Nothing at all when there's no caption. */
+function captionHtml(v: string | null | undefined, siteUrl: string, align: "left" | "center" = "left") {
+  const inner = captionInnerHtml(v, siteUrl);
+  if (!inner) return "";
+  const styled = inner.replace(/<a href=/g, `<a style="color:${C.muted};text-decoration:underline;" href=`);
+  return `<p style="margin:6px 0 0;${BODY}font-size:12px;line-height:1.45;color:${C.muted};text-align:${align};">${styled}</p>`;
+}
+
+/** Image + optional caption (alt text falls back to the headline). */
+function figure(src: string, meta: ImageMeta, fallbackAlt: string, href: string, width: number, siteUrl: string, radius = 8) {
+  const tag = img(src, meta.imageAlt?.trim() || fallbackAlt, href, width, radius);
+  return tag ? tag + captionHtml(meta.imageCaption, siteUrl) : "";
+}
+
+/** Inner width available to the joke GIF (600px email − page and card padding). */
+export const GIF_MAX_WIDTH = 508;
+
+/** Turns a GIPHY page link into its direct GIF file; other addresses are kept as they are. */
+export function normalizeGifUrl(u: string): string {
+  const v = u.trim();
+  const m = /^https?:\/\/(?:www\.)?giphy\.com\/(?:gifs|stickers)\/(?:[\w-]*-)?([A-Za-z0-9]{6,})\/?(?:[?#].*)?$/.exec(v);
+  return m ? `https://media.giphy.com/media/${m[1]}/giphy.gif` : v;
+}
+
+/** Display width for a GIF: its own width (never stretched) up to what fits; unknown → the full column. */
+export const gifDisplayWidth = (w: number | null | undefined) => (w && w > 0 ? Math.min(Math.round(w), GIF_MAX_WIDTH) : GIF_MAX_WIDTH);
+
 const headline = (t: string, href: string, size: number) => {
   const inner = esc(t);
   const style = `${HEAD}font-size:${size}px;line-height:1.25;color:${C.navy};text-decoration:none;`;
@@ -273,7 +316,7 @@ function featuredHtml(s: Extract<Section, { type: "featured" }>, ctx: RenderCont
   const st = s.story;
   if (!st || !st.title.trim()) return "";
   const href = safeUrl(st.url, ctx.siteUrl);
-  const image = img(safeUrl(st.imageUrl, ctx.siteUrl), st.title, href, 600);
+  const image = figure(safeUrl(st.imageUrl, ctx.siteUrl), st, st.title, href, 600, ctx.siteUrl);
   return sectionLabel(s.heading) + wrap(
     (image ? `<div style="margin:0 0 16px;">${image}</div>` : "") +
     `<div>${headline(st.title, href, 26)}</div>` +
@@ -305,7 +348,7 @@ function storyRow(st: StoryItem, ctx: RenderContext, first: boolean) {
   const href = safeUrl(st.url, ctx.siteUrl);
   const src = safeUrl(st.imageUrl, ctx.siteUrl);
   return `<table ${TABLE}><tr><td style="padding:${first ? "0" : "22px"} 0 22px;${first ? "" : `border-top:1px solid ${C.line};`}">` +
-    (src ? `<div style="margin:0 0 14px;">${img(src, st.title, href, 600, 8)}</div>` : "") +
+    (src ? `<div style="margin:0 0 14px;">${figure(src, st, st.title, href, 600, ctx.siteUrl, 8)}</div>` : "") +
     `<div>${headline(st.title, href, 19)}</div>` +
     excerptHtml(st.description, 15, C.text, ctx.siteUrl) +
     (href ? `<p style="margin:10px 0 0;${BODY}font-size:15px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Read more &rarr;</a></p>` : "") +
@@ -335,7 +378,7 @@ function eventRow(e: EventItem, ctx: RenderContext, first: boolean) {
     body(e.description, { size: 14, color: C.text, link: C.green, gap: 8 }, ctx.siteUrl, "8px 0 0") +
     (href ? `<p style="margin:8px 0 0;${BODY}font-size:14px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">More info &rarr;</a></p>` : "") +
     `</td></tr></table>` +
-    (src ? `<div style="margin:12px 0 0;">${img(src, e.title, href, 600, 8)}</div>` : "") +
+    (src ? `<div style="margin:12px 0 0;">${figure(src, e, e.title, href, 600, ctx.siteUrl, 8)}</div>` : "") +
     `</td></tr></table>`;
 }
 
@@ -351,7 +394,7 @@ function spotlightHtml(s: Extract<Section, { type: "spotlight" }>, ctx: RenderCo
   const href = safeUrl(b.url, ctx.siteUrl);
   const src = safeUrl(b.imageUrl, ctx.siteUrl);
   return sectionLabel(s.heading) + `<table ${TABLE}><tr><td style="background:${C.offWhite};border-radius:10px;padding:20px;">` +
-    (src ? `<div style="margin:0 0 14px;">${img(src, b.name, href, 560, 8)}</div>` : "") +
+    (src ? `<div style="margin:0 0 14px;">${figure(src, b, b.name, href, 560, ctx.siteUrl, 8)}</div>` : "") +
     `<div>${headline(b.name, href, 21)}</div>` +
     body(b.text, { size: 15, color: C.text, link: C.green }, ctx.siteUrl, "8px 0 0") +
     (href ? `<p style="margin:12px 0 0;${BODY}font-size:15px;line-height:1.4;"><a href="${esc(href)}" style="color:${C.green};font-weight:700;text-decoration:none;">Visit ${esc(b.name)} &rarr;</a></p>` : "") +
@@ -373,7 +416,7 @@ function customHtml(s: Extract<Section, { type: "custom" }>, ctx: RenderContext)
   const imgHref = safeUrl(s.imageLink, ctx.siteUrl);
   const cta = safeUrl(s.ctaUrl, ctx.siteUrl);
   const inner =
-    (src ? `<div style="margin:0 0 16px;">${img(src, s.title || s.heading, imgHref, 600)}</div>` : "") +
+    (src ? `<div style="margin:0 0 16px;">${figure(src, s, s.title || s.heading, imgHref, 600, ctx.siteUrl)}</div>` : "") +
     (s.title.trim() ? `<div>${headline(s.title, imgHref || cta, 22)}</div>` : "") +
     body(s.html, { size: 16, color: C.text, link: C.green }, ctx.siteUrl, s.title.trim() ? "10px 0 0" : "0") +
     (cta ? button(s.ctaLabel || "Learn more", cta) : "");
@@ -443,7 +486,17 @@ function tocHtml(s: Extract<Section, { type: "toc" }>, content: DesignContent, c
     `</td></tr></table></td></tr></table>`;
 }
 
-function jokeHtml(s: Extract<Section, { type: "joke" }>) {
+function jokeGifHtml(s: Extract<Section, { type: "joke" }>, siteUrl: string) {
+  const src = safeUrl(s.gifUrl, siteUrl);
+  if (!src) return "";
+  const w = gifDisplayWidth(s.gifWidth);
+  // Plain <img> of the original file (never resized or re-encoded), so the animation is kept. width + max-width:
+  // never wider than the GIF itself or the column; shrinks on phones; height follows.
+  const tag = `<img src="${esc(src)}" alt="${esc(s.gifAlt?.trim() || "Animated GIF")}" width="${w}" style="display:block;margin:0 auto;width:100%;max-width:${w}px;height:auto;border:0;border-radius:8px;">`;
+  return `<table ${TABLE}><tr><td align="center" style="padding:16px 0 0;">${tag}${captionHtml(s.gifCaption, siteUrl, "center")}</td></tr></table>`;
+}
+
+function jokeHtml(s: Extract<Section, { type: "joke" }>, siteUrl = "https://tcountyconnect.com") {
   if (!s.setup.trim() || !s.punchline.trim()) return "";
   return `<table ${TABLE}><tr><td style="padding:30px 0 0;"><table ${TABLE}><tr><td style="background:#FFF6EA;border-radius:12px;padding:22px 22px 20px;">` +
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr>` +
@@ -454,6 +507,7 @@ function jokeHtml(s: Extract<Section, { type: "joke" }>) {
     `<p style="margin:12px 0 0;${HEAD}font-size:19px;line-height:1.4;color:${C.navy};">${text(s.setup)}</p>` +
     `<table ${TABLE}><tr><td style="padding:14px 0 0;"><div style="border-top:2px dashed #F5C892;font-size:0;line-height:0;">&nbsp;</div></td></tr></table>` +
     `<p style="margin:12px 0 0;${BODY}font-size:17px;line-height:1.5;font-weight:700;color:${C.green};">${text(s.punchline)}</p>` +
+    jokeGifHtml(s, siteUrl) +
     `</td></tr></table></td></tr></table>`;
 }
 
@@ -503,7 +557,7 @@ export function renderSegments(m: DesignMeta, ctx: RenderContext): Segment[] {
       case "promo": buf += promoHtml(s, ctx); break;
       case "custom": buf += customHtml(s, ctx); break;
       case "toc": buf += tocHtml(s, m.content, ctx); break;
-      case "joke": buf += jokeHtml(s); break;
+      case "joke": buf += jokeHtml(s, ctx.siteUrl); break;
       case "poll":
         if (!s.poll?.id) break;
         flush();
@@ -611,11 +665,23 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
   };
   const label = (t: string) => (t.trim() ? `<h2 class="nl-label">${esc(t.trim())}</h2>` : "");
   const title = (t: string, href: string, cls = "nl-title") => `<h3 class="${cls}">${href ? `<a href="${esc(href)}">${esc(t.trim())}</a>` : esc(t.trim())}</h3>`;
-  const figure = (src: string, alt: string, href = "") => {
+  const caption = (v: string | null | undefined, tag = "figcaption") => {
+    const inner = captionInnerHtml(v, site);
+    return inner ? `<${tag} class="nl-caption">${inner}</${tag}>` : "";
+  };
+  const figure = (src: string, meta: ImageMeta, fallbackAlt: string, href = "") => {
     const s = safeUrl(src, site);
-    if (!s || (featured && norm(s) === featured)) return "";
-    const im = `<img src="${esc(s)}" alt="${esc(alt.trim())}">`;
-    return `<figure class="nl-figure">${href ? `<a href="${esc(href)}">${im}</a>` : im}</figure>`;
+    // Already shown as the page's hero image: keep its credit line, don't repeat the picture.
+    if (s && featured && norm(s) === featured) return caption(meta.imageCaption, "p");
+    if (!s) return "";
+    const im = `<img src="${esc(s)}" alt="${esc((meta.imageAlt?.trim() || fallbackAlt).trim())}">`;
+    return `<figure class="nl-figure">${href ? `<a href="${esc(href)}">${im}</a>` : im}${caption(meta.imageCaption)}</figure>`;
+  };
+  const gif = (s: Extract<Section, { type: "joke" }>) => {
+    const src = safeUrl(s.gifUrl, site);
+    if (!src) return "";
+    const w = gifDisplayWidth(s.gifWidth);
+    return `<figure class="nl-figure nl-gif"><img src="${esc(src)}" alt="${esc(s.gifAlt?.trim() || "Animated GIF")}" width="${w}">${caption(s.gifCaption)}</figure>`;
   };
   const more = (t: string, href: string) => (href ? `<p class="nl-more"><a href="${esc(href)}">${esc(t)} &rarr;</a></p>` : "");
   const btn = (t: string, href: string) => (href ? `<p class="nl-btn-row"><a class="nl-btn" href="${esc(href)}">${esc(t)}</a></p>` : "");
@@ -642,7 +708,7 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
         if (!st?.title.trim()) break;
         const href = link(st.url);
         // The page's hero image and title already lead the article: don't repeat them.
-        const img = opts.featuredImageUrl ? "" : figure(st.imageUrl, st.title, href);
+        const img = opts.featuredImageUrl ? (safeUrl(st.imageUrl, site) ? caption(st.imageCaption, "p") : "") : figure(st.imageUrl, st, st.title, href);
         const head = st.title.trim().toLowerCase() === pageTitle ? "" : title(st.title, href, "nl-title nl-title-lg");
         present.add(s.id);
         out.push(section(s.id, "nl-featured", label(s.heading) + img + head + rich(st.description) + btn(s.ctaLabel || "Read More", href)));
@@ -656,7 +722,7 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
           const key = `${s.id}:${st.id}`;
           present.add(key);
           const head = st.title.trim().toLowerCase() === pageTitle ? "" : title(st.title, href);
-          return `<div id="${anchor(key)}" class="nl-story">${figure(st.imageUrl, st.title, href)}${head}${rich(st.description)}${more("Read more", href)}</div>`;
+          return `<div id="${anchor(key)}" class="nl-story">${figure(st.imageUrl, st, st.title, href)}${head}${rich(st.description)}${more("Read more", href)}</div>`;
         }).join("")}</div>`);
         break;
       }
@@ -669,7 +735,7 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
           const d = eventDateParts(e.date);
           const meta = [d ? d.long : e.date.trim(), e.time.trim(), e.location.trim()].filter(Boolean).map(esc).join(" &middot; ");
           const badge = `<div class="nl-date" aria-hidden="true"><span class="nl-date-mon">${esc(d ? d.month : "DATE")}</span><span class="nl-date-day">${esc(d ? d.day : "—")}</span></div>`;
-          return `<div class="nl-event">${badge}<div class="nl-event-body">${title(e.title, href)}${meta ? `<p class="nl-meta">${meta}</p>` : ""}${rich(e.description)}${more("More info", href)}${figure(e.imageUrl, e.title, href)}</div></div>`;
+          return `<div class="nl-event">${badge}<div class="nl-event-body">${title(e.title, href)}${meta ? `<p class="nl-meta">${meta}</p>` : ""}${rich(e.description)}${more("More info", href)}${figure(e.imageUrl, e, e.title, href)}</div></div>`;
         }).join("")));
         break;
       }
@@ -678,7 +744,7 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
         if (!b?.name.trim()) break;
         const href = link(b.url);
         present.add(s.id);
-        out.push(section(s.id, "nl-spotlight", label(s.heading) + `<div class="nl-card">${figure(b.imageUrl, b.name, href)}${title(b.name, href)}${rich(b.text)}${more(`Visit ${b.name.trim()}`, href)}</div>`));
+        out.push(section(s.id, "nl-spotlight", label(s.heading) + `<div class="nl-card">${figure(b.imageUrl, b, b.name, href)}${title(b.name, href)}${rich(b.text)}${more(`Visit ${b.name.trim()}`, href)}</div>`));
         break;
       }
       case "weather": {
@@ -693,7 +759,7 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
         present.add(s.id);
         out.push(section(s.id, "nl-joke", `<div class="nl-joke-head"><span class="nl-joke-icon" aria-hidden="true">&#128516;</span><h2 class="nl-joke-label">${esc(s.heading.trim() || "Daily Dad Joke")}</h2></div>` +
           (s.intro.trim() ? `<p class="nl-joke-intro">${text(s.intro.trim())}</p>` : "") +
-          `<p class="nl-joke-setup">${text(s.setup.trim())}</p><p class="nl-joke-punch">${text(s.punchline.trim())}</p>`));
+          `<p class="nl-joke-setup">${text(s.setup.trim())}</p><p class="nl-joke-punch">${text(s.punchline.trim())}</p>` + gif(s)));
         break;
       case "promo": {
         if (!s.heading.trim() && !s.text.trim()) break;
@@ -705,7 +771,7 @@ export function renderWebArticle(m: DesignMeta, ctx: RenderContext, opts: WebArt
       case "custom": {
         const cta = link(s.ctaUrl);
         const imgHref = link(s.imageLink);
-        const inner = figure(s.imageUrl, s.title || s.heading, imgHref) + (s.title.trim() ? title(s.title, imgHref || cta, "nl-title nl-title-lg") : "") + rich(s.html) + (cta ? btn(s.ctaLabel || "Learn more", cta) : "");
+        const inner = figure(s.imageUrl, s, s.title || s.heading, imgHref) + (s.title.trim() ? title(s.title, imgHref || cta, "nl-title nl-title-lg") : "") + rich(s.html) + (cta ? btn(s.ctaLabel || "Learn more", cta) : "");
         if (!inner) break;
         present.add(s.id);
         out.push(section(s.id, "nl-custom", label(s.heading) + inner));
